@@ -6,4 +6,4 @@ Please do not disclose a security vulnerability in a public issue. Use GitHub's 
 
 ## Plugin trust
 
-Video ToolKit plugins are native dynamic libraries and execute with the same permissions as the application. Only load plugins from sources you trust. The project does not sandbox third-party plugins.
+Video Toolkit plugins are native dynamic libraries and execute with the same permissions as the application. Only load plugins from sources you trust. The project does not sandbox third-party plugins.

@@ -69,7 +69,7 @@ impl eframe::App for VideoToolKitApp {
             ui.add_space(8.0);
             ui.horizontal(|ui| {
                 ui.label(
-                    RichText::new("Video ToolKit")
+                    RichText::new("Video Toolkit")
                         .size(24.0)
                         .strong()
                         .color(Color32::from_rgb(99, 181, 255)),

@@ -294,7 +294,7 @@ pub mod example {
                 metadata: PluginMetadata {
                     name: "example_plugin".to_string(),
                     version: "0.1.0".to_string(),
-                    author: "Video-ToolKit Team".to_string(),
+                    author: "Video Toolkit Team".to_string(),
                     description: "An example plugin that demonstrates the plugin system"
                         .to_string(),
                     api_version: PLUGIN_API_VERSION,

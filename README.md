@@ -1,23 +1,23 @@
 <div align="center">
 
-# Video ToolKit
+# Video Toolkit
 
 **A local-first desktop app and CLI for the FFmpeg jobs you do every day.**
 
 Clip, convert, split, merge, and batch-process media without uploading files to a cloud service.
 
-[![CI](https://github.com/Alaneel/Video-ToolKit/actions/workflows/ci.yml/badge.svg)](https://github.com/Alaneel/Video-ToolKit/actions/workflows/ci.yml)
+[![CI](https://github.com/Alaneel/video-toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/Alaneel/video-toolkit/actions/workflows/ci.yml)
 [![Rust](https://img.shields.io/badge/Rust-stable-dea584?logo=rust)](https://www.rust-lang.org/)
 [![FFmpeg](https://img.shields.io/badge/FFmpeg-required-007808?logo=ffmpeg)](https://ffmpeg.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 </div>
 
-![Video ToolKit desktop interface](assets/video-toolkit-ui.png)
+![Video Toolkit desktop interface](assets/video-toolkit-ui.png)
 
-## Why Video ToolKit?
+## Why Video Toolkit?
 
-Most video utilities either hide FFmpeg behind a subscription or make simple work feel like shell scripting. Video ToolKit gives you both: a friendly native GUI for quick jobs and a composable CLI for repeatable workflows. Processing stays on your machine.
+Most video utilities either hide FFmpeg behind a subscription or make simple work feel like shell scripting. Video Toolkit gives you both: a friendly native GUI for quick jobs and a composable CLI for repeatable workflows. Processing stays on your machine.
 
 ## Highlights
 
@@ -50,8 +50,8 @@ ffprobe -version
 ### Build and launch
 
 ```bash
-git clone https://github.com/Alaneel/Video-ToolKit.git
-cd Video-ToolKit
+git clone https://github.com/Alaneel/video-toolkit.git
+cd video-toolkit
 cargo run --release
 ```
 
@@ -91,7 +91,7 @@ Every command is also available through Cargo during development by replacing `v
 
 ## Architecture
 
-Video ToolKit is a Rust workspace with small, focused crates:
+Video Toolkit is a Rust workspace with small, focused crates:
 
 ```text
 video-toolkit
@@ -137,7 +137,7 @@ CI runs the same checks on Linux, macOS, and Windows. See [CONTRIBUTING.md](CONT
 - Signed desktop release artifacts for macOS, Windows, and Linux
 - Preview thumbnails and before/after media metadata
 
-Have an idea? [Open an issue](https://github.com/Alaneel/Video-ToolKit/issues/new/choose) or send a pull request.
+Have an idea? [Open an issue](https://github.com/Alaneel/video-toolkit/issues/new/choose) or send a pull request.
 
 ## License
 

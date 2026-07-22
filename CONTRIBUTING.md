@@ -1,4 +1,4 @@
-# Contributing to Video ToolKit
+# Contributing to Video Toolkit
 
 Thanks for helping make local media tooling better. Bug fixes, documentation improvements, and focused features are welcome.
 

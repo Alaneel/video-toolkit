@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Video ToolKit are documented here. The project follows [Semantic Versioning](https://semver.org/).
+All notable changes to Video Toolkit are documented here. The project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
@@ -29,5 +29,5 @@ All notable changes to Video ToolKit are documented here. The project follows [S
 - GIF transparency processing preserves the required `0x3B` file trailer.
 - The workspace builds cleanly with Clippy warnings treated as errors.
 
-[Unreleased]: https://github.com/Alaneel/Video-ToolKit/compare/v0.2.0...HEAD
-[0.2.0]: https://github.com/Alaneel/Video-ToolKit/compare/v0.1.0...v0.2.0
+[Unreleased]: https://github.com/Alaneel/video-toolkit/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Alaneel/video-toolkit/compare/v0.1.0...v0.2.0

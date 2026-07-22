@@ -1,6 +1,6 @@
 # WebM to GIF Conversion
 
-The Video-ToolKit now includes specific support for converting WebM videos to optimized GIF format. WebM is a modern video format commonly used on the web and social media platforms.
+Video Toolkit now includes specific support for converting WebM videos to optimized GIF format. WebM is a modern video format commonly used on the web and social media platforms.
 
 ## Features
 
@@ -13,7 +13,7 @@ The Video-ToolKit now includes specific support for converting WebM videos to op
 
 ### Via GUI
 
-1. Launch the Video-ToolKit application
+1. Launch the Video Toolkit application
 2. Select the "Convert to GIF" tab
 3. Click "Browse" and select your WebM file
 4. Set your preferred output options (width, FPS, max size)
