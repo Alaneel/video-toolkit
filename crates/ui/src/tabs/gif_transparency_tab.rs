@@ -74,7 +74,8 @@ impl GifTransparencyTab {
             if ui.button("Add GIF Files").clicked() {
                 if let Some(paths) = rfd::FileDialog::new()
                     .add_filter("GIF Files", &["gif"])
-                    .pick_files() {
+                    .pick_files()
+                {
                     self.input_paths.extend(paths);
                 }
             }
@@ -96,7 +97,10 @@ impl GifTransparencyTab {
             "Process Selected GIF Files"
         };
 
-        let button = ui.add_enabled(!*self.processing.lock().unwrap(), egui::Button::new(button_text));
+        let button = ui.add_enabled(
+            !*self.processing.lock().unwrap(),
+            egui::Button::new(button_text),
+        );
 
         if button.clicked() {
             // Validate inputs
@@ -106,7 +110,8 @@ impl GifTransparencyTab {
             }
 
             if !self.directory_mode && self.input_paths.is_empty() {
-                *self.status.lock().unwrap() = "Error: Please select at least one GIF file.".to_string();
+                *self.status.lock().unwrap() =
+                    "Error: Please select at least one GIF file.".to_string();
                 return;
             }
 
@@ -134,10 +139,9 @@ impl GifTransparencyTab {
                     Ok((success_count, total_count)) => {
                         *status_clone.lock().unwrap() = format!(
                             "Successfully processed {}/{} GIF files",
-                            success_count,
-                            total_count
+                            success_count, total_count
                         );
-                    },
+                    }
                     Err(e) => {
                         *status_clone.lock().unwrap() = format!("Error: {}", e);
                     }

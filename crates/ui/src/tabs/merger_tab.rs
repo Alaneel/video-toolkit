@@ -46,14 +46,16 @@ impl MergerTab {
             if ui.button("Browse").clicked() {
                 if let Some(path) = rfd::FileDialog::new()
                     .add_filter("Video Files", &["mp4", "avi", "mov", "mkv"])
-                    .pick_file() {
+                    .pick_file()
+                {
                     self.video_file = path.to_string_lossy().to_string();
 
                     // Set default output file if not set
                     if self.output_file.is_empty() {
                         let input_path = Path::new(&self.video_file);
                         if let Some(stem) = input_path.file_stem() {
-                            let mut output_path = PathBuf::from(input_path.parent().unwrap_or_else(|| Path::new("")));
+                            let mut output_path =
+                                PathBuf::from(input_path.parent().unwrap_or_else(|| Path::new("")));
                             output_path.push(format!("{}_merged", stem.to_string_lossy()));
                             output_path.set_extension("mp4");
                             self.output_file = output_path.to_string_lossy().to_string();
@@ -66,7 +68,11 @@ impl MergerTab {
         // Audio source options
         ui.heading("Audio Source");
         ui.radio_value(&mut self.audio_source, AudioSource::File, "Use audio file");
-        ui.radio_value(&mut self.audio_source, AudioSource::Extract, "Extract from video file");
+        ui.radio_value(
+            &mut self.audio_source,
+            AudioSource::Extract,
+            "Extract from video file",
+        );
 
         // Audio input section (conditional based on audio source)
         match self.audio_source {
@@ -77,12 +83,13 @@ impl MergerTab {
                     if ui.button("Browse").clicked() {
                         if let Some(path) = rfd::FileDialog::new()
                             .add_filter("Audio Files", &["aac", "mp3", "wav", "m4a"])
-                            .pick_file() {
+                            .pick_file()
+                        {
                             self.audio_file = path.to_string_lossy().to_string();
                         }
                     }
                 });
-            },
+            }
             AudioSource::Extract => {
                 ui.horizontal(|ui| {
                     ui.label("Source Video:");
@@ -90,7 +97,8 @@ impl MergerTab {
                     if ui.button("Browse").clicked() {
                         if let Some(path) = rfd::FileDialog::new()
                             .add_filter("Video Files", &["mp4", "avi", "mov", "mkv"])
-                            .pick_file() {
+                            .pick_file()
+                        {
                             self.audio_extract_file = path.to_string_lossy().to_string();
                         }
                     }
@@ -105,7 +113,8 @@ impl MergerTab {
             if ui.button("Browse").clicked() {
                 if let Some(path) = rfd::FileDialog::new()
                     .add_filter("MP4 Files", &["mp4"])
-                    .save_file() {
+                    .save_file()
+                {
                     self.output_file = path.to_string_lossy().to_string();
 
                     // Make sure it has .mp4 extension
@@ -118,16 +127,26 @@ impl MergerTab {
 
         // Options section
         ui.heading("Options");
-        ui.checkbox(&mut self.use_shortest, "Use -shortest flag (end when shortest input stream ends)");
-        ui.checkbox(&mut self.copy_codec, "Copy codec without re-encoding (faster)");
+        ui.checkbox(
+            &mut self.use_shortest,
+            "Use -shortest flag (end when shortest input stream ends)",
+        );
+        ui.checkbox(
+            &mut self.copy_codec,
+            "Copy codec without re-encoding (faster)",
+        );
 
         // Execute button
         ui.add_space(10.0);
-        let button = ui.add_enabled(!*self.processing.lock().unwrap(), egui::Button::new("Merge Audio and Video"));
+        let button = ui.add_enabled(
+            !*self.processing.lock().unwrap(),
+            egui::Button::new("Merge Audio and Video"),
+        );
 
         if button.clicked() {
             if self.video_file.is_empty() {
-                *self.status.lock().unwrap() = "Error: Please select an input video file.".to_string();
+                *self.status.lock().unwrap() =
+                    "Error: Please select an input video file.".to_string();
                 return;
             }
 
@@ -156,8 +175,13 @@ impl MergerTab {
                 AudioSource::File => self.audio_file.clone(),
                 AudioSource::Extract => {
                     // We'll extract to a temporary file
-                    let temp_dir = Path::new(&self.output_file).parent().unwrap_or_else(|| Path::new(""));
-                    let temp_audio = temp_dir.join("temp_audio.aac").to_string_lossy().to_string();
+                    let temp_dir = Path::new(&self.output_file)
+                        .parent()
+                        .unwrap_or_else(|| Path::new(""));
+                    let temp_audio = temp_dir
+                        .join("temp_audio.aac")
+                        .to_string_lossy()
+                        .to_string();
                     temp_audio
                 }
             };
@@ -176,20 +200,21 @@ impl MergerTab {
                     match extract_audio(&audio_extract_file, &audio_source) {
                         Ok(_) => {
                             // Then merge
-                            *status_clone.lock().unwrap() = "Merging audio with video...".to_string();
+                            *status_clone.lock().unwrap() =
+                                "Merging audio with video...".to_string();
                             let merge_result = merge_audio_video(
                                 &video_file,
                                 &audio_source,
                                 &output_file,
                                 use_shortest,
-                                copy_codec
+                                copy_codec,
                             );
 
                             // Clean up temporary file
                             let _ = std::fs::remove_file(&audio_source);
 
                             merge_result
-                        },
+                        }
                         Err(e) => Err(e),
                     }
                 } else {
@@ -199,13 +224,16 @@ impl MergerTab {
                         &audio_source,
                         &output_file,
                         use_shortest,
-                        copy_codec
+                        copy_codec,
                     )
                 };
 
                 match result {
                     Ok(_) => {
-                        *status_clone.lock().unwrap() = format!("Successfully merged audio and video. Output: {}", output_file);
+                        *status_clone.lock().unwrap() = format!(
+                            "Successfully merged audio and video. Output: {}",
+                            output_file
+                        );
                     }
                     Err(e) => {
                         *status_clone.lock().unwrap() = format!("Error: {}", e);

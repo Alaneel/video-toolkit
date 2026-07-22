@@ -1,0 +1,63 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact: video-toolkit-linux-x86_64
+            binary: target/release/video-toolkit
+          - os: macos-13
+            artifact: video-toolkit-macos-x86_64
+            binary: target/release/video-toolkit
+          - os: windows-latest
+            artifact: video-toolkit-windows-x86_64
+            binary: target/release/video-toolkit.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Install Linux desktop dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev libxcb-shape0-dev libxcb-xfixes0-dev
+      - run: cargo build --release --locked
+      - name: Assemble package
+        shell: bash
+        run: |
+          mkdir package
+          cp "${{ matrix.binary }}" package/
+          cp README.md LICENSE package/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: package/
+
+  publish:
+    name: Publish GitHub release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Create archives
+        run: |
+          for directory in artifacts/*; do
+            name=$(basename "$directory")
+            tar -czf "$name.tar.gz" -C "$directory" .
+          done
+      - uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: "*.tar.gz"

@@ -1,7 +1,7 @@
-use eframe::egui::{self, Ui, Grid, ScrollArea};
+use eframe::egui::{self, Grid, ScrollArea, Ui};
+use std::collections::HashMap;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
-use std::collections::HashMap;
 use std::thread;
 
 use plugin_system::{PluginManager, PluginMetadata};
@@ -59,7 +59,8 @@ impl PluginsTab {
             // Left panel: Plugin list and actions
             let list_size = egui::vec2(300.0, 400.0);
             ui.allocate_ui(list_size, |ui| {
-                egui::ScrollArea::both().id_source("plugins_list_scroll")
+                egui::ScrollArea::both()
+                    .id_source("plugins_list_scroll")
                     .show(ui, |ui| {
                         self.plugin_list_ui(ui);
                     });
@@ -70,7 +71,8 @@ impl PluginsTab {
             // Right panel: Plugin details and execution
             let details_size = egui::vec2(400.0, 400.0);
             ui.allocate_ui(details_size, |ui| {
-                egui::ScrollArea::both().id_source("plugins_details_scroll")
+                egui::ScrollArea::both()
+                    .id_source("plugins_details_scroll")
                     .show(ui, |ui| {
                         self.plugin_details_ui(ui);
                     });
@@ -106,7 +108,9 @@ impl PluginsTab {
         // Plugin list
         ScrollArea::vertical().show(ui, |ui| {
             if self.plugin_list.is_empty() {
-                ui.label("No plugins loaded. Use 'Discover Plugins' or 'Load Plugin' to find plugins.");
+                ui.label(
+                    "No plugins loaded. Use 'Discover Plugins' or 'Load Plugin' to find plugins.",
+                );
             } else {
                 ui.heading("Installed Plugins");
 
@@ -116,13 +120,16 @@ impl PluginsTab {
 
                 for (i, plugin) in self.plugin_list.iter().enumerate() {
                     let is_selected = current_selected == Some(i);
-                    let selection_ui = ui.selectable_label(is_selected, format!("{} v{}", plugin.name, plugin.version));
+                    let selection_ui = ui.selectable_label(
+                        is_selected,
+                        format!("{} v{}", plugin.name, plugin.version),
+                    );
 
                     if selection_ui.clicked() {
                         clicked_idx = Some(i);
                     }
                 }
-                
+
                 // Handle selection changes after the loop
                 if let Some(idx) = clicked_idx {
                     if current_selected == Some(idx) {
@@ -142,10 +149,10 @@ impl PluginsTab {
             ui.label("Plugin File:");
             ui.text_edit_singleline(&mut self.plugin_path);
             if ui.button("Browse").clicked() {
-
                 if let Some(path) = rfd::FileDialog::new()
-                    .add_filter("Plugin Files", &self.get_platform_plugin_extension())
-                    .pick_file() {
+                    .add_filter("Plugin Files", self.get_platform_plugin_extension())
+                    .pick_file()
+                {
                     self.plugin_path = path.to_string_lossy().to_string();
                 }
             }
@@ -172,7 +179,6 @@ impl PluginsTab {
 
                 // Get the plugin to show parameter info
                 if let Some(param_info) = self.plugin_manager.get_plugin_parameters(&plugin.name) {
-
                     if !param_info.is_empty() {
                         ui.heading("Parameters");
 
@@ -181,8 +187,10 @@ impl PluginsTab {
                             for (i, info) in param_info.iter().enumerate() {
                                 // Ensure we have a parameter entry for this info
                                 if i >= self.execution_parameters.len() {
-                                    let default_value = info.default_value.clone().unwrap_or_default();
-                                    self.execution_parameters.push((info.name.clone(), default_value));
+                                    let default_value =
+                                        info.default_value.clone().unwrap_or_default();
+                                    self.execution_parameters
+                                        .push((info.name.clone(), default_value));
                                 }
 
                                 let required_text = if info.required { " (*)" } else { "" };
@@ -252,19 +260,18 @@ impl PluginsTab {
             if failure_count > 0 {
                 *status_clone.lock().unwrap() = format!(
                     "Discovered {} plugin(s), {} failed to load.",
-                    success_count,
-                    failure_count
+                    success_count, failure_count
                 );
             } else if success_count > 0 {
-                *status_clone.lock().unwrap() = format!("Successfully discovered {} plugin(s).", success_count);
+                *status_clone.lock().unwrap() =
+                    format!("Successfully discovered {} plugin(s).", success_count);
             } else {
                 *status_clone.lock().unwrap() = "No plugins found.".to_string();
             }
 
             // Update plugin list
-            *plugin_list_clone.lock().unwrap() = results.into_iter()
-                .filter_map(|r| r.ok())
-                .collect();
+            *plugin_list_clone.lock().unwrap() =
+                results.into_iter().filter_map(|r| r.ok()).collect();
 
             *processing_clone.lock().unwrap() = false;
         });
@@ -299,7 +306,7 @@ impl PluginsTab {
             match plugin_manager.load_plugin(Path::new(&path)) {
                 Ok(()) => {
                     *status_clone.lock().unwrap() = "Plugin loaded successfully.".to_string();
-                },
+                }
                 Err(e) => {
                     *status_clone.lock().unwrap() = format!("Error loading plugin: {}", e);
                 }
@@ -371,10 +378,12 @@ impl PluginsTab {
                     // Execute the plugin
                     match plugin_manager.execute_plugin(&plugin_name, params) {
                         Ok(()) => {
-                            *status_clone.lock().unwrap() = format!("Plugin '{}' executed successfully.", plugin_name);
-                        },
+                            *status_clone.lock().unwrap() =
+                                format!("Plugin '{}' executed successfully.", plugin_name);
+                        }
                         Err(e) => {
-                            *status_clone.lock().unwrap() = format!("Error executing plugin: {}", e);
+                            *status_clone.lock().unwrap() =
+                                format!("Error executing plugin: {}", e);
                         }
                     }
 

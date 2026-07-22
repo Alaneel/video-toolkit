@@ -1,5 +1,5 @@
-use std::path::Path;
 use std::fmt;
+use std::path::Path;
 use std::str::FromStr;
 
 use thiserror::Error;
@@ -55,7 +55,10 @@ impl VideoFormat {
 
     /// Check if the format is a web-friendly format
     pub fn is_web_friendly(&self) -> bool {
-        matches!(self, VideoFormat::MP4 | VideoFormat::WebM | VideoFormat::OGV)
+        matches!(
+            self,
+            VideoFormat::MP4 | VideoFormat::WebM | VideoFormat::OGV
+        )
     }
 
     /// Check if the format supports transparency
@@ -240,7 +243,10 @@ impl ImageFormat {
 
     /// Check if the format supports transparency
     pub fn supports_transparency(&self) -> bool {
-        matches!(self, ImageFormat::GIF | ImageFormat::PNG | ImageFormat::WEBP)
+        matches!(
+            self,
+            ImageFormat::GIF | ImageFormat::PNG | ImageFormat::WEBP
+        )
     }
 
     /// Check if the format supports animation

@@ -35,7 +35,8 @@ impl SplitterTab {
             if ui.button("Browse").clicked() {
                 if let Some(path) = rfd::FileDialog::new()
                     .add_filter("Video Files", &["mp4", "avi", "mov", "mkv"])
-                    .pick_file() {
+                    .pick_file()
+                {
                     self.input_file = path.to_string_lossy().to_string();
 
                     // Set default output dir if not set
@@ -51,8 +52,7 @@ impl SplitterTab {
         ui.horizontal(|ui| {
             ui.text_edit_singleline(&mut self.output_dir);
             if ui.button("Browse").clicked() {
-                if let Some(path) = rfd::FileDialog::new()
-                    .pick_folder() {
+                if let Some(path) = rfd::FileDialog::new().pick_folder() {
                     self.output_dir = path.to_string_lossy().to_string();
                 }
             }
@@ -72,15 +72,22 @@ impl SplitterTab {
             ui.label("(advanced users only)");
         });
 
-        ui.checkbox(&mut self.force, "Force (process even if video dimensions are not 1920x1080)");
+        ui.checkbox(
+            &mut self.force,
+            "Force (process even if video dimensions are not 1920x1080)",
+        );
 
         // Execute button
         ui.add_space(10.0);
-        let button = ui.add_enabled(!*self.processing.lock().unwrap(), egui::Button::new("Split Video"));
+        let button = ui.add_enabled(
+            !*self.processing.lock().unwrap(),
+            egui::Button::new("Split Video"),
+        );
 
         if button.clicked() {
             if self.input_file.is_empty() {
-                *self.status.lock().unwrap() = "Error: Please select an input video file.".to_string();
+                *self.status.lock().unwrap() =
+                    "Error: Please select an input video file.".to_string();
                 return;
             }
 
@@ -92,7 +99,11 @@ impl SplitterTab {
             let input_file = self.input_file.clone();
             let output_dir = self.output_dir.clone();
             let prefix = self.prefix.clone();
-            let encode_options = if self.encode_options.is_empty() { None } else { Some(self.encode_options.clone()) };
+            let encode_options = if self.encode_options.is_empty() {
+                None
+            } else {
+                Some(self.encode_options.clone())
+            };
             let force = self.force;
             let status_clone = Arc::clone(&self.status);
             let processing_clone = Arc::clone(&self.processing);
@@ -103,12 +114,15 @@ impl SplitterTab {
                     &output_dir,
                     &prefix,
                     encode_options.as_deref(),
-                    force
+                    force,
                 );
 
                 match result {
                     Ok(true) => {
-                        *status_clone.lock().unwrap() = format!("Successfully split video into 5 slices. Files saved in: {}", output_dir);
+                        *status_clone.lock().unwrap() = format!(
+                            "Successfully split video into 5 slices. Files saved in: {}",
+                            output_dir
+                        );
                     }
                     Ok(false) => {
                         *status_clone.lock().unwrap() = "Completed with some errors.".to_string();
