@@ -6,8 +6,8 @@ edition = "2021"
 [dependencies]
 common = { path = "../common" }
 anyhow = "1.0.75"
-thiserror = "1.0.48"
-libloading = "0.7.4"  # For dynamic library loading
+thiserror = "2.0.19"
+libloading = "0.8.6"  # For dynamic library loading
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 

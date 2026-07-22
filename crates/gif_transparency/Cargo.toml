@@ -8,4 +8,4 @@ common = { path = "../common" }
 anyhow = "1.0.75"
 walkdir = "2.3.3"    # For traversing directories recursively
 rayon = "1.7.0"      # For parallel processing
-indicatif = "0.17.5" # For progress bars
+indicatif = "0.18.6" # For progress bars

@@ -14,9 +14,9 @@ batch_processing = { path = "../batch_processing" }
 profile_system = { path = "../profile_system" }
 plugin_system = { path = "../plugin_system" }
 
-eframe = "0.24.0"
-egui = "0.24.0"
-rfd = "0.12.0"
+eframe = "0.29.1"
+egui = "0.29.1"
+rfd = "0.17.2"
 anyhow = "1.0.75"
 chrono = { version = "0.4.24", features = ["serde"] }
 
