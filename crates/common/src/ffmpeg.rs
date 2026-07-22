@@ -1,8 +1,8 @@
-use std::path::Path;
-use crate::formats::{FormatType, detect_format};
-use std::process::{Command, Output};
-use regex::Regex;
+use crate::formats::{detect_format, FormatType};
 use lazy_static::lazy_static;
+use regex::Regex;
+use std::path::Path;
+use std::process::{Command, Output};
 
 use crate::error::{Result, VideoToolkitError};
 
@@ -11,7 +11,7 @@ pub fn check_ffmpeg() -> bool {
     Command::new("ffmpeg")
         .arg("-version")
         .output()
-        .map(|_| true)
+        .map(|output| output.status.success())
         .unwrap_or(false)
 }
 
@@ -20,11 +20,13 @@ pub fn execute_ffmpeg(args: &[&str]) -> Result<Output> {
     let output = Command::new("ffmpeg")
         .args(args)
         .output()
-        .map_err(|e| VideoToolkitError::IoError(e))?;
+        .map_err(VideoToolkitError::IoError)?;
 
     if !output.status.success() {
         let error_message = String::from_utf8_lossy(&output.stderr);
-        return Err(VideoToolkitError::FFmpegCommandFailed(error_message.to_string()));
+        return Err(VideoToolkitError::FFmpegCommandFailed(
+            error_message.to_string(),
+        ));
     }
 
     Ok(output)
@@ -33,19 +35,25 @@ pub fn execute_ffmpeg(args: &[&str]) -> Result<Output> {
 /// Get video dimensions using FFprobe
 pub fn get_video_dimensions(file_path: &str) -> Result<(u32, u32)> {
     let output = Command::new("ffprobe")
-        .args(&[
-            "-v", "error",
-            "-select_streams", "v:0",
-            "-show_entries", "stream=width,height",
-            "-of", "csv=p=0",
-            file_path
+        .args([
+            "-v",
+            "error",
+            "-select_streams",
+            "v:0",
+            "-show_entries",
+            "stream=width,height",
+            "-of",
+            "csv=p=0",
+            file_path,
         ])
         .output()
-        .map_err(|e| VideoToolkitError::IoError(e))?;
+        .map_err(VideoToolkitError::IoError)?;
 
     if !output.status.success() {
         let error_message = String::from_utf8_lossy(&output.stderr);
-        return Err(VideoToolkitError::FFmpegCommandFailed(error_message.to_string()));
+        return Err(VideoToolkitError::FFmpegCommandFailed(
+            error_message.to_string(),
+        ));
     }
 
     let dimensions = String::from_utf8_lossy(&output.stdout);
@@ -55,9 +63,11 @@ pub fn get_video_dimensions(file_path: &str) -> Result<(u32, u32)> {
         return Err(VideoToolkitError::DimensionsError);
     }
 
-    let width = parts[0].parse::<u32>()
+    let width = parts[0]
+        .parse::<u32>()
         .map_err(|_| VideoToolkitError::DimensionsError)?;
-    let height = parts[1].parse::<u32>()
+    let height = parts[1]
+        .parse::<u32>()
         .map_err(|_| VideoToolkitError::DimensionsError)?;
 
     Ok((width, height))
@@ -85,7 +95,34 @@ lazy_static! {
 
 /// Validate timestamp format (HH:MM:SS or MM:SS or SS or HH:MM:SS.mmm)
 pub fn validate_timestamp(timestamp: &str) -> bool {
-    TIMESTAMP_PATTERNS.iter().any(|pattern| pattern.is_match(timestamp))
+    TIMESTAMP_PATTERNS
+        .iter()
+        .any(|pattern| pattern.is_match(timestamp))
+        && timestamp_to_seconds(timestamp).is_some()
+}
+
+fn timestamp_to_seconds(timestamp: &str) -> Option<f64> {
+    let parts: Vec<&str> = timestamp.split(':').collect();
+    let (hours, minutes, seconds) = match parts.as_slice() {
+        [seconds] => (0.0, 0.0, seconds.parse::<f64>().ok()?),
+        [minutes, seconds] => (
+            0.0,
+            minutes.parse::<f64>().ok()?,
+            seconds.parse::<f64>().ok()?,
+        ),
+        [hours, minutes, seconds] => (
+            hours.parse::<f64>().ok()?,
+            minutes.parse::<f64>().ok()?,
+            seconds.parse::<f64>().ok()?,
+        ),
+        _ => return None,
+    };
+
+    if hours < 0.0 || minutes < 0.0 || seconds < 0.0 || minutes >= 60.0 || seconds >= 60.0 {
+        return None;
+    }
+
+    Some(hours * 3600.0 + minutes * 60.0 + seconds)
 }
 
 /// Validate time range format (start-end)
@@ -102,7 +139,10 @@ pub fn validate_time_range(time_range: &str) -> Option<(String, String)> {
         return None;
     }
 
-    Some((start_time.to_string(), end_time.to_string()))
+    let start_seconds = timestamp_to_seconds(start_time)?;
+    let end_seconds = timestamp_to_seconds(end_time)?;
+
+    (start_seconds < end_seconds).then(|| (start_time.to_string(), end_time.to_string()))
 }
 
 /// Get file size in megabytes
@@ -160,27 +200,34 @@ pub fn get_codec_options(format: &str) -> Vec<String> {
 
         // Default to H.264 + AAC
         _ => vec!["-c:v", "libx264", "-c:a", "aac"],
-    }.iter().map(|s| s.to_string()).collect()
+    }
+    .iter()
+    .map(|s| s.to_string())
+    .collect()
 }
 
 /// Check if a format is supported for a specific operation
 pub fn is_format_supported_for_operation(format: &str, operation: &str) -> bool {
     match operation {
         "clipper" => {
-            matches!(format.to_lowercase().as_str(),
-                "mp4" | "mkv" | "avi" | "mov" | "webm" | "flv" | "ts" | "m4v" | "mpeg" | "ogv")
-        },
+            matches!(
+                format.to_lowercase().as_str(),
+                "mp4" | "mkv" | "avi" | "mov" | "webm" | "flv" | "ts" | "m4v" | "mpeg" | "ogv"
+            )
+        }
         "gif_converter" => {
-            matches!(format.to_lowercase().as_str(),
-                "mp4" | "mkv" | "avi" | "mov" | "webm" | "flv")
-        },
-        "gif_transparency" => {
-            format.to_lowercase() == "gif"
-        },
+            matches!(
+                format.to_lowercase().as_str(),
+                "mp4" | "mkv" | "avi" | "mov" | "webm" | "flv"
+            )
+        }
+        "gif_transparency" => format.to_lowercase() == "gif",
         "splitter" => {
-            matches!(format.to_lowercase().as_str(),
-                "mp4" | "mkv" | "avi" | "mov" | "webm")
-        },
+            matches!(
+                format.to_lowercase().as_str(),
+                "mp4" | "mkv" | "avi" | "mov" | "webm"
+            )
+        }
         "merger" => {
             // Audio formats for the audio component
             matches!(format.to_lowercase().as_str(),
@@ -188,7 +235,7 @@ pub fn is_format_supported_for_operation(format: &str, operation: &str) -> bool 
                 // Video formats for the video component
                 matches!(format.to_lowercase().as_str(),
                 "mp4" | "mkv" | "avi" | "mov" | "webm" | "flv")
-        },
+        }
         _ => false,
     }
 }
@@ -196,29 +243,62 @@ pub fn is_format_supported_for_operation(format: &str, operation: &str) -> bool 
 /// Get all supported formats for a specific operation
 pub fn get_supported_formats(operation: &str) -> Vec<String> {
     match operation {
-        "clipper" => {
-            vec!["mp4", "mkv", "avi", "mov", "webm", "flv", "ts", "m4v", "mpeg", "ogv"]
-                .iter().map(|s| s.to_string()).collect()
-        },
-        "gif_converter" => {
-            vec!["mp4", "mkv", "avi", "mov", "webm", "flv"]
-                .iter().map(|s| s.to_string()).collect()
-        },
-        "gif_transparency" => {
-            vec!["gif"].iter().map(|s| s.to_string()).collect()
-        },
-        "splitter" => {
-            vec!["mp4", "mkv", "avi", "mov", "webm"]
-                .iter().map(|s| s.to_string()).collect()
-        },
+        "clipper" => [
+            "mp4", "mkv", "avi", "mov", "webm", "flv", "ts", "m4v", "mpeg", "ogv",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect(),
+        "gif_converter" => ["mp4", "mkv", "avi", "mov", "webm", "flv"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect(),
+        "gif_transparency" => ["gif"].iter().map(|s| s.to_string()).collect(),
+        "splitter" => ["mp4", "mkv", "avi", "mov", "webm"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect(),
         "merger" => {
             // Audio formats
             let audio = vec!["mp3", "aac", "wav", "flac", "ogg", "m4a"];
             // Video formats
             let video = vec!["mp4", "mkv", "avi", "mov", "webm", "flv"];
 
-            [audio, video].concat().iter().map(|s| s.to_string()).collect()
-        },
+            [audio, video]
+                .concat()
+                .iter()
+                .map(|s| s.to_string())
+                .collect()
+        }
         _ => Vec::new(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{validate_time_range, validate_timestamp};
+
+    #[test]
+    fn accepts_supported_timestamp_forms() {
+        for timestamp in ["12", "12.5", "02:12", "01:02:03", "01:02:03.250"] {
+            assert!(validate_timestamp(timestamp), "{timestamp} should be valid");
+        }
+    }
+
+    #[test]
+    fn rejects_out_of_range_components() {
+        for timestamp in ["", "1:60", "00:00:60", "1:2:03", "-1"] {
+            assert!(
+                !validate_timestamp(timestamp),
+                "{timestamp} should be invalid"
+            );
+        }
+    }
+
+    #[test]
+    fn requires_a_forward_time_range() {
+        assert!(validate_time_range("00:10-00:20").is_some());
+        assert!(validate_time_range("00:20-00:10").is_none());
+        assert!(validate_time_range("00:10-00:10").is_none());
     }
 }

@@ -1,22 +1,18 @@
+use clap::{Parser, Subcommand};
 use eframe::NativeOptions;
-use clap::{Parser, Subcommand, ArgGroup};
-use std::path::{Path, PathBuf};
 use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 
-use common::{check_ffmpeg, formats::*, get_supported_formats};
+use batch_processing::BatchProcessor;
 use clipper::{clip_video, parse_time_ranges};
+use common::{check_ffmpeg, formats::*, get_supported_formats};
 use gif_converter::{convert_video_to_gif, optimize_conversion};
 use gif_transparency::{batch_process_gifs, process_directory};
-use splitter::split_video;
 use merger::merge_audio_video;
-use ui::VideoToolKitApp;
 use plugin_system::PluginManager;
-use profile_system::{ProfileManager, Profile, ProfileType};
-use batch_processing::{
-    BatchProcessor, BatchOperation, BatchClipperConfig,
-    BatchGifConverterConfig, BatchGifTransparencyConfig,
-    BatchSplitterConfig, BatchMergerConfig
-};
+use profile_system::{Profile, ProfileManager, ProfileType};
+use splitter::split_video;
+use ui::VideoToolKitApp;
 
 #[derive(Parser)]
 #[clap(author, version, about = "Video processing utilities")]
@@ -79,7 +75,7 @@ enum Commands {
         optimize: bool,
     },
 
-    /// Make GIF backgrounds transparent by modifying trailer byte
+    /// Make the GIF logical background color transparent
     GifTransparency {
         /// Input GIF files or directories
         #[clap(required = true)]
@@ -482,28 +478,48 @@ enum BatchCommands {
 }
 
 fn main() -> Result<(), eframe::Error> {
-    // Check if FFmpeg is installed
-    if !check_ffmpeg() {
+    // Parse command-line arguments
+    let cli = Cli::parse();
+
+    // Keep metadata commands such as --help and --version available on machines
+    // where FFmpeg has not been installed yet. The GUI renders its own setup hint.
+    if cli.command.is_some() && !check_ffmpeg() {
         eprintln!("Error: FFmpeg is not installed or not found in PATH. Please install FFmpeg.");
         std::process::exit(1);
     }
 
-    // Parse command-line arguments
-    let cli = Cli::parse();
-
     // Run GUI if no subcommand is provided
     if cli.command.is_none() {
-        let options = NativeOptions::default();
+        let options = NativeOptions {
+            viewport: egui::ViewportBuilder::default()
+                .with_inner_size([1080.0, 720.0])
+                .with_min_inner_size([860.0, 600.0]),
+            ..Default::default()
+        };
         return eframe::run_native(
             "Video-ToolKit",
             options,
-            Box::new(|_cc| Box::new(VideoToolKitApp::default()))
+            Box::new(|cc| {
+                let mut visuals = egui::Visuals::dark();
+                visuals.widgets.active.bg_fill = egui::Color32::from_rgb(38, 125, 190);
+                visuals.widgets.hovered.bg_fill = egui::Color32::from_rgb(45, 68, 86);
+                visuals.selection.bg_fill = egui::Color32::from_rgb(29, 104, 156);
+                cc.egui_ctx.set_visuals(visuals);
+                Box::new(VideoToolKitApp::default())
+            }),
         );
     }
 
     // Otherwise, run the appropriate command-line tool
     match cli.command.unwrap() {
-        Commands::Clipper { input, ranges, output_dir, copy_codec, suffix, format } => {
+        Commands::Clipper {
+            input,
+            ranges,
+            output_dir,
+            copy_codec,
+            suffix,
+            format: _,
+        } => {
             println!("Running clipper...");
 
             let time_ranges = parse_time_ranges(&ranges);
@@ -512,20 +528,33 @@ fn main() -> Result<(), eframe::Error> {
                 std::process::exit(1);
             }
 
-            match clip_video(&input, &time_ranges, &output_dir, copy_codec, suffix.as_deref()) {
+            match clip_video(
+                &input,
+                &time_ranges,
+                &output_dir,
+                copy_codec,
+                suffix.as_deref(),
+            ) {
                 Ok(true) => println!("Successfully extracted all {} clip(s).", time_ranges.len()),
                 Ok(false) => {
                     eprintln!("Completed with some errors.");
                     std::process::exit(1);
-                },
+                }
                 Err(e) => {
                     eprintln!("Error: {}", e);
                     std::process::exit(1);
                 }
             }
-        },
+        }
 
-        Commands::GifConverter { input, output, width, fps, max_size, optimize } => {
+        Commands::GifConverter {
+            input,
+            output,
+            width,
+            fps,
+            max_size,
+            optimize,
+        } => {
             println!("Running GIF converter...");
 
             // Determine output filename if not provided
@@ -535,11 +564,15 @@ fn main() -> Result<(), eframe::Error> {
                     let input_path = std::path::Path::new(&input);
                     match input_path.file_stem() {
                         Some(stem) => {
-                            let mut output_path = std::path::PathBuf::from(input_path.parent().unwrap_or_else(|| std::path::Path::new("")));
+                            let mut output_path = std::path::PathBuf::from(
+                                input_path
+                                    .parent()
+                                    .unwrap_or_else(|| std::path::Path::new("")),
+                            );
                             output_path.push(stem);
                             output_path.set_extension("gif");
                             output_path.to_string_lossy().to_string()
-                        },
+                        }
                         None => {
                             eprintln!("Error: Could not determine output filename.");
                             std::process::exit(1);
@@ -559,67 +592,110 @@ fn main() -> Result<(), eframe::Error> {
                 Ok(false) => {
                     eprintln!("Output file exceeds size limit (> {}MB).", max_size);
                     std::process::exit(1);
-                },
+                }
                 Err(e) => {
                     eprintln!("Error: {}", e);
                     std::process::exit(1);
                 }
             }
-        },
+        }
 
-        Commands::GifTransparency { inputs, recursive, backup } => {
+        Commands::GifTransparency {
+            inputs,
+            recursive,
+            backup,
+        } => {
             println!("Processing GIF files for transparency...");
 
             match batch_process_gifs(&inputs, recursive, backup) {
                 Ok((success_count, total_count)) => {
-                    println!("Successfully processed {}/{} GIF files", success_count, total_count);
+                    println!(
+                        "Successfully processed {}/{} GIF files",
+                        success_count, total_count
+                    );
                     if success_count < total_count {
-                        eprintln!("Failed to process {} GIF files", total_count - success_count);
+                        eprintln!(
+                            "Failed to process {} GIF files",
+                            total_count - success_count
+                        );
                         std::process::exit(1);
                     }
-                },
+                }
                 Err(e) => {
                     eprintln!("Error: {}", e);
                     std::process::exit(1);
                 }
             }
-        },
+        }
 
-        Commands::GifTransparencyDir { directory, recursive, backup } => {
+        Commands::GifTransparencyDir {
+            directory,
+            recursive,
+            backup,
+        } => {
             println!("Processing all GIFs in directory: {}", directory);
 
             match process_directory(&directory, recursive, backup) {
                 Ok((success_count, total_count)) => {
-                    println!("Successfully processed {}/{} GIF files", success_count, total_count);
+                    println!(
+                        "Successfully processed {}/{} GIF files",
+                        success_count, total_count
+                    );
                     if success_count < total_count {
-                        eprintln!("Failed to process {} GIF files", total_count - success_count);
+                        eprintln!(
+                            "Failed to process {} GIF files",
+                            total_count - success_count
+                        );
                         std::process::exit(1);
                     }
-                },
+                }
                 Err(e) => {
                     eprintln!("Error: {}", e);
                     std::process::exit(1);
                 }
             }
-        },
+        }
 
-        Commands::Splitter { input, output_dir, prefix, custom_encode, force, format } => {
+        Commands::Splitter {
+            input,
+            output_dir,
+            prefix,
+            custom_encode,
+            force,
+            format: _,
+        } => {
             println!("Running video splitter...");
 
-            match split_video(&input, &output_dir, &prefix, custom_encode.as_deref(), force) {
-                Ok(true) => println!("Successfully split video into 5 slices. Files saved in: {}", output_dir),
+            match split_video(
+                &input,
+                &output_dir,
+                &prefix,
+                custom_encode.as_deref(),
+                force,
+            ) {
+                Ok(true) => println!(
+                    "Successfully split video into 5 slices. Files saved in: {}",
+                    output_dir
+                ),
                 Ok(false) => {
                     eprintln!("Completed with some errors.");
                     std::process::exit(1);
-                },
+                }
                 Err(e) => {
                     eprintln!("Error: {}", e);
                     std::process::exit(1);
                 }
             }
-        },
+        }
 
-        Commands::Merger { video, audio, output, shortest, copy_codec, format } => {
+        Commands::Merger {
+            video,
+            audio,
+            output,
+            shortest,
+            copy_codec,
+            format: _,
+        } => {
             println!("Running audio/video merger...");
 
             match merge_audio_video(&video, &audio, &output, shortest, copy_codec) {
@@ -629,19 +705,19 @@ fn main() -> Result<(), eframe::Error> {
                     std::process::exit(1);
                 }
             }
-        },
+        }
 
         Commands::Plugin(plugin_cmd) => {
             handle_plugin_command(plugin_cmd);
-        },
+        }
 
         Commands::Profile(profile_cmd) => {
             handle_profile_command(profile_cmd);
-        },
+        }
 
         Commands::Batch(batch_cmd) => {
             handle_batch_command(batch_cmd);
-        },
+        }
 
         Commands::Formats { operation } => {
             if let Some(operation) = operation {
@@ -649,7 +725,11 @@ fn main() -> Result<(), eframe::Error> {
                 if formats.is_empty() {
                     println!("No supported formats found for operation: {}", operation);
                 } else {
-                    println!("Supported formats for {}: {}", operation, formats.join(", "));
+                    println!(
+                        "Supported formats for {}: {}",
+                        operation,
+                        formats.join(", ")
+                    );
                 }
             } else {
                 // List all formats by category
@@ -668,7 +748,7 @@ fn main() -> Result<(), eframe::Error> {
                     println!("  .{} - {}", format.extension(), format.mime_type());
                 }
             }
-        },
+        }
     }
 
     Ok(())
@@ -696,7 +776,7 @@ fn handle_plugin_command(cmd: PluginCommands) {
                 println!("  {} v{} by {}", meta.name, meta.version, meta.author);
                 println!("    {}", meta.description);
             }
-        },
+        }
 
         PluginCommands::Load { path } => {
             match plugin_manager.load_plugin(Path::new(&path)) {
@@ -705,13 +785,17 @@ fn handle_plugin_command(cmd: PluginCommands) {
 
                     // Display plugin info
                     let plugin_name = Path::new(&path).file_stem().unwrap().to_string_lossy();
-                    if let Some(meta) = plugin_manager.with_plugin(&plugin_name, |plugin| plugin.metadata()) {
+                    if let Some(meta) =
+                        plugin_manager.with_plugin(&plugin_name, |plugin| plugin.metadata())
+                    {
                         println!("Name: {} v{}", meta.name, meta.version);
                         println!("Author: {}", meta.author);
                         println!("Description: {}", meta.description);
 
                         // Show parameters
-                        let params = plugin_manager.get_plugin_parameters(&plugin_name).unwrap_or_default();
+                        let params = plugin_manager
+                            .get_plugin_parameters(&plugin_name)
+                            .unwrap_or_default();
                         if !params.is_empty() {
                             println!("Parameters:");
                             for param in params {
@@ -721,17 +805,20 @@ fn handle_plugin_command(cmd: PluginCommands) {
                                     None => String::new(),
                                 };
 
-                                println!("  {}{}{} - {}", param.name, required, default, param.description);
+                                println!(
+                                    "  {}{}{} - {}",
+                                    param.name, required, default, param.description
+                                );
                             }
                         }
                     }
-                },
+                }
                 Err(e) => {
                     eprintln!("Error loading plugin: {}", e);
                     std::process::exit(1);
                 }
             }
-        },
+        }
 
         PluginCommands::Run { name, params } => {
             // Check if plugin exists
@@ -770,7 +857,7 @@ fn handle_plugin_command(cmd: PluginCommands) {
                     std::process::exit(1);
                 }
             }
-        },
+        }
 
         PluginCommands::Discover => {
             let results = plugin_manager.discover_plugins();
@@ -794,7 +881,7 @@ fn handle_plugin_command(cmd: PluginCommands) {
                     println!("  Error: {}", error);
                 }
             }
-        },
+        }
     }
 }
 
@@ -832,7 +919,7 @@ fn handle_profile_command(cmd: ProfileCommands) {
                         for name in profiles {
                             println!("  {}", name);
                         }
-                    },
+                    }
                     Err(e) => {
                         eprintln!("Error listing profiles: {}", e);
                         std::process::exit(1);
@@ -856,14 +943,14 @@ fn handle_profile_command(cmd: ProfileCommands) {
                                 }
                             }
                         }
-                    },
+                    }
                     Err(e) => {
                         eprintln!("Error listing profiles: {}", e);
                         std::process::exit(1);
                     }
                 }
             }
-        },
+        }
 
         ProfileCommands::Show { name, profile_type } => {
             let profile_type = match profile_type.as_str() {
@@ -887,15 +974,20 @@ fn handle_profile_command(cmd: ProfileCommands) {
                     for (key, value) in profile.parameters {
                         println!("  {} = {}", key, value);
                     }
-                },
+                }
                 Err(e) => {
                     eprintln!("Error loading profile: {}", e);
                     std::process::exit(1);
                 }
             }
-        },
+        }
 
-        ProfileCommands::Create { name, profile_type, description, params } => {
+        ProfileCommands::Create {
+            name,
+            profile_type,
+            description,
+            params,
+        } => {
             // Parse parameters
             let mut parameters = HashMap::new();
             for param in params {
@@ -931,7 +1023,7 @@ fn handle_profile_command(cmd: ProfileCommands) {
                     std::process::exit(1);
                 }
             }
-        },
+        }
 
         ProfileCommands::Delete { name, profile_type } => {
             let profile_type = match profile_type.as_str() {
@@ -950,7 +1042,7 @@ fn handle_profile_command(cmd: ProfileCommands) {
                     std::process::exit(1);
                 }
             }
-        },
+        }
 
         ProfileCommands::Import { path } => {
             match profile_manager.import_profile(Path::new(&path)) {
@@ -960,9 +1052,13 @@ fn handle_profile_command(cmd: ProfileCommands) {
                     std::process::exit(1);
                 }
             }
-        },
+        }
 
-        ProfileCommands::Export { name, profile_type, output } => {
+        ProfileCommands::Export {
+            name,
+            profile_type,
+            output,
+        } => {
             let profile_type = match profile_type.as_str() {
                 "clipper" => ProfileType::Clipper,
                 "gif_converter" => ProfileType::GifConverter,
@@ -979,13 +1075,23 @@ fn handle_profile_command(cmd: ProfileCommands) {
                     std::process::exit(1);
                 }
             }
-        },
+        }
     }
 }
 
 fn handle_batch_command(cmd: BatchCommands) {
     match cmd {
-        BatchCommands::Clipper { inputs, recursive, pattern, output_dir, ranges, copy_codec, suffix, parallel, format } => {
+        BatchCommands::Clipper {
+            inputs,
+            recursive,
+            pattern,
+            output_dir,
+            ranges,
+            copy_codec,
+            suffix,
+            parallel,
+            format: _,
+        } => {
             println!("Running batch clipper...");
 
             // Parse time ranges
@@ -1000,7 +1106,7 @@ fn handle_batch_command(cmd: BatchCommands) {
                 &ranges,
                 Path::new(&output_dir),
                 copy_codec,
-                suffix.as_deref()
+                suffix.as_deref(),
             ) {
                 Ok(p) => p,
                 Err(e) => {
@@ -1026,7 +1132,11 @@ fn handle_batch_command(cmd: BatchCommands) {
             match processor.process(&inputs) {
                 Ok(results) => {
                     let success_count = results.iter().filter(|r| r.success).count();
-                    println!("Successfully processed {}/{} files.", success_count, results.len());
+                    println!(
+                        "Successfully processed {}/{} files.",
+                        success_count,
+                        results.len()
+                    );
 
                     if success_count < results.len() {
                         eprintln!("Errors occurred during processing:");
@@ -1037,15 +1147,25 @@ fn handle_batch_command(cmd: BatchCommands) {
                         }
                         std::process::exit(1);
                     }
-                },
+                }
                 Err(e) => {
                     eprintln!("Error during batch processing: {}", e);
                     std::process::exit(1);
                 }
             }
-        },
+        }
 
-        BatchCommands::GifConverter { inputs, recursive, pattern, output_dir, width, fps, max_size, optimize, parallel } => {
+        BatchCommands::GifConverter {
+            inputs,
+            recursive,
+            pattern,
+            output_dir,
+            width,
+            fps,
+            max_size,
+            optimize,
+            parallel,
+        } => {
             println!("Running batch GIF converter...");
 
             // Create processor
@@ -1054,7 +1174,7 @@ fn handle_batch_command(cmd: BatchCommands) {
                 fps,
                 max_size,
                 optimize,
-                Path::new(&output_dir)
+                Path::new(&output_dir),
             );
 
             // Configure processor
@@ -1074,7 +1194,11 @@ fn handle_batch_command(cmd: BatchCommands) {
             match processor.process(&inputs) {
                 Ok(results) => {
                     let success_count = results.iter().filter(|r| r.success).count();
-                    println!("Successfully processed {}/{} files.", success_count, results.len());
+                    println!(
+                        "Successfully processed {}/{} files.",
+                        success_count,
+                        results.len()
+                    );
 
                     if success_count < results.len() {
                         eprintln!("Errors occurred during processing:");
@@ -1085,15 +1209,21 @@ fn handle_batch_command(cmd: BatchCommands) {
                         }
                         std::process::exit(1);
                     }
-                },
+                }
                 Err(e) => {
                     eprintln!("Error during batch processing: {}", e);
                     std::process::exit(1);
                 }
             }
-        },
+        }
 
-        BatchCommands::GifTransparency { inputs, recursive, pattern, backup, parallel } => {
+        BatchCommands::GifTransparency {
+            inputs,
+            recursive,
+            pattern,
+            backup,
+            parallel,
+        } => {
             println!("Running batch GIF transparency processor...");
 
             // Create processor
@@ -1116,7 +1246,11 @@ fn handle_batch_command(cmd: BatchCommands) {
             match processor.process(&inputs) {
                 Ok(results) => {
                     let success_count = results.iter().filter(|r| r.success).count();
-                    println!("Successfully processed {}/{} files.", success_count, results.len());
+                    println!(
+                        "Successfully processed {}/{} files.",
+                        success_count,
+                        results.len()
+                    );
 
                     if success_count < results.len() {
                         eprintln!("Errors occurred during processing:");
@@ -1127,15 +1261,25 @@ fn handle_batch_command(cmd: BatchCommands) {
                         }
                         std::process::exit(1);
                     }
-                },
+                }
                 Err(e) => {
                     eprintln!("Error during batch processing: {}", e);
                     std::process::exit(1);
                 }
             }
-        },
+        }
 
-        BatchCommands::Splitter { inputs, recursive, pattern, output_dir, prefix, custom_encode, force, parallel, format } => {
+        BatchCommands::Splitter {
+            inputs,
+            recursive,
+            pattern,
+            output_dir,
+            prefix,
+            custom_encode,
+            force,
+            parallel,
+            format: _,
+        } => {
             println!("Running batch video splitter...");
 
             // Create processor
@@ -1143,7 +1287,7 @@ fn handle_batch_command(cmd: BatchCommands) {
                 Path::new(&output_dir),
                 &prefix,
                 custom_encode.as_deref(),
-                force
+                force,
             );
 
             // Configure processor
@@ -1163,7 +1307,11 @@ fn handle_batch_command(cmd: BatchCommands) {
             match processor.process(&inputs) {
                 Ok(results) => {
                     let success_count = results.iter().filter(|r| r.success).count();
-                    println!("Successfully processed {}/{} files.", success_count, results.len());
+                    println!(
+                        "Successfully processed {}/{} files.",
+                        success_count,
+                        results.len()
+                    );
 
                     if success_count < results.len() {
                         eprintln!("Errors occurred during processing:");
@@ -1174,24 +1322,30 @@ fn handle_batch_command(cmd: BatchCommands) {
                         }
                         std::process::exit(1);
                     }
-                },
+                }
                 Err(e) => {
                     eprintln!("Error during batch processing: {}", e);
                     std::process::exit(1);
                 }
             }
-        },
+        }
 
-        BatchCommands::Merger { inputs, recursive, pattern, audio, output_dir, shortest, copy_codec, parallel, format } => {
+        BatchCommands::Merger {
+            inputs,
+            recursive,
+            pattern,
+            audio,
+            output_dir,
+            shortest,
+            copy_codec,
+            parallel,
+            format: _,
+        } => {
             println!("Running batch audio/video merger...");
 
             // Create processor
-            let mut processor = BatchProcessor::create_merger(
-                &audio,
-                Path::new(&output_dir),
-                shortest,
-                copy_codec
-            );
+            let mut processor =
+                BatchProcessor::create_merger(&audio, Path::new(&output_dir), shortest, copy_codec);
 
             // Configure processor
             processor = processor.with_recursive(recursive).with_parallel(parallel);
@@ -1210,7 +1364,11 @@ fn handle_batch_command(cmd: BatchCommands) {
             match processor.process(&inputs) {
                 Ok(results) => {
                     let success_count = results.iter().filter(|r| r.success).count();
-                    println!("Successfully processed {}/{} files.", success_count, results.len());
+                    println!(
+                        "Successfully processed {}/{} files.",
+                        success_count,
+                        results.len()
+                    );
 
                     if success_count < results.len() {
                         eprintln!("Errors occurred during processing:");
@@ -1221,15 +1379,22 @@ fn handle_batch_command(cmd: BatchCommands) {
                         }
                         std::process::exit(1);
                     }
-                },
+                }
                 Err(e) => {
                     eprintln!("Error during batch processing: {}", e);
                     std::process::exit(1);
                 }
             }
-        },
+        }
 
-        BatchCommands::WithProfile { inputs, recursive, pattern, profile, profile_type, parallel } => {
+        BatchCommands::WithProfile {
+            inputs: _,
+            recursive: _,
+            pattern: _,
+            profile,
+            profile_type,
+            parallel: _,
+        } => {
             println!("Running batch processing with profile '{}'...", profile);
 
             // Load profile
@@ -1264,6 +1429,6 @@ fn handle_batch_command(cmd: BatchCommands) {
             println!("  Name: {}", profile.name);
             println!("  Type: {:?}", profile.profile_type);
             println!("  Parameters: {:?}", profile.parameters);
-        },
+        }
     }
 }

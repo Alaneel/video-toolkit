@@ -1,9 +1,9 @@
-use eframe::egui::{self, Ui, ComboBox, TextEdit};
+use eframe::egui::{self, ComboBox, Ui};
+use std::collections::HashMap;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
-use std::collections::HashMap;
 
-use profile_system::{ProfileManager, Profile, ProfileType, ProfileError};
+use profile_system::{Profile, ProfileManager, ProfileType};
 
 pub struct ProfilesTab {
     profile_manager: ProfileManager,
@@ -25,7 +25,6 @@ pub struct ProfilesTab {
 
     // Status
     status: Arc<Mutex<String>>,
-    processing: Arc<Mutex<bool>>,
 }
 
 #[derive(PartialEq, Clone)]
@@ -73,7 +72,7 @@ enum EditMode {
 }
 
 impl ProfilesTab {
-    pub fn new(status: Arc<Mutex<String>>, processing: Arc<Mutex<bool>>) -> Self {
+    pub fn new(status: Arc<Mutex<String>>, _processing: Arc<Mutex<bool>>) -> Self {
         let profile_manager = match ProfileManager::new() {
             Ok(pm) => pm,
             Err(e) => {
@@ -84,10 +83,7 @@ impl ProfilesTab {
         };
 
         // Get available profiles
-        let available_profiles = match profile_manager.list_all_profiles() {
-            Ok(profiles) => profiles,
-            Err(_) => HashMap::new(),
-        };
+        let available_profiles = profile_manager.list_all_profiles().unwrap_or_default();
 
         Self {
             profile_manager,
@@ -101,7 +97,6 @@ impl ProfilesTab {
             import_path: String::new(),
             export_path: String::new(),
             status,
-            processing,
         }
     }
 
@@ -114,11 +109,31 @@ impl ProfilesTab {
             ComboBox::from_id_source("profile_type")
                 .selected_text(self.selected_profile_type.display_name())
                 .show_ui(ui, |ui| {
-                    ui.selectable_value(&mut self.selected_profile_type, ProfileTypeSelection::Clipper, "Clipper");
-                    ui.selectable_value(&mut self.selected_profile_type, ProfileTypeSelection::GifConverter, "GIF Converter");
-                    ui.selectable_value(&mut self.selected_profile_type, ProfileTypeSelection::GifTransparency, "GIF Transparency");
-                    ui.selectable_value(&mut self.selected_profile_type, ProfileTypeSelection::Splitter, "Splitter");
-                    ui.selectable_value(&mut self.selected_profile_type, ProfileTypeSelection::Merger, "Merger");
+                    ui.selectable_value(
+                        &mut self.selected_profile_type,
+                        ProfileTypeSelection::Clipper,
+                        "Clipper",
+                    );
+                    ui.selectable_value(
+                        &mut self.selected_profile_type,
+                        ProfileTypeSelection::GifConverter,
+                        "GIF Converter",
+                    );
+                    ui.selectable_value(
+                        &mut self.selected_profile_type,
+                        ProfileTypeSelection::GifTransparency,
+                        "GIF Transparency",
+                    );
+                    ui.selectable_value(
+                        &mut self.selected_profile_type,
+                        ProfileTypeSelection::Splitter,
+                        "Splitter",
+                    );
+                    ui.selectable_value(
+                        &mut self.selected_profile_type,
+                        ProfileTypeSelection::Merger,
+                        "Merger",
+                    );
                     // TODO: Add custom profile types if needed
                 });
         });
@@ -143,7 +158,7 @@ impl ProfilesTab {
                 Ok(profiles) => {
                     self.available_profiles = profiles;
                     *self.status.lock().unwrap() = "Profile list refreshed.".to_string();
-                },
+                }
                 Err(e) => {
                     *self.status.lock().unwrap() = format!("Error refreshing profiles: {}", e);
                 }
@@ -152,7 +167,11 @@ impl ProfilesTab {
 
         // Get profiles for the selected type
         let profile_type = self.selected_profile_type.to_profile_type();
-        let profiles = self.available_profiles.get(&profile_type).cloned().unwrap_or_default();
+        let profiles = self
+            .available_profiles
+            .get(&profile_type)
+            .cloned()
+            .unwrap_or_default();
 
         // Profile selection
         if profiles.is_empty() {
@@ -168,7 +187,10 @@ impl ProfilesTab {
                 })
                 .show_ui(ui, |ui| {
                     for name in &profiles {
-                        if ui.selectable_label(self.selected_profile_name == *name, name).clicked() {
+                        if ui
+                            .selectable_label(self.selected_profile_name == *name, name)
+                            .clicked()
+                        {
                             self.selected_profile_name = name.clone();
                         }
                     }
@@ -178,7 +200,10 @@ impl ProfilesTab {
             if !self.selected_profile_name.is_empty() {
                 ui.separator();
 
-                match self.profile_manager.load_profile(&self.selected_profile_name, profile_type) {
+                match self
+                    .profile_manager
+                    .load_profile(&self.selected_profile_name, profile_type)
+                {
                     Ok(profile) => {
                         ui.heading("Profile Details");
                         ui.label(format!("Name: {}", profile.name));
@@ -196,7 +221,7 @@ impl ProfilesTab {
                                 ui.label(value);
                             });
                         }
-                    },
+                    }
                     Err(e) => {
                         ui.label(format!("Error loading profile: {}", e));
                     }
@@ -237,11 +262,9 @@ impl ProfilesTab {
                 self.import_path = String::new();
             }
 
-            if !self.selected_profile_name.is_empty() {
-                if ui.button("Export Profile").clicked() {
-                    self.edit_mode = EditMode::Export;
-                    self.export_path = String::new();
-                }
+            if !self.selected_profile_name.is_empty() && ui.button("Export Profile").clicked() {
+                self.edit_mode = EditMode::Export;
+                self.export_path = String::new();
             }
         });
     }
@@ -285,7 +308,10 @@ impl ProfilesTab {
     fn show_delete_profile(&mut self, ui: &mut Ui) {
         ui.heading("Delete Profile");
 
-        ui.label(format!("Are you sure you want to delete profile '{}'?", self.selected_profile_name));
+        ui.label(format!(
+            "Are you sure you want to delete profile '{}'?",
+            self.selected_profile_name
+        ));
         ui.label("This action cannot be undone.");
 
         ui.separator();
@@ -310,7 +336,8 @@ impl ProfilesTab {
             if ui.button("Browse").clicked() {
                 if let Some(path) = rfd::FileDialog::new()
                     .add_filter("JSON Files", &["json"])
-                    .pick_file() {
+                    .pick_file()
+                {
                     self.import_path = path.to_string_lossy().to_string();
                 }
             }
@@ -340,7 +367,8 @@ impl ProfilesTab {
             if ui.button("Browse").clicked() {
                 if let Some(path) = rfd::FileDialog::new()
                     .add_filter("JSON Files", &["json"])
-                    .save_file() {
+                    .save_file()
+                {
                     self.export_path = path.to_string_lossy().to_string();
 
                     // Add .json extension if missing
@@ -382,11 +410,17 @@ impl ProfilesTab {
         for (i, (key, value)) in self.profile_parameters.iter_mut().enumerate() {
             ui.horizontal(|ui| {
                 let mut key_clone = key.clone();
-                ui.add_sized(egui::vec2(150.0, 0.0), egui::TextEdit::singleline(&mut key_clone));
+                ui.add_sized(
+                    egui::vec2(150.0, 0.0),
+                    egui::TextEdit::singleline(&mut key_clone),
+                );
                 *key = key_clone;
                 ui.label("=");
                 let mut value_clone = value.clone();
-                ui.add_sized(egui::vec2(250.0, 0.0), egui::TextEdit::singleline(&mut value_clone));
+                ui.add_sized(
+                    egui::vec2(250.0, 0.0),
+                    egui::TextEdit::singleline(&mut value_clone),
+                );
                 *value = value_clone;
 
                 if ui.button("Remove").clicked() {
@@ -409,22 +443,22 @@ impl ProfilesTab {
     fn load_profile_for_editing(&mut self) {
         let profile_type = self.selected_profile_type.to_profile_type();
 
-        match self.profile_manager.load_profile(&self.selected_profile_name, profile_type) {
+        match self
+            .profile_manager
+            .load_profile(&self.selected_profile_name, profile_type)
+        {
             Ok(profile) => {
                 self.profile_name = profile.name.clone();
                 self.profile_description = profile.description.unwrap_or_default();
 
                 // Convert parameters to vector of key-value pairs
-                self.profile_parameters = profile.parameters
-                    .into_iter()
-                    .map(|(k, v)| (k, v))
-                    .collect();
+                self.profile_parameters = profile.parameters.into_iter().collect();
 
                 // Add an empty parameter row if none exist
                 if self.profile_parameters.is_empty() {
                     self.profile_parameters.push((String::new(), String::new()));
                 }
-            },
+            }
             Err(e) => {
                 *self.status.lock().unwrap() = format!("Error loading profile for editing: {}", e);
                 self.edit_mode = EditMode::None;
@@ -453,7 +487,8 @@ impl ProfilesTab {
         // Save profile
         match self.profile_manager.save_profile(&profile) {
             Ok(()) => {
-                *self.status.lock().unwrap() = format!("Profile '{}' created successfully.", self.profile_name);
+                *self.status.lock().unwrap() =
+                    format!("Profile '{}' created successfully.", self.profile_name);
                 self.edit_mode = EditMode::None;
 
                 // Update available profiles
@@ -462,7 +497,7 @@ impl ProfilesTab {
                 }
 
                 self.selected_profile_name = self.profile_name.clone();
-            },
+            }
             Err(e) => {
                 *self.status.lock().unwrap() = format!("Error creating profile: {}", e);
             }
@@ -490,12 +525,15 @@ impl ProfilesTab {
 
         // If name changed, delete old profile first
         if self.profile_name != self.selected_profile_name {
-            let _ = self.profile_manager.delete_profile(&self.selected_profile_name, profile_type_for_delete);
+            let _ = self
+                .profile_manager
+                .delete_profile(&self.selected_profile_name, profile_type_for_delete);
 
             // Save new profile
             match self.profile_manager.save_profile(&profile) {
                 Ok(()) => {
-                    *self.status.lock().unwrap() = format!("Profile '{}' updated successfully.", self.profile_name);
+                    *self.status.lock().unwrap() =
+                        format!("Profile '{}' updated successfully.", self.profile_name);
                     self.edit_mode = EditMode::None;
 
                     // Update available profiles
@@ -504,7 +542,7 @@ impl ProfilesTab {
                     }
 
                     self.selected_profile_name = self.profile_name.clone();
-                },
+                }
                 Err(e) => {
                     *self.status.lock().unwrap() = format!("Error updating profile: {}", e);
                 }
@@ -513,9 +551,10 @@ impl ProfilesTab {
             // Update existing profile
             match self.profile_manager.update_profile(&profile) {
                 Ok(()) => {
-                    *self.status.lock().unwrap() = format!("Profile '{}' updated successfully.", self.profile_name);
+                    *self.status.lock().unwrap() =
+                        format!("Profile '{}' updated successfully.", self.profile_name);
                     self.edit_mode = EditMode::None;
-                },
+                }
                 Err(e) => {
                     *self.status.lock().unwrap() = format!("Error updating profile: {}", e);
                 }
@@ -526,9 +565,15 @@ impl ProfilesTab {
     fn delete_profile(&mut self) {
         let profile_type = self.selected_profile_type.to_profile_type();
 
-        match self.profile_manager.delete_profile(&self.selected_profile_name, profile_type) {
+        match self
+            .profile_manager
+            .delete_profile(&self.selected_profile_name, profile_type)
+        {
             Ok(()) => {
-                *self.status.lock().unwrap() = format!("Profile '{}' deleted successfully.", self.selected_profile_name);
+                *self.status.lock().unwrap() = format!(
+                    "Profile '{}' deleted successfully.",
+                    self.selected_profile_name
+                );
                 self.edit_mode = EditMode::None;
 
                 // Update available profiles
@@ -537,7 +582,7 @@ impl ProfilesTab {
                 }
 
                 self.selected_profile_name = String::new();
-            },
+            }
             Err(e) => {
                 *self.status.lock().unwrap() = format!("Error deleting profile: {}", e);
             }
@@ -546,13 +591,18 @@ impl ProfilesTab {
 
     fn import_profile(&mut self) {
         if self.import_path.is_empty() {
-            *self.status.lock().unwrap() = "Error: Please select a profile file to import.".to_string();
+            *self.status.lock().unwrap() =
+                "Error: Please select a profile file to import.".to_string();
             return;
         }
 
-        match self.profile_manager.import_profile(Path::new(&self.import_path)) {
+        match self
+            .profile_manager
+            .import_profile(Path::new(&self.import_path))
+        {
             Ok(profile) => {
-                *self.status.lock().unwrap() = format!("Profile '{}' imported successfully.", profile.name);
+                *self.status.lock().unwrap() =
+                    format!("Profile '{}' imported successfully.", profile.name);
                 self.edit_mode = EditMode::None;
 
                 // Update available profiles
@@ -571,7 +621,7 @@ impl ProfilesTab {
                 };
 
                 self.selected_profile_name = profile.name;
-            },
+            }
             Err(e) => {
                 *self.status.lock().unwrap() = format!("Error importing profile: {}", e);
             }
@@ -580,17 +630,25 @@ impl ProfilesTab {
 
     fn export_profile(&mut self) {
         if self.export_path.is_empty() {
-            *self.status.lock().unwrap() = "Error: Please select a location to save the profile.".to_string();
+            *self.status.lock().unwrap() =
+                "Error: Please select a location to save the profile.".to_string();
             return;
         }
 
         let profile_type = self.selected_profile_type.to_profile_type();
 
-        match self.profile_manager.export_profile(&self.selected_profile_name, profile_type, Path::new(&self.export_path)) {
+        match self.profile_manager.export_profile(
+            &self.selected_profile_name,
+            profile_type,
+            Path::new(&self.export_path),
+        ) {
             Ok(()) => {
-                *self.status.lock().unwrap() = format!("Profile '{}' exported successfully to {}.", self.selected_profile_name, self.export_path);
+                *self.status.lock().unwrap() = format!(
+                    "Profile '{}' exported successfully to {}.",
+                    self.selected_profile_name, self.export_path
+                );
                 self.edit_mode = EditMode::None;
-            },
+            }
             Err(e) => {
                 *self.status.lock().unwrap() = format!("Error exporting profile: {}", e);
             }

@@ -1,13 +1,9 @@
-use eframe::egui::{self, Ui, ComboBox, TextEdit};
+use eframe::egui::{self, ComboBox, Ui};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-use batch_processing::{
-    BatchProcessor, BatchOperation, BatchItemResult,
-    BatchClipperConfig, BatchGifConverterConfig, BatchGifTransparencyConfig,
-    BatchSplitterConfig, BatchMergerConfig
-};
+use batch_processing::{BatchItemResult, BatchProcessor};
 
 #[derive(PartialEq, Clone, Copy)]
 pub enum BatchOperationType {
@@ -19,16 +15,6 @@ pub enum BatchOperationType {
 }
 
 impl BatchOperationType {
-    fn to_batch_operation(&self) -> BatchOperation {
-        match self {
-            BatchOperationType::Clipper => BatchOperation::Clipper,
-            BatchOperationType::GifConverter => BatchOperation::GifConverter,
-            BatchOperationType::GifTransparency => BatchOperation::GifTransparency,
-            BatchOperationType::Splitter => BatchOperation::Splitter,
-            BatchOperationType::Merger => BatchOperation::Merger,
-        }
-    }
-
     fn display_name(&self) -> &'static str {
         match self {
             BatchOperationType::Clipper => "Video Clipper",
@@ -133,11 +119,31 @@ impl BatchTab {
             ComboBox::from_id_source("batch_operation_type")
                 .selected_text(self.operation_type.display_name())
                 .show_ui(ui, |ui| {
-                    ui.selectable_value(&mut self.operation_type, BatchOperationType::Clipper, "Video Clipper");
-                    ui.selectable_value(&mut self.operation_type, BatchOperationType::GifConverter, "GIF Converter");
-                    ui.selectable_value(&mut self.operation_type, BatchOperationType::GifTransparency, "GIF Transparency");
-                    ui.selectable_value(&mut self.operation_type, BatchOperationType::Splitter, "Video Splitter");
-                    ui.selectable_value(&mut self.operation_type, BatchOperationType::Merger, "Audio/Video Merger");
+                    ui.selectable_value(
+                        &mut self.operation_type,
+                        BatchOperationType::Clipper,
+                        "Video Clipper",
+                    );
+                    ui.selectable_value(
+                        &mut self.operation_type,
+                        BatchOperationType::GifConverter,
+                        "GIF Converter",
+                    );
+                    ui.selectable_value(
+                        &mut self.operation_type,
+                        BatchOperationType::GifTransparency,
+                        "GIF Transparency",
+                    );
+                    ui.selectable_value(
+                        &mut self.operation_type,
+                        BatchOperationType::Splitter,
+                        "Video Splitter",
+                    );
+                    ui.selectable_value(
+                        &mut self.operation_type,
+                        BatchOperationType::Merger,
+                        "Audio/Video Merger",
+                    );
                 });
         });
 
@@ -208,15 +214,25 @@ impl BatchTab {
             // Show progress
             let (current, total) = *self.progress.lock().unwrap();
             ui.label(format!("Processing file {} of {}", current, total));
-            ui.add(egui::ProgressBar::new(if total > 0 { current as f32 / total as f32 } else { 0.0 })
-                .show_percentage());
+            ui.add(
+                egui::ProgressBar::new(if total > 0 {
+                    current as f32 / total as f32
+                } else {
+                    0.0
+                })
+                .show_percentage(),
+            );
         } else {
             // Show results if available
             let results = self.results.lock().unwrap();
             if !results.is_empty() {
                 let success_count = results.iter().filter(|r| r.success).count();
-                ui.label(format!("Processed {} files: {} succeeded, {} failed",
-                                 results.len(), success_count, results.len() - success_count));
+                ui.label(format!(
+                    "Processed {} files: {} succeeded, {} failed",
+                    results.len(),
+                    success_count,
+                    results.len() - success_count
+                ));
 
                 if results.len() - success_count > 0 {
                     ui.collapsing("Show errors", |ui| {
@@ -236,32 +252,40 @@ impl BatchTab {
         if button.clicked() {
             // Validate inputs
             if self.input_paths.is_empty() {
-                *self.status.lock().unwrap() = "Error: Please add at least one input file or directory.".to_string();
+                *self.status.lock().unwrap() =
+                    "Error: Please add at least one input file or directory.".to_string();
                 return;
             }
 
             // Operation-specific validation
             match self.operation_type {
                 BatchOperationType::Clipper => {
-                    let has_valid_ranges = self.clipper_time_ranges.iter()
+                    let has_valid_ranges = self
+                        .clipper_time_ranges
+                        .iter()
                         .any(|r| !r.trim().is_empty());
 
                     if !has_valid_ranges {
-                        *self.status.lock().unwrap() = "Error: Please add at least one time range.".to_string();
+                        *self.status.lock().unwrap() =
+                            "Error: Please add at least one time range.".to_string();
                         return;
                     }
-                },
+                }
                 BatchOperationType::Merger => {
                     if self.merger_audio_file.is_empty() {
-                        *self.status.lock().unwrap() = "Error: Please select an audio file.".to_string();
+                        *self.status.lock().unwrap() =
+                            "Error: Please select an audio file.".to_string();
                         return;
                     }
-                },
+                }
                 _ => {}
             }
 
             // Start processing
-            *self.status.lock().unwrap() = format!("Starting batch {} processing...", self.operation_type.display_name());
+            *self.status.lock().unwrap() = format!(
+                "Starting batch {} processing...",
+                self.operation_type.display_name()
+            );
             *self.processing.lock().unwrap() = true;
             self.results.lock().unwrap().clear();
             *self.progress.lock().unwrap() = (0, 0);
@@ -299,7 +323,8 @@ impl BatchTab {
 
             let status_clone = Arc::clone(&self.status);
             let processing_clone = Arc::clone(&self.processing);
-            let results_clone: Arc<Mutex<Vec<batch_processing::BatchItemResult>>> = Arc::clone(&self.results);
+            let results_clone: Arc<Mutex<Vec<batch_processing::BatchItemResult>>> =
+                Arc::clone(&self.results);
             let progress_clone = Arc::clone(&self.progress);
 
             thread::spawn(move || {
@@ -311,7 +336,11 @@ impl BatchTab {
                             &clipper_time_ranges,
                             Path::new(&clipper_output_dir),
                             clipper_copy_codec,
-                            if clipper_suffix.is_empty() { None } else { Some(&clipper_suffix) }
+                            if clipper_suffix.is_empty() {
+                                None
+                            } else {
+                                Some(&clipper_suffix)
+                            },
                         ) {
                             Ok(p) => p,
                             Err(e) => {
@@ -320,7 +349,7 @@ impl BatchTab {
                                 return;
                             }
                         }
-                    },
+                    }
                     BatchOperationType::GifConverter => {
                         // Parse GIF converter settings
                         let width = if gif_width_str.is_empty() {
@@ -329,7 +358,8 @@ impl BatchTab {
                             match gif_width_str.parse::<u32>() {
                                 Ok(w) => Some(w),
                                 Err(_) => {
-                                    *status_clone.lock().unwrap() = "Error: Width must be a positive integer.".to_string();
+                                    *status_clone.lock().unwrap() =
+                                        "Error: Width must be a positive integer.".to_string();
                                     *processing_clone.lock().unwrap() = false;
                                     return;
                                 }
@@ -339,7 +369,8 @@ impl BatchTab {
                         let fps = match gif_fps_str.parse::<u32>() {
                             Ok(f) => f,
                             Err(_) => {
-                                *status_clone.lock().unwrap() = "Error: FPS must be a positive integer.".to_string();
+                                *status_clone.lock().unwrap() =
+                                    "Error: FPS must be a positive integer.".to_string();
                                 *processing_clone.lock().unwrap() = false;
                                 return;
                             }
@@ -348,7 +379,8 @@ impl BatchTab {
                         let max_size = match gif_max_size_str.parse::<f64>() {
                             Ok(s) => s,
                             Err(_) => {
-                                *status_clone.lock().unwrap() = "Error: Max size must be a positive number.".to_string();
+                                *status_clone.lock().unwrap() =
+                                    "Error: Max size must be a positive number.".to_string();
                                 *processing_clone.lock().unwrap() = false;
                                 return;
                             }
@@ -360,31 +392,35 @@ impl BatchTab {
                             fps,
                             max_size,
                             gif_optimize,
-                            Path::new(&gif_output_dir)
+                            Path::new(&gif_output_dir),
                         )
-                    },
+                    }
                     BatchOperationType::GifTransparency => {
                         // Create processor for GIF transparency
                         BatchProcessor::create_gif_transparency(transparency_backup)
-                    },
+                    }
                     BatchOperationType::Splitter => {
                         // Create processor for splitter
                         BatchProcessor::create_splitter(
                             Path::new(&splitter_output_dir),
                             &splitter_prefix,
-                            if splitter_custom_encode.is_empty() { None } else { Some(&splitter_custom_encode) },
-                            splitter_force
+                            if splitter_custom_encode.is_empty() {
+                                None
+                            } else {
+                                Some(&splitter_custom_encode)
+                            },
+                            splitter_force,
                         )
-                    },
+                    }
                     BatchOperationType::Merger => {
                         // Create processor for merger
                         BatchProcessor::create_merger(
                             Path::new(&merger_audio_file),
                             Path::new(&merger_output_dir),
                             merger_shortest,
-                            merger_copy_codec
+                            merger_copy_codec,
                         )
-                    },
+                    }
                 };
 
                 // Configure processor
@@ -394,7 +430,8 @@ impl BatchTab {
                     processor = match processor.with_pattern(&pattern) {
                         Ok(p) => p,
                         Err(e) => {
-                            *status_clone.lock().unwrap() = format!("Error: Invalid pattern - {}", e);
+                            *status_clone.lock().unwrap() =
+                                format!("Error: Invalid pattern - {}", e);
                             *processing_clone.lock().unwrap() = false;
                             return;
                         }
@@ -421,9 +458,10 @@ impl BatchTab {
                             success_count,
                             results_clone.lock().unwrap().len()
                         );
-                    },
+                    }
                     Err(e) => {
-                        *status_clone.lock().unwrap() = format!("Error during batch processing: {}", e);
+                        *status_clone.lock().unwrap() =
+                            format!("Error during batch processing: {}", e);
                     }
                 }
 
@@ -451,12 +489,12 @@ impl BatchTab {
 
         let mut remove_idx = None;
         let mut ranges = self.clipper_time_ranges.clone();
-        
+
         // First collect the user interactions without mutable references
         for i in 0..ranges.len() {
             let can_remove = ranges.len() > 1;
             let mut remove_this = false;
-            
+
             ui.horizontal(|ui| {
                 ui.label(format!("Range {}:", i + 1));
                 ui.text_edit_singleline(&mut ranges[i]);
@@ -464,12 +502,12 @@ impl BatchTab {
                     remove_this = true;
                 }
             });
-            
+
             if remove_this {
                 remove_idx = Some(i);
             }
         }
-        
+
         self.clipper_time_ranges = ranges;
 
         // Remove range if needed
@@ -485,7 +523,10 @@ impl BatchTab {
         }
 
         // Options
-        ui.checkbox(&mut self.clipper_copy_codec, "Copy codec (faster but less precise)");
+        ui.checkbox(
+            &mut self.clipper_copy_codec,
+            "Copy codec (faster but less precise)",
+        );
 
         ui.horizontal(|ui| {
             ui.label("Suffix:");
@@ -525,14 +566,20 @@ impl BatchTab {
         });
 
         // Optimization option
-        ui.checkbox(&mut self.gif_optimize, "Optimize (try multiple settings to achieve size target)");
+        ui.checkbox(
+            &mut self.gif_optimize,
+            "Optimize (try multiple settings to achieve size target)",
+        );
     }
 
     fn gif_transparency_settings_ui(&mut self, ui: &mut Ui) {
         ui.heading("GIF Transparency Settings");
 
         // Backup option
-        ui.checkbox(&mut self.transparency_backup, "Create backup of original files");
+        ui.checkbox(
+            &mut self.transparency_backup,
+            "Create backup of original files",
+        );
     }
 
     fn splitter_settings_ui(&mut self, ui: &mut Ui) {
@@ -561,7 +608,10 @@ impl BatchTab {
         });
 
         // Force option
-        ui.checkbox(&mut self.splitter_force, "Force (process even if video dimensions are not 1920x1080)");
+        ui.checkbox(
+            &mut self.splitter_force,
+            "Force (process even if video dimensions are not 1920x1080)",
+        );
     }
 
     fn merger_settings_ui(&mut self, ui: &mut Ui) {
@@ -574,7 +624,8 @@ impl BatchTab {
             if ui.button("Browse").clicked() {
                 if let Some(path) = rfd::FileDialog::new()
                     .add_filter("Audio Files", &["mp3", "aac", "wav", "m4a", "flac", "ogg"])
-                    .pick_file() {
+                    .pick_file()
+                {
                     self.merger_audio_file = path.to_string_lossy().to_string();
                 }
             }
@@ -592,7 +643,13 @@ impl BatchTab {
         });
 
         // Options
-        ui.checkbox(&mut self.merger_shortest, "Use -shortest flag (end when shortest input stream ends)");
-        ui.checkbox(&mut self.merger_copy_codec, "Copy codec without re-encoding (faster)");
+        ui.checkbox(
+            &mut self.merger_shortest,
+            "Use -shortest flag (end when shortest input stream ends)",
+        );
+        ui.checkbox(
+            &mut self.merger_copy_codec,
+            "Copy codec without re-encoding (faster)",
+        );
     }
 }

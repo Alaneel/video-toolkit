@@ -36,7 +36,8 @@ impl ClipperTab {
             if ui.button("Browse").clicked() {
                 if let Some(path) = rfd::FileDialog::new()
                     .add_filter("Video Files", &["mp4", "avi", "mov", "mkv"])
-                    .pick_file() {
+                    .pick_file()
+                {
                     self.input_file = path.to_string_lossy().to_string();
 
                     // Set default output dir if not set
@@ -52,8 +53,7 @@ impl ClipperTab {
         ui.horizontal(|ui| {
             ui.text_edit_singleline(&mut self.output_dir);
             if ui.button("Browse").clicked() {
-                if let Some(path) = rfd::FileDialog::new()
-                    .pick_folder() {
+                if let Some(path) = rfd::FileDialog::new().pick_folder() {
                     self.output_dir = path.to_string_lossy().to_string();
                 }
             }
@@ -98,11 +98,15 @@ impl ClipperTab {
 
         // Execute button
         ui.add_space(10.0);
-        let button = ui.add_enabled(!*self.processing.lock().unwrap(), egui::Button::new("Extract Clips"));
+        let button = ui.add_enabled(
+            !*self.processing.lock().unwrap(),
+            egui::Button::new("Extract Clips"),
+        );
 
         if button.clicked() {
             if self.input_file.is_empty() {
-                *self.status.lock().unwrap() = "Error: Please select an input video file.".to_string();
+                *self.status.lock().unwrap() =
+                    "Error: Please select an input video file.".to_string();
                 return;
             }
 
@@ -118,7 +122,8 @@ impl ClipperTab {
                 if let Some(parsed) = validate_time_range(range) {
                     parsed_ranges.push(parsed);
                 } else {
-                    *self.status.lock().unwrap() = format!("Error: Invalid time range format: '{}'", range);
+                    *self.status.lock().unwrap() =
+                        format!("Error: Invalid time range format: '{}'", range);
                     invalid_found = true;
                     break;
                 }
@@ -137,7 +142,11 @@ impl ClipperTab {
             let input_file = self.input_file.clone();
             let output_dir = self.output_dir.clone();
             let copy_codec = self.copy_codec;
-            let suffix = if self.suffix.is_empty() { None } else { Some(self.suffix.clone()) };
+            let suffix = if self.suffix.is_empty() {
+                None
+            } else {
+                Some(self.suffix.clone())
+            };
             let status_clone = Arc::clone(&self.status);
             let processing_clone = Arc::clone(&self.processing);
 
@@ -147,12 +156,15 @@ impl ClipperTab {
                     &parsed_ranges,
                     &output_dir,
                     copy_codec,
-                    suffix.as_deref()
+                    suffix.as_deref(),
                 );
 
                 match result {
                     Ok(true) => {
-                        *status_clone.lock().unwrap() = format!("Successfully extracted all {} clip(s).", parsed_ranges.len());
+                        *status_clone.lock().unwrap() = format!(
+                            "Successfully extracted all {} clip(s).",
+                            parsed_ranges.len()
+                        );
                     }
                     Ok(false) => {
                         *status_clone.lock().unwrap() = "Completed with some errors.".to_string();

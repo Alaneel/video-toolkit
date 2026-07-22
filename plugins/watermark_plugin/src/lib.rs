@@ -1,13 +1,19 @@
 use std::any::Any;
 use std::collections::HashMap;
-use std::process::Command;
 use std::path::Path;
+use std::process::Command;
 
-use plugin_system::{Plugin, PluginMetadata, ParameterInfo, ParameterType, PLUGIN_API_VERSION};
+use plugin_system::{ParameterInfo, ParameterType, Plugin, PluginMetadata, PLUGIN_API_VERSION};
 
 /// Watermark Plugin - Adds a text watermark to videos
 pub struct WatermarkPlugin {
     metadata: PluginMetadata,
+}
+
+impl Default for WatermarkPlugin {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl WatermarkPlugin {
@@ -31,12 +37,12 @@ impl Plugin for WatermarkPlugin {
 
     fn initialize(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         // Check if FFmpeg is available
-        let ffmpeg_check = Command::new("ffmpeg")
-            .arg("-version")
-            .output();
+        let ffmpeg_check = Command::new("ffmpeg").arg("-version").output();
 
         if ffmpeg_check.is_err() {
-            return Err("FFmpeg not found. Please install FFmpeg and make sure it's in your PATH.".into());
+            return Err(
+                "FFmpeg not found. Please install FFmpeg and make sure it's in your PATH.".into(),
+            );
         }
 
         Ok(())
@@ -44,19 +50,22 @@ impl Plugin for WatermarkPlugin {
 
     fn execute(&self, params: HashMap<String, String>) -> Result<(), Box<dyn std::error::Error>> {
         // Get parameters
-        let input_file = params.get("input_file")
+        let input_file = params
+            .get("input_file")
             .ok_or("Input file parameter is missing")?;
 
-        let output_file = params.get("output_file")
+        let output_file = params
+            .get("output_file")
             .ok_or("Output file parameter is missing")?;
 
-        let watermark_text = params.get("watermark_text")
+        let watermark_text = params
+            .get("watermark_text")
             .ok_or("Watermark text parameter is missing")?;
 
         let default_position = "bottom_right".to_string();
         let default_font_size = "24".to_string();
         let default_font_color = "white".to_string();
-        
+
         let position = params.get("position").unwrap_or(&default_position);
         let font_size = params.get("font_size").unwrap_or(&default_font_size);
         let font_color = params.get("font_color").unwrap_or(&default_font_color);
@@ -80,22 +89,29 @@ impl Plugin for WatermarkPlugin {
             "bottom_left" => "10:main_h-text_h-10",
             "bottom_right" => "main_w-text_w-10:main_h-text_h-10",
             "center" => "main_w/2-text_w/2:main_h/2-text_h/2",
-            _ => "main_w-text_w-10:main_h-text_h-10",  // Default to bottom right
+            _ => "main_w-text_w-10:main_h-text_h-10", // Default to bottom right
         };
 
         // Create FFmpeg command
         let drawtext_filter = format!(
             "drawtext=text='{}':fontsize={}:fontcolor={}:x={}:y={}",
-            watermark_text, font_size, font_color, position_coords.split(':').next().unwrap(), position_coords.split(':').nth(1).unwrap()
+            watermark_text,
+            font_size,
+            font_color,
+            position_coords.split(':').next().unwrap(),
+            position_coords.split(':').nth(1).unwrap()
         );
 
         // Execute FFmpeg command
         let output = Command::new("ffmpeg")
-            .args(&[
-                "-i", input_file,
-                "-vf", &drawtext_filter,
-                "-c:a", "copy",
-                "-y",  // Overwrite output file if it exists
+            .args([
+                "-i",
+                input_file,
+                "-vf",
+                &drawtext_filter,
+                "-c:a",
+                "copy",
+                "-y", // Overwrite output file if it exists
                 output_file,
             ])
             .output()?;

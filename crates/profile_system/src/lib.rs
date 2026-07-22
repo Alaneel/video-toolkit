@@ -3,9 +3,9 @@ use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
-use serde::{Serialize, Deserialize};
-use thiserror::Error;
 use directories::ProjectDirs;
+use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
 /// Errors that can occur in the profile system
 #[derive(Error, Debug)]
@@ -115,12 +115,11 @@ impl ProfileManager {
     pub fn new() -> Result<Self> {
         // Get the project directories
         let project_dirs = ProjectDirs::from("com", "video-toolkit", "VideoToolKit")
-            .ok_or_else(|| ProfileError::DirectoryCreationFailed)?;
+            .ok_or(ProfileError::DirectoryCreationFailed)?;
 
         // Create the config directory if it doesn't exist
         let profiles_dir = project_dirs.config_dir().join("profiles");
-        fs::create_dir_all(&profiles_dir)
-            .map_err(|_| ProfileError::DirectoryCreationFailed)?;
+        fs::create_dir_all(&profiles_dir).map_err(|_| ProfileError::DirectoryCreationFailed)?;
 
         Ok(Self { profiles_dir })
     }
@@ -128,8 +127,7 @@ impl ProfileManager {
     /// Create a profile manager with a custom directory
     pub fn with_directory<P: AsRef<Path>>(dir: P) -> Result<Self> {
         let profiles_dir = dir.as_ref().to_path_buf();
-        fs::create_dir_all(&profiles_dir)
-            .map_err(|_| ProfileError::DirectoryCreationFailed)?;
+        fs::create_dir_all(&profiles_dir).map_err(|_| ProfileError::DirectoryCreationFailed)?;
 
         Ok(Self { profiles_dir })
     }
@@ -138,7 +136,9 @@ impl ProfileManager {
     fn get_profile_path(&self, name: &str, profile_type: ProfileType) -> PathBuf {
         let type_dir = match profile_type {
             ProfileType::Custom(ref custom) => self.profiles_dir.join("custom").join(custom),
-            _ => self.profiles_dir.join(format!("{:?}", profile_type).to_lowercase()),
+            _ => self
+                .profiles_dir
+                .join(format!("{:?}", profile_type).to_lowercase()),
         };
 
         // Create the directory if it doesn't exist
@@ -153,8 +153,7 @@ impl ProfileManager {
 
         // Create parent directories if they don't exist
         if let Some(parent) = profile_path.parent() {
-            fs::create_dir_all(parent)
-                .map_err(ProfileError::ReadError)?;
+            fs::create_dir_all(parent).map_err(ProfileError::ReadError)?;
         }
 
         // Check if the profile already exists
@@ -166,8 +165,7 @@ impl ProfileManager {
         let json = serde_json::to_string_pretty(profile)
             .map_err(|e| ProfileError::ParseError(e.to_string()))?;
 
-        let mut file = File::create(profile_path)
-            .map_err(ProfileError::ReadError)?;
+        let mut file = File::create(profile_path).map_err(ProfileError::ReadError)?;
 
         file.write_all(json.as_bytes())
             .map_err(ProfileError::ReadError)?;
@@ -188,8 +186,7 @@ impl ProfileManager {
         let json = serde_json::to_string_pretty(profile)
             .map_err(|e| ProfileError::ParseError(e.to_string()))?;
 
-        let mut file = File::create(profile_path)
-            .map_err(ProfileError::ReadError)?;
+        let mut file = File::create(profile_path).map_err(ProfileError::ReadError)?;
 
         file.write_all(json.as_bytes())
             .map_err(ProfileError::ReadError)?;
@@ -207,16 +204,15 @@ impl ProfileManager {
         }
 
         // Read the profile file
-        let mut file = File::open(profile_path)
-            .map_err(ProfileError::ReadError)?;
+        let mut file = File::open(profile_path).map_err(ProfileError::ReadError)?;
 
         let mut contents = String::new();
         file.read_to_string(&mut contents)
             .map_err(ProfileError::ReadError)?;
 
         // Parse the profile
-        let profile: Profile = serde_json::from_str(&contents)
-            .map_err(|e| ProfileError::ParseError(e.to_string()))?;
+        let profile: Profile =
+            serde_json::from_str(&contents).map_err(|e| ProfileError::ParseError(e.to_string()))?;
 
         Ok(profile)
     }
@@ -231,8 +227,7 @@ impl ProfileManager {
         }
 
         // Delete the profile file
-        fs::remove_file(profile_path)
-            .map_err(ProfileError::ReadError)?;
+        fs::remove_file(profile_path).map_err(ProfileError::ReadError)?;
 
         Ok(())
     }
@@ -241,7 +236,9 @@ impl ProfileManager {
     pub fn list_profiles(&self, profile_type: ProfileType) -> Result<Vec<String>> {
         let type_dir = match profile_type {
             ProfileType::Custom(ref custom) => self.profiles_dir.join("custom").join(custom),
-            _ => self.profiles_dir.join(format!("{:?}", profile_type).to_lowercase()),
+            _ => self
+                .profiles_dir
+                .join(format!("{:?}", profile_type).to_lowercase()),
         };
 
         // Check if the directory exists
@@ -250,8 +247,7 @@ impl ProfileManager {
         }
 
         // Read the directory entries
-        let entries = fs::read_dir(type_dir)
-            .map_err(ProfileError::ReadError)?;
+        let entries = fs::read_dir(type_dir).map_err(ProfileError::ReadError)?;
 
         // Filter for JSON files and extract the profile names
         let mut profiles = Vec::new();
@@ -278,17 +274,31 @@ impl ProfileManager {
         let mut result = HashMap::new();
 
         // List profiles for built-in types
-        result.insert(ProfileType::Clipper, self.list_profiles(ProfileType::Clipper)?);
-        result.insert(ProfileType::GifConverter, self.list_profiles(ProfileType::GifConverter)?);
-        result.insert(ProfileType::GifTransparency, self.list_profiles(ProfileType::GifTransparency)?);
-        result.insert(ProfileType::Splitter, self.list_profiles(ProfileType::Splitter)?);
-        result.insert(ProfileType::Merger, self.list_profiles(ProfileType::Merger)?);
+        result.insert(
+            ProfileType::Clipper,
+            self.list_profiles(ProfileType::Clipper)?,
+        );
+        result.insert(
+            ProfileType::GifConverter,
+            self.list_profiles(ProfileType::GifConverter)?,
+        );
+        result.insert(
+            ProfileType::GifTransparency,
+            self.list_profiles(ProfileType::GifTransparency)?,
+        );
+        result.insert(
+            ProfileType::Splitter,
+            self.list_profiles(ProfileType::Splitter)?,
+        );
+        result.insert(
+            ProfileType::Merger,
+            self.list_profiles(ProfileType::Merger)?,
+        );
 
         // List custom profiles
         let custom_dir = self.profiles_dir.join("custom");
         if custom_dir.exists() {
-            let entries = fs::read_dir(custom_dir)
-                .map_err(ProfileError::ReadError)?;
+            let entries = fs::read_dir(custom_dir).map_err(ProfileError::ReadError)?;
 
             for entry in entries {
                 let entry = entry.map_err(ProfileError::ReadError)?;
@@ -312,16 +322,15 @@ impl ProfileManager {
     /// Import a profile from a file
     pub fn import_profile<P: AsRef<Path>>(&self, path: P) -> Result<Profile> {
         // Read the profile file
-        let mut file = File::open(path)
-            .map_err(ProfileError::ReadError)?;
+        let mut file = File::open(path).map_err(ProfileError::ReadError)?;
 
         let mut contents = String::new();
         file.read_to_string(&mut contents)
             .map_err(ProfileError::ReadError)?;
 
         // Parse the profile
-        let profile: Profile = serde_json::from_str(&contents)
-            .map_err(|e| ProfileError::ParseError(e.to_string()))?;
+        let profile: Profile =
+            serde_json::from_str(&contents).map_err(|e| ProfileError::ParseError(e.to_string()))?;
 
         // Save the profile
         self.save_profile(&profile)?;
@@ -330,7 +339,12 @@ impl ProfileManager {
     }
 
     /// Export a profile to a file
-    pub fn export_profile<P: AsRef<Path>>(&self, name: &str, profile_type: ProfileType, path: P) -> Result<()> {
+    pub fn export_profile<P: AsRef<Path>>(
+        &self,
+        name: &str,
+        profile_type: ProfileType,
+        path: P,
+    ) -> Result<()> {
         // Load the profile
         let profile = self.load_profile(name, profile_type)?;
 
@@ -339,8 +353,7 @@ impl ProfileManager {
             .map_err(|e| ProfileError::ParseError(e.to_string()))?;
 
         // Write to the file
-        let mut file = File::create(path)
-            .map_err(ProfileError::ReadError)?;
+        let mut file = File::create(path).map_err(ProfileError::ReadError)?;
 
         file.write_all(json.as_bytes())
             .map_err(ProfileError::ReadError)?;
@@ -376,7 +389,9 @@ mod tests {
         manager.save_profile(&profile).unwrap();
 
         // Load the profile
-        let loaded = manager.load_profile("test_profile", ProfileType::GifConverter).unwrap();
+        let loaded = manager
+            .load_profile("test_profile", ProfileType::GifConverter)
+            .unwrap();
 
         assert_eq!(loaded.name, "test_profile");
         assert_eq!(loaded.profile_type, ProfileType::GifConverter);
@@ -413,12 +428,18 @@ mod tests {
         manager.save_profile(&profile).unwrap();
 
         // Verify it exists
-        assert!(manager.load_profile("delete_me", ProfileType::Merger).is_ok());
+        assert!(manager
+            .load_profile("delete_me", ProfileType::Merger)
+            .is_ok());
 
         // Delete the profile
-        manager.delete_profile("delete_me", ProfileType::Merger).unwrap();
+        manager
+            .delete_profile("delete_me", ProfileType::Merger)
+            .unwrap();
 
         // Verify it's gone
-        assert!(manager.load_profile("delete_me", ProfileType::Merger).is_err());
+        assert!(manager
+            .load_profile("delete_me", ProfileType::Merger)
+            .is_err());
     }
 }

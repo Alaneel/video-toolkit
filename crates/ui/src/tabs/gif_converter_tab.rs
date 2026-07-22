@@ -38,14 +38,16 @@ impl GifConverterTab {
             if ui.button("Browse").clicked() {
                 if let Some(path) = rfd::FileDialog::new()
                     .add_filter("Video Files", &["mp4", "webm", "avi", "mov", "mkv"])
-                    .pick_file() {
+                    .pick_file()
+                {
                     self.input_file = path.to_string_lossy().to_string();
 
                     // Set default output file if not set
                     if self.output_file.is_empty() {
                         let input_path = Path::new(&self.input_file);
                         if let Some(stem) = input_path.file_stem() {
-                            let mut output_path = PathBuf::from(input_path.parent().unwrap_or_else(|| Path::new("")));
+                            let mut output_path =
+                                PathBuf::from(input_path.parent().unwrap_or_else(|| Path::new("")));
                             output_path.push(stem);
                             output_path.set_extension("gif");
                             self.output_file = output_path.to_string_lossy().to_string();
@@ -62,7 +64,8 @@ impl GifConverterTab {
             if ui.button("Browse").clicked() {
                 if let Some(path) = rfd::FileDialog::new()
                     .add_filter("GIF Files", &["gif"])
-                    .save_file() {
+                    .save_file()
+                {
                     self.output_file = path.to_string_lossy().to_string();
 
                     // Make sure it has .gif extension
@@ -92,20 +95,28 @@ impl GifConverterTab {
             ui.text_edit_singleline(&mut self.max_size);
         });
 
-        ui.checkbox(&mut self.optimize, "Optimize (try multiple settings to achieve size target)");
+        ui.checkbox(
+            &mut self.optimize,
+            "Optimize (try multiple settings to achieve size target)",
+        );
 
         // Execute button
         ui.add_space(10.0);
-        let button = ui.add_enabled(!*self.processing.lock().unwrap(), egui::Button::new("Convert to GIF"));
+        let button = ui.add_enabled(
+            !*self.processing.lock().unwrap(),
+            egui::Button::new("Convert to GIF"),
+        );
 
         if button.clicked() {
             if self.input_file.is_empty() {
-                *self.status.lock().unwrap() = "Error: Please select an input video file.".to_string();
+                *self.status.lock().unwrap() =
+                    "Error: Please select an input video file.".to_string();
                 return;
             }
 
             if self.output_file.is_empty() {
-                *self.status.lock().unwrap() = "Error: Please specify an output GIF file.".to_string();
+                *self.status.lock().unwrap() =
+                    "Error: Please specify an output GIF file.".to_string();
                 return;
             }
 
@@ -116,7 +127,8 @@ impl GifConverterTab {
                 match self.width.parse::<u32>() {
                     Ok(w) => Some(w),
                     Err(_) => {
-                        *self.status.lock().unwrap() = "Error: Width must be a positive integer.".to_string();
+                        *self.status.lock().unwrap() =
+                            "Error: Width must be a positive integer.".to_string();
                         return;
                     }
                 }
@@ -125,7 +137,8 @@ impl GifConverterTab {
             let fps = match self.fps.parse::<u32>() {
                 Ok(f) => f,
                 Err(_) => {
-                    *self.status.lock().unwrap() = "Error: FPS must be a positive integer.".to_string();
+                    *self.status.lock().unwrap() =
+                        "Error: FPS must be a positive integer.".to_string();
                     return;
                 }
             };
@@ -133,7 +146,8 @@ impl GifConverterTab {
             let max_size = match self.max_size.parse::<f64>() {
                 Ok(s) => s,
                 Err(_) => {
-                    *self.status.lock().unwrap() = "Error: Max size must be a positive number.".to_string();
+                    *self.status.lock().unwrap() =
+                        "Error: Max size must be a positive number.".to_string();
                     return;
                 }
             };
@@ -161,7 +175,8 @@ impl GifConverterTab {
                         *status_clone.lock().unwrap() = "Conversion successful!".to_string();
                     }
                     Ok(false) => {
-                        *status_clone.lock().unwrap() = format!("Output file exceeds size limit (> {}MB).", max_size);
+                        *status_clone.lock().unwrap() =
+                            format!("Output file exceeds size limit (> {}MB).", max_size);
                     }
                     Err(e) => {
                         *status_clone.lock().unwrap() = format!("Error: {}", e);

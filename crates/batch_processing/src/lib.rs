@@ -1,16 +1,13 @@
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
-use walkdir::WalkDir;
-use rayon::prelude::*;
 use indicatif::{ProgressBar, ProgressStyle};
+use rayon::prelude::*;
 use regex::Regex;
 use thiserror::Error;
+use walkdir::WalkDir;
 
-use common::{
-    VideoToolkitError,
-    check_ffmpeg, verify_input_file, validate_time_range
-};
+use common::{check_ffmpeg, validate_time_range, verify_input_file, VideoToolkitError};
 
 /// Errors specific to batch processing
 #[derive(Error, Debug)]
@@ -250,20 +247,18 @@ impl BatchProcessor {
         if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
             match self.operation {
                 BatchOperation::Clipper | BatchOperation::Splitter | BatchOperation::Merger => {
-                    ext.eq_ignore_ascii_case("mp4") ||
-                        ext.eq_ignore_ascii_case("avi") ||
-                        ext.eq_ignore_ascii_case("mov") ||
-                        ext.eq_ignore_ascii_case("mkv")
-                },
+                    ext.eq_ignore_ascii_case("mp4")
+                        || ext.eq_ignore_ascii_case("avi")
+                        || ext.eq_ignore_ascii_case("mov")
+                        || ext.eq_ignore_ascii_case("mkv")
+                }
                 BatchOperation::GifConverter => {
-                    ext.eq_ignore_ascii_case("mp4") ||
-                        ext.eq_ignore_ascii_case("avi") ||
-                        ext.eq_ignore_ascii_case("mov") ||
-                        ext.eq_ignore_ascii_case("mkv")
-                },
-                BatchOperation::GifTransparency => {
-                    ext.eq_ignore_ascii_case("gif")
-                },
+                    ext.eq_ignore_ascii_case("mp4")
+                        || ext.eq_ignore_ascii_case("avi")
+                        || ext.eq_ignore_ascii_case("mov")
+                        || ext.eq_ignore_ascii_case("mkv")
+                }
+                BatchOperation::GifTransparency => ext.eq_ignore_ascii_case("gif"),
             }
         } else {
             false
@@ -361,12 +356,14 @@ impl BatchProcessor {
     fn process_clipper(&self, input_file: &Path) -> BatchItemResult {
         let config = match &self.clipper_config {
             Some(config) => config,
-            None => return BatchItemResult {
-                input: input_file.to_path_buf(),
-                output: None,
-                success: false,
-                error_message: Some("Clipper configuration not set".to_string()),
-            },
+            None => {
+                return BatchItemResult {
+                    input: input_file.to_path_buf(),
+                    output: None,
+                    success: false,
+                    error_message: Some("Clipper configuration not set".to_string()),
+                }
+            }
         };
 
         // Verify the input file exists
@@ -422,23 +419,27 @@ impl BatchProcessor {
     fn process_gif_converter(&self, input_file: &Path) -> BatchItemResult {
         let config = match &self.gif_converter_config {
             Some(config) => config,
-            None => return BatchItemResult {
-                input: input_file.to_path_buf(),
-                output: None,
-                success: false,
-                error_message: Some("GIF converter configuration not set".to_string()),
-            },
+            None => {
+                return BatchItemResult {
+                    input: input_file.to_path_buf(),
+                    output: None,
+                    success: false,
+                    error_message: Some("GIF converter configuration not set".to_string()),
+                }
+            }
         };
 
         // Create output file path
         let file_stem = match input_file.file_stem() {
             Some(stem) => stem.to_string_lossy(),
-            None => return BatchItemResult {
-                input: input_file.to_path_buf(),
-                output: None,
-                success: false,
-                error_message: Some("Invalid input filename".to_string()),
-            },
+            None => {
+                return BatchItemResult {
+                    input: input_file.to_path_buf(),
+                    output: None,
+                    success: false,
+                    error_message: Some("Invalid input filename".to_string()),
+                }
+            }
         };
 
         let output_file = config.output_dir.join(format!("{}.gif", file_stem));
@@ -482,7 +483,10 @@ impl BatchProcessor {
                 input: input_file.to_path_buf(),
                 output: Some(output_file),
                 success: false,
-                error_message: Some(format!("Output file exceeds size limit (> {}MB)", config.max_size_mb)),
+                error_message: Some(format!(
+                    "Output file exceeds size limit (> {}MB)",
+                    config.max_size_mb
+                )),
             },
             Err(e) => BatchItemResult {
                 input: input_file.to_path_buf(),
@@ -497,12 +501,14 @@ impl BatchProcessor {
     fn process_gif_transparency(&self, input_file: &Path) -> BatchItemResult {
         let _config = match &self.gif_transparency_config {
             Some(config) => config,
-            None => return BatchItemResult {
-                input: input_file.to_path_buf(),
-                output: None,
-                success: false,
-                error_message: Some("GIF transparency configuration not set".to_string()),
-            },
+            None => {
+                return BatchItemResult {
+                    input: input_file.to_path_buf(),
+                    output: None,
+                    success: false,
+                    error_message: Some("GIF transparency configuration not set".to_string()),
+                }
+            }
         };
 
         // Run the GIF transparency tool
@@ -526,12 +532,14 @@ impl BatchProcessor {
     fn process_splitter(&self, input_file: &Path) -> BatchItemResult {
         let config = match &self.splitter_config {
             Some(config) => config,
-            None => return BatchItemResult {
-                input: input_file.to_path_buf(),
-                output: None,
-                success: false,
-                error_message: Some("Splitter configuration not set".to_string()),
-            },
+            None => {
+                return BatchItemResult {
+                    input: input_file.to_path_buf(),
+                    output: None,
+                    success: false,
+                    error_message: Some("Splitter configuration not set".to_string()),
+                }
+            }
         };
 
         // Create the output directory
@@ -577,23 +585,27 @@ impl BatchProcessor {
     fn process_merger(&self, input_file: &Path) -> BatchItemResult {
         let config = match &self.merger_config {
             Some(config) => config,
-            None => return BatchItemResult {
-                input: input_file.to_path_buf(),
-                output: None,
-                success: false,
-                error_message: Some("Merger configuration not set".to_string()),
-            },
+            None => {
+                return BatchItemResult {
+                    input: input_file.to_path_buf(),
+                    output: None,
+                    success: false,
+                    error_message: Some("Merger configuration not set".to_string()),
+                }
+            }
         };
 
         // Create output file path
         let file_stem = match input_file.file_stem() {
             Some(stem) => stem.to_string_lossy(),
-            None => return BatchItemResult {
-                input: input_file.to_path_buf(),
-                output: None,
-                success: false,
-                error_message: Some("Invalid input filename".to_string()),
-            },
+            None => {
+                return BatchItemResult {
+                    input: input_file.to_path_buf(),
+                    output: None,
+                    success: false,
+                    error_message: Some("Invalid input filename".to_string()),
+                }
+            }
         };
 
         let output_file = config.output_dir.join(format!("{}_merged.mp4", file_stem));
@@ -639,7 +651,7 @@ impl BatchProcessor {
         time_ranges_str: &[String],
         output_dir: &Path,
         copy_codec: bool,
-        suffix: Option<&str>
+        suffix: Option<&str>,
     ) -> Result<Self> {
         // Parse time ranges
         let mut time_ranges = Vec::new();
@@ -647,12 +659,17 @@ impl BatchProcessor {
             if let Some(range) = validate_time_range(range_str) {
                 time_ranges.push(range);
             } else {
-                return Err(BatchError::InvalidOperation(format!("Invalid time range: {}", range_str)));
+                return Err(BatchError::InvalidOperation(format!(
+                    "Invalid time range: {}",
+                    range_str
+                )));
             }
         }
 
         if time_ranges.is_empty() {
-            return Err(BatchError::InvalidOperation("No valid time ranges provided".to_string()));
+            return Err(BatchError::InvalidOperation(
+                "No valid time ranges provided".to_string(),
+            ));
         }
 
         let config = BatchClipperConfig {
@@ -686,9 +703,7 @@ impl BatchProcessor {
 
     /// Create a GIF transparency batch processor
     pub fn create_gif_transparency(create_backup: bool) -> Self {
-        let config = BatchGifTransparencyConfig {
-            create_backup,
-        };
+        let config = BatchGifTransparencyConfig { create_backup };
 
         Self::new(BatchOperation::GifTransparency).with_gif_transparency_config(config)
     }

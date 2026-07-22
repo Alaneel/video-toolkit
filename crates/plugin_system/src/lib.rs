@@ -1,7 +1,7 @@
+use std::any::Any;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
-use std::any::Any;
 
 use libloading::{Library, Symbol};
 use thiserror::Error;
@@ -111,26 +111,28 @@ impl PluginManager {
         let path = path.as_ref();
 
         // Load the dynamic library
-        let lib = unsafe {
-            Library::new(path).map_err(|e| PluginError::LoadError(e.to_string()))?
-        };
+        let lib = unsafe { Library::new(path).map_err(|e| PluginError::LoadError(e.to_string()))? };
 
         // Get the plugin creation function
         let constructor: Symbol<CreatePluginFunc> = unsafe {
-            lib.get(b"create_plugin")
-                .map_err(|e| PluginError::InvalidPlugin(format!("Missing create_plugin symbol: {}", e)))?
+            lib.get(b"create_plugin").map_err(|e| {
+                PluginError::InvalidPlugin(format!("Missing create_plugin symbol: {}", e))
+            })?
         };
 
         // Create the plugin instance
         let plugin_ptr = unsafe { constructor() };
         if plugin_ptr.is_null() {
-            return Err(PluginError::InitError("Plugin creation returned null".to_string()));
+            return Err(PluginError::InitError(
+                "Plugin creation returned null".to_string(),
+            ));
         }
 
         let mut plugin = unsafe { Box::from_raw(plugin_ptr) };
 
         // Initialize the plugin
-        plugin.initialize()
+        plugin
+            .initialize()
             .map_err(|e| PluginError::InitError(e.to_string()))?;
 
         // Check API version compatibility
@@ -141,7 +143,10 @@ impl PluginManager {
 
         // Store the plugin and library
         let plugin_name = metadata.name.clone();
-        self.plugins.lock().unwrap().insert(plugin_name.clone(), plugin);
+        self.plugins
+            .lock()
+            .unwrap()
+            .insert(plugin_name.clone(), plugin);
         self.libraries.lock().unwrap().insert(plugin_name, lib);
 
         Ok(())
@@ -174,11 +179,14 @@ impl PluginManager {
                     if is_plugin {
                         match self.load_plugin(&path) {
                             Ok(()) => {
-                                let plugin_name = path.file_stem().unwrap().to_string_lossy().to_string();
-                                if let Some(metadata) = self.with_plugin(&plugin_name, |plugin| plugin.metadata()) {
+                                let plugin_name =
+                                    path.file_stem().unwrap().to_string_lossy().to_string();
+                                if let Some(metadata) =
+                                    self.with_plugin(&plugin_name, |plugin| plugin.metadata())
+                                {
                                     results.push(Ok(metadata));
                                 }
-                            },
+                            }
                             Err(e) => results.push(Err(e)),
                         }
                     }
@@ -197,17 +205,21 @@ impl PluginManager {
         let plugins = self.plugins.lock().unwrap();
         plugins.get(name).map(|plugin| f(plugin.as_ref()))
     }
-    
+
     /// Get parameter info for a plugin
     pub fn get_plugin_parameters(&self, name: &str) -> Option<Vec<ParameterInfo>> {
         self.with_plugin(name, |plugin| plugin.get_parameter_info())
     }
-    
+
     /// Execute a plugin with the given parameters
-    pub fn execute_plugin(&self, name: &str, params: HashMap<String, String>) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn execute_plugin(
+        &self,
+        name: &str,
+        params: HashMap<String, String>,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         match self.with_plugin(name, |plugin| plugin.execute(params.clone())) {
             Some(result) => result,
-            None => Err(Box::new(PluginError::NotFound(name.to_string())))
+            None => Err(Box::new(PluginError::NotFound(name.to_string()))),
         }
     }
 
@@ -221,10 +233,14 @@ impl PluginManager {
     pub fn unload_plugin(&self, name: &str) -> Result<(), PluginError> {
         // Get the plugin
         let mut plugins = self.plugins.lock().unwrap();
-        let plugin = plugins.remove(name).ok_or_else(|| PluginError::NotFound(name.to_string()))?;
+        let plugin = plugins
+            .remove(name)
+            .ok_or_else(|| PluginError::NotFound(name.to_string()))?;
 
         // Shut down the plugin
-        plugin.shutdown().map_err(|e| PluginError::InitError(e.to_string()))?;
+        plugin
+            .shutdown()
+            .map_err(|e| PluginError::InitError(e.to_string()))?;
 
         // Remove the library
         let mut libraries = self.libraries.lock().unwrap();
@@ -249,6 +265,7 @@ impl Drop for PluginManager {
 macro_rules! export_plugin {
     ($plugin_type:ty) => {
         #[no_mangle]
+        #[allow(improper_ctypes_definitions)]
         pub extern "C" fn create_plugin() -> *mut dyn $crate::Plugin {
             let plugin = Box::new(<$plugin_type>::new());
             Box::into_raw(plugin)
@@ -265,6 +282,12 @@ pub mod example {
         metadata: PluginMetadata,
     }
 
+    impl Default for ExamplePlugin {
+        fn default() -> Self {
+            Self::new()
+        }
+    }
+
     impl ExamplePlugin {
         pub fn new() -> Self {
             Self {
@@ -272,7 +295,8 @@ pub mod example {
                     name: "example_plugin".to_string(),
                     version: "0.1.0".to_string(),
                     author: "Video-ToolKit Team".to_string(),
-                    description: "An example plugin that demonstrates the plugin system".to_string(),
+                    description: "An example plugin that demonstrates the plugin system"
+                        .to_string(),
                     api_version: PLUGIN_API_VERSION,
                 },
             }
@@ -289,7 +313,10 @@ pub mod example {
             Ok(())
         }
 
-        fn execute(&self, params: HashMap<String, String>) -> Result<(), Box<dyn std::error::Error>> {
+        fn execute(
+            &self,
+            params: HashMap<String, String>,
+        ) -> Result<(), Box<dyn std::error::Error>> {
             println!("Example plugin executed with parameters: {:?}", params);
             Ok(())
         }

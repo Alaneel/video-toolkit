@@ -1,10 +1,10 @@
-use std::path::Path;
-use std::fs;
 use std::cmp;
+use std::fs;
+use std::path::Path;
 
 use common::{
-    execute_ffmpeg, get_video_dimensions, verify_input_file, get_file_size_mb,
-    Result, VideoToolkitError
+    execute_ffmpeg, get_file_size_mb, get_video_dimensions, verify_input_file, Result,
+    VideoToolkitError,
 };
 
 /// Convert any video format (MP4, WebM, etc.) to GIF using FFmpeg with size optimization
@@ -35,7 +35,7 @@ pub fn convert_video_to_gif(
     // Create output directory if it doesn't exist
     if let Some(parent) = Path::new(output_file).parent() {
         if !parent.as_os_str().is_empty() {
-            fs::create_dir_all(parent).map_err(|e| VideoToolkitError::IoError(e))?;
+            fs::create_dir_all(parent).map_err(VideoToolkitError::IoError)?;
         }
     }
 
@@ -46,8 +46,10 @@ pub fn convert_video_to_gif(
     let palette_filter = format!("fps={},scale={}:-1:flags=lanczos,palettegen", fps, width);
     let palette_args = vec![
         "-y",
-        "-i", input_file,
-        "-vf", &palette_filter,
+        "-i",
+        input_file,
+        "-vf",
+        &palette_filter,
         &palette_file,
     ];
 
@@ -58,12 +60,18 @@ pub fn convert_video_to_gif(
     }
 
     // Convert using the palette
-    let filter_complex = format!("fps={},scale={}:-1:flags=lanczos[x];[x][1:v]paletteuse", fps, width);
+    let filter_complex = format!(
+        "fps={},scale={}:-1:flags=lanczos[x];[x][1:v]paletteuse",
+        fps, width
+    );
     let convert_args = vec![
         "-y",
-        "-i", input_file,
-        "-i", &palette_file,
-        "-filter_complex", &filter_complex,
+        "-i",
+        input_file,
+        "-i",
+        &palette_file,
+        "-filter_complex",
+        &filter_complex,
         output_file,
     ];
 
@@ -73,9 +81,7 @@ pub fn convert_video_to_gif(
     let _ = fs::remove_file(&palette_file);
 
     // Check if the conversion was successful
-    if let Err(e) = conversion_result {
-        return Err(e);
-    }
+    conversion_result?;
 
     // Check if the output file exists and is under size limit
     let output_path = Path::new(output_file);
@@ -83,14 +89,17 @@ pub fn convert_video_to_gif(
         let size_mb = get_file_size_mb(output_path);
         if size_mb <= max_size_mb {
             println!("Conversion successful! Output size: {:.2}MB", size_mb);
-            return Ok(true);
+            Ok(true)
         } else {
-            println!("Output file exceeds size limit ({:.2}MB > {:.2}MB).", size_mb, max_size_mb);
+            println!(
+                "Output file exceeds size limit ({:.2}MB > {:.2}MB).",
+                size_mb, max_size_mb
+            );
             println!("Consider reducing width or FPS for smaller file size.");
-            return Ok(false);
+            Ok(false)
         }
     } else {
-        return Err(VideoToolkitError::OutputFileNotCreated);
+        Err(VideoToolkitError::OutputFileNotCreated)
     }
 }
 
@@ -107,7 +116,10 @@ pub fn optimize_conversion(
 
     for width in width_options {
         for &fps in &fps_options {
-            println!("Attempting conversion with width={}px, fps={}...", width, fps);
+            println!(
+                "Attempting conversion with width={}px, fps={}...",
+                width, fps
+            );
 
             match convert_video_to_gif(input_file, output_file, Some(width), fps, max_size_mb) {
                 Ok(true) => return Ok(true),

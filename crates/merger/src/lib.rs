@@ -1,10 +1,7 @@
-use std::path::Path;
 use std::fs;
+use std::path::Path;
 
-use common::{
-    execute_ffmpeg, verify_input_file,
-    Result, VideoToolkitError
-};
+use common::{execute_ffmpeg, verify_input_file, Result, VideoToolkitError};
 
 /// Extract audio from a video file
 pub fn extract_audio(video_file: &str, audio_file: &str) -> Result<()> {
@@ -13,17 +10,12 @@ pub fn extract_audio(video_file: &str, audio_file: &str) -> Result<()> {
     // Create output directory if it doesn't exist
     if let Some(parent) = Path::new(audio_file).parent() {
         if !parent.as_os_str().is_empty() {
-            fs::create_dir_all(parent).map_err(|e| VideoToolkitError::IoError(e))?;
+            fs::create_dir_all(parent).map_err(VideoToolkitError::IoError)?;
         }
     }
 
     // Extract audio command
-    let args = vec![
-        "-y",
-        "-i", video_file,
-        "-acodec", "copy",
-        audio_file,
-    ];
+    let args = vec!["-y", "-i", video_file, "-acodec", "copy", audio_file];
 
     execute_ffmpeg(&args)?;
 
@@ -48,16 +40,12 @@ pub fn merge_audio_video(
     // Create output directory if it doesn't exist
     if let Some(parent) = Path::new(output_file).parent() {
         if !parent.as_os_str().is_empty() {
-            fs::create_dir_all(parent).map_err(|e| VideoToolkitError::IoError(e))?;
+            fs::create_dir_all(parent).map_err(VideoToolkitError::IoError)?;
         }
     }
 
     // Build merge command
-    let mut args = vec![
-        "-y",
-        "-i", video_file,
-        "-i", audio_file,
-    ];
+    let mut args = vec!["-y", "-i", video_file, "-i", audio_file];
 
     if copy_codec {
         args.extend_from_slice(&["-c", "copy"]);

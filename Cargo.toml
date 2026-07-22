@@ -1,9 +1,14 @@
 [package]
-name = "Video-ToolKit"
-version = "0.1.0"
+name = "video-toolkit"
+version = "0.2.0"
 edition = "2021"
-authors = ["Your Name"]
-description = "Video processing utilities for MP4 files"
+authors = ["Alaneel"]
+description = "A local-first desktop and CLI toolkit for practical FFmpeg workflows"
+license = "MIT"
+repository = "https://github.com/Alaneel/Video-ToolKit"
+readme = "README.md"
+keywords = ["video", "ffmpeg", "gif", "cli", "egui"]
+categories = ["multimedia::video", "command-line-utilities"]
 
 [dependencies]
 anyhow = "1.0.75"         # Error handling
