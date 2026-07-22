@@ -350,7 +350,3 @@ pub mod example {
         }
     }
 }
-
-// Export the example plugin (only when building as a dynamic library)
-#[cfg(feature = "dynamic")]
-export_plugin!(example::ExamplePlugin);
