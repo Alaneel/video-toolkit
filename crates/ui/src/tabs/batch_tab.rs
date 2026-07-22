@@ -271,12 +271,10 @@ impl BatchTab {
                         return;
                     }
                 }
-                BatchOperationType::Merger => {
-                    if self.merger_audio_file.is_empty() {
-                        *self.status.lock().unwrap() =
-                            "Error: Please select an audio file.".to_string();
-                        return;
-                    }
+                BatchOperationType::Merger if self.merger_audio_file.is_empty() => {
+                    *self.status.lock().unwrap() =
+                        "Error: Please select an audio file.".to_string();
+                    return;
                 }
                 _ => {}
             }
