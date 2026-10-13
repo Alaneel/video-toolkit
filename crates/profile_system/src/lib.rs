@@ -368,15 +368,17 @@ mod tests {
     use super::*;
     use std::env;
 
-    fn create_test_profile_manager() -> ProfileManager {
-        let temp_dir = env::temp_dir().join("video_toolkit_test_profiles");
+    fn create_test_profile_manager(test_name: &str) -> ProfileManager {
+        let temp_dir = env::temp_dir()
+            .join("video_toolkit_test_profiles")
+            .join(format!("{}_{test_name}", std::process::id()));
         let _ = fs::remove_dir_all(&temp_dir); // Clean up from previous tests
         ProfileManager::with_directory(temp_dir).unwrap()
     }
 
     #[test]
     fn test_save_and_load_profile() {
-        let manager = create_test_profile_manager();
+        let manager = create_test_profile_manager("save_and_load");
 
         let mut params = HashMap::new();
         params.insert("width".to_string(), "480".to_string());
@@ -401,7 +403,7 @@ mod tests {
 
     #[test]
     fn test_list_profiles() {
-        let manager = create_test_profile_manager();
+        let manager = create_test_profile_manager("list");
 
         // Create test profiles
         let profile1 = Profile::new("profile1", ProfileType::Clipper, HashMap::new());
@@ -420,7 +422,7 @@ mod tests {
 
     #[test]
     fn test_delete_profile() {
-        let manager = create_test_profile_manager();
+        let manager = create_test_profile_manager("delete");
 
         let profile = Profile::new("delete_me", ProfileType::Merger, HashMap::new());
 
