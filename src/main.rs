@@ -4,14 +4,14 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use batch_processing::BatchProcessor;
-use clipper::{clip_video, parse_time_ranges};
+use clipper::{clip_video_with_format, parse_time_ranges};
 use common::{check_ffmpeg, formats::*, get_supported_formats};
 use gif_converter::{convert_video_to_gif, optimize_conversion};
 use gif_transparency::{batch_process_gifs, process_directory};
-use merger::merge_audio_video;
+use merger::merge_audio_video_with_format;
 use plugin_system::PluginManager;
 use profile_system::{Profile, ProfileManager, ProfileType};
-use splitter::split_video;
+use splitter::split_video_with_format;
 use ui::VideoToolKitApp;
 
 #[derive(Parser)]
@@ -23,13 +23,13 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Extract specific time ranges from MP4 video files
+    /// Extract specific time ranges from video files
     Clipper {
         /// Input video file path
         input: String,
 
         /// Time ranges to extract in format START-END (e.g., 00:01:00-00:02:00)
-        #[clap(short, long, required = true)]
+        #[clap(short, long, required = true, num_args = 1..)]
         ranges: Vec<String>,
 
         /// Output directory for video clips
@@ -46,7 +46,7 @@ enum Commands {
 
         /// Output format (e.g., mp4, mkv, avi)
         #[clap(long, default_value = "mp4")]
-        format: String,
+        format: VideoFormat,
     },
 
     /// Convert videos (MP4, WebM, etc.) to optimized GIF format
@@ -118,7 +118,7 @@ enum Commands {
         prefix: String,
 
         /// Custom FFmpeg encoding options (advanced users only)
-        #[clap(long)]
+        #[clap(long, allow_hyphen_values = true)]
         custom_encode: Option<String>,
 
         /// Process even if video dimensions are not 1920x1080
@@ -127,7 +127,7 @@ enum Commands {
 
         /// Output format (e.g., mp4, mkv, avi)
         #[clap(long, default_value = "mp4")]
-        format: String,
+        format: VideoFormat,
     },
 
     /// Merge video with audio
@@ -150,9 +150,9 @@ enum Commands {
         #[clap(long)]
         copy_codec: bool,
 
-        /// Output format (e.g., mp4, mkv, avi)
-        #[clap(long, default_value = "mp4")]
-        format: String,
+        /// Output format (inferred from --output when omitted)
+        #[clap(long)]
+        format: Option<VideoFormat>,
     },
 
     /// Manage plugins
@@ -289,7 +289,7 @@ enum BatchCommands {
         output_dir: String,
 
         /// Time ranges to extract (START-END)
-        #[clap(short, long, required = true)]
+        #[clap(short = 't', long, required = true, num_args = 1..)]
         ranges: Vec<String>,
 
         /// Copy codec instead of re-encoding
@@ -306,7 +306,7 @@ enum BatchCommands {
 
         /// Output format (e.g., mp4, mkv, avi)
         #[clap(long, default_value = "mp4")]
-        format: String,
+        format: VideoFormat,
     },
 
     /// Batch convert videos to GIF
@@ -390,11 +390,11 @@ enum BatchCommands {
         output_dir: String,
 
         /// Prefix for output filenames
-        #[clap(short, long, default_value = "slice")]
+        #[clap(short = 'n', long, default_value = "slice")]
         prefix: String,
 
         /// Custom FFmpeg encoding options
-        #[clap(long)]
+        #[clap(long, allow_hyphen_values = true)]
         custom_encode: Option<String>,
 
         /// Process even if video dimensions are not 1920x1080
@@ -407,7 +407,7 @@ enum BatchCommands {
 
         /// Output format (e.g., mp4, mkv, avi)
         #[clap(long, default_value = "mp4")]
-        format: String,
+        format: VideoFormat,
     },
 
     /// Batch merge videos with audio
@@ -446,7 +446,7 @@ enum BatchCommands {
 
         /// Output format (e.g., mp4, mkv, avi)
         #[clap(long, default_value = "mp4")]
-        format: String,
+        format: VideoFormat,
     },
 
     /// Use a profile for batch processing
@@ -518,22 +518,23 @@ fn main() -> Result<(), eframe::Error> {
             output_dir,
             copy_codec,
             suffix,
-            format: _,
+            format,
         } => {
             println!("Running clipper...");
 
             let time_ranges = parse_time_ranges(&ranges);
-            if time_ranges.is_empty() {
-                eprintln!("Error: No valid time ranges provided.");
+            if time_ranges.is_empty() || time_ranges.len() != ranges.len() {
+                eprintln!("Error: Every time range must be valid and end after it starts.");
                 std::process::exit(1);
             }
 
-            match clip_video(
+            match clip_video_with_format(
                 &input,
                 &time_ranges,
                 &output_dir,
                 copy_codec,
                 suffix.as_deref(),
+                format,
             ) {
                 Ok(true) => println!("Successfully extracted all {} clip(s).", time_ranges.len()),
                 Ok(false) => {
@@ -662,16 +663,17 @@ fn main() -> Result<(), eframe::Error> {
             prefix,
             custom_encode,
             force,
-            format: _,
+            format,
         } => {
             println!("Running video splitter...");
 
-            match split_video(
+            match split_video_with_format(
                 &input,
                 &output_dir,
                 &prefix,
                 custom_encode.as_deref(),
                 force,
+                format,
             ) {
                 Ok(true) => println!(
                     "Successfully split video into 5 slices. Files saved in: {}",
@@ -694,11 +696,21 @@ fn main() -> Result<(), eframe::Error> {
             output,
             shortest,
             copy_codec,
-            format: _,
+            format,
         } => {
             println!("Running audio/video merger...");
 
-            match merge_audio_video(&video, &audio, &output, shortest, copy_codec) {
+            let (output, format) = match resolve_video_output(Path::new(&output), format) {
+                Ok(resolved) => resolved,
+                Err(error) => {
+                    eprintln!("Error: {error}");
+                    std::process::exit(1);
+                }
+            };
+            let output = output.to_string_lossy();
+            match merge_audio_video_with_format(
+                &video, &audio, &output, shortest, copy_codec, format,
+            ) {
                 Ok(_) => println!("Successfully merged audio and video. Output: {}", output),
                 Err(e) => {
                     eprintln!("Error: {}", e);
@@ -1090,7 +1102,7 @@ fn handle_batch_command(cmd: BatchCommands) {
             copy_codec,
             suffix,
             parallel,
-            format: _,
+            format,
         } => {
             println!("Running batch clipper...");
 
@@ -1116,7 +1128,10 @@ fn handle_batch_command(cmd: BatchCommands) {
             };
 
             // Configure processor
-            processor = processor.with_recursive(recursive).with_parallel(parallel);
+            processor = processor
+                .with_recursive(recursive)
+                .with_parallel(parallel)
+                .with_output_format(format);
 
             if let Some(pat) = pattern {
                 processor = match processor.with_pattern(&pat) {
@@ -1278,7 +1293,7 @@ fn handle_batch_command(cmd: BatchCommands) {
             custom_encode,
             force,
             parallel,
-            format: _,
+            format,
         } => {
             println!("Running batch video splitter...");
 
@@ -1288,7 +1303,8 @@ fn handle_batch_command(cmd: BatchCommands) {
                 &prefix,
                 custom_encode.as_deref(),
                 force,
-            );
+            )
+            .with_output_format(format);
 
             // Configure processor
             processor = processor.with_recursive(recursive).with_parallel(parallel);
@@ -1339,13 +1355,14 @@ fn handle_batch_command(cmd: BatchCommands) {
             shortest,
             copy_codec,
             parallel,
-            format: _,
+            format,
         } => {
             println!("Running batch audio/video merger...");
 
             // Create processor
             let mut processor =
-                BatchProcessor::create_merger(&audio, Path::new(&output_dir), shortest, copy_codec);
+                BatchProcessor::create_merger(&audio, Path::new(&output_dir), shortest, copy_codec)
+                    .with_output_format(format);
 
             // Configure processor
             processor = processor.with_recursive(recursive).with_parallel(parallel);
@@ -1430,5 +1447,16 @@ fn handle_batch_command(cmd: BatchCommands) {
             println!("  Type: {:?}", profile.profile_type);
             println!("  Parameters: {:?}", profile.parameters);
         }
+    }
+}
+
+#[cfg(test)]
+mod cli_tests {
+    use super::*;
+    use clap::CommandFactory;
+
+    #[test]
+    fn all_commands_have_consistent_argument_definitions() {
+        Cli::command().debug_assert();
     }
 }

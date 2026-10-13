@@ -1,3 +1,4 @@
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
@@ -7,7 +8,9 @@ use regex::Regex;
 use thiserror::Error;
 use walkdir::WalkDir;
 
-use common::{check_ffmpeg, validate_time_range, verify_input_file, VideoToolkitError};
+use common::{
+    check_ffmpeg, validate_time_range, verify_input_file, VideoFormat, VideoToolkitError,
+};
 
 /// Errors specific to batch processing
 #[derive(Error, Debug)]
@@ -111,6 +114,7 @@ pub struct BatchMergerConfig {
 /// The main batch processor
 pub struct BatchProcessor {
     operation: BatchOperation,
+    output_format: VideoFormat,
     input_pattern: Option<Regex>,
     parallel: bool,
     recursive: bool,
@@ -131,6 +135,7 @@ impl BatchProcessor {
     pub fn new(operation: BatchOperation) -> Self {
         Self {
             operation,
+            output_format: VideoFormat::MP4,
             input_pattern: None,
             parallel: true,
             recursive: false,
@@ -147,6 +152,12 @@ impl BatchProcessor {
     pub fn with_pattern(mut self, pattern: &str) -> Result<Self> {
         self.input_pattern = Some(Regex::new(pattern)?);
         Ok(self)
+    }
+
+    /// Select the output container for clip, split, and merge operations.
+    pub fn with_output_format(mut self, format: VideoFormat) -> Self {
+        self.output_format = format;
+        self
     }
 
     /// Enable or disable parallel processing
@@ -231,7 +242,87 @@ impl BatchProcessor {
             return Err(BatchError::NoInputFiles);
         }
 
-        Ok(files)
+        // Explicit files and directory traversal can discover the same source
+        // more than once. Keep its first path for naming, but process it once.
+        let mut canonical_sources = HashSet::new();
+        let mut unique_files = Vec::new();
+        for file in files {
+            if canonical_sources.insert(std::fs::canonicalize(&file)?) {
+                unique_files.push(file);
+            }
+        }
+
+        Ok(unique_files)
+    }
+
+    /// Reject sources that would write the same filenames into a shared output directory.
+    fn validate_output_collisions(&self, input_files: &[PathBuf]) -> Result<()> {
+        if self.operation == BatchOperation::GifTransparency {
+            return Ok(());
+        }
+
+        // Default macOS and Windows filesystems are case insensitive. Reject
+        // these collisions on every platform so a batch stays portable.
+        let mut output_stems: HashMap<String, &Path> = HashMap::new();
+        for input in input_files {
+            let stem = input
+                .file_stem()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_lowercase();
+            if let Some(previous) = output_stems.insert(stem.clone(), input) {
+                return Err(BatchError::InvalidOperation(format!(
+                    "Output filename collision between '{}' and '{}' (same filename stem '{}'). Rename one input or process them into separate output directories.",
+                    previous.display(), input.display(), stem
+                )));
+            }
+        }
+
+        // Clip names also contain sanitized timestamps. Different source stems
+        // can therefore overlap across ranges, and repeated ranges can collide
+        // within a single source. Compare the exact names the clipper will use.
+        if self.operation == BatchOperation::Clipper {
+            if let Some(config) = &self.clipper_config {
+                if config.time_ranges.is_empty() {
+                    return Err(BatchError::InvalidOperation(
+                        "No valid time ranges provided".to_string(),
+                    ));
+                }
+
+                let ranges: Vec<(String, String)> = config
+                    .time_ranges
+                    .iter()
+                    .map(|(start, end)| {
+                        let range = format!("{start}-{end}");
+                        validate_time_range(&range).ok_or_else(|| {
+                            BatchError::InvalidOperation(format!("Invalid time range: {range}"))
+                        })
+                    })
+                    .collect::<Result<_>>()?;
+                let mut clip_outputs: HashMap<String, &Path> = HashMap::new();
+                for input in input_files {
+                    for (start, end) in &ranges {
+                        let output = clipper::format_output_filename_with_format(
+                            input,
+                            start,
+                            end,
+                            &config.output_dir,
+                            config.suffix.as_deref(),
+                            self.output_format,
+                        );
+                        let key = output.to_string_lossy().to_lowercase();
+                        if let Some(previous) = clip_outputs.insert(key, input) {
+                            return Err(BatchError::InvalidOperation(format!(
+                                "Output filename collision for '{}' between '{}' and '{}'. Rename inputs, remove overlapping or duplicate ranges, or process them into separate output directories.",
+                                output.display(), previous.display(), input.display()
+                            )));
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(())
     }
 
     /// Check if a file matches the pattern
@@ -246,18 +337,10 @@ impl BatchProcessor {
         // If no pattern is set, match by extension based on operation
         if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
             match self.operation {
-                BatchOperation::Clipper | BatchOperation::Splitter | BatchOperation::Merger => {
-                    ext.eq_ignore_ascii_case("mp4")
-                        || ext.eq_ignore_ascii_case("avi")
-                        || ext.eq_ignore_ascii_case("mov")
-                        || ext.eq_ignore_ascii_case("mkv")
-                }
-                BatchOperation::GifConverter => {
-                    ext.eq_ignore_ascii_case("mp4")
-                        || ext.eq_ignore_ascii_case("avi")
-                        || ext.eq_ignore_ascii_case("mov")
-                        || ext.eq_ignore_ascii_case("mkv")
-                }
+                BatchOperation::Clipper
+                | BatchOperation::Splitter
+                | BatchOperation::Merger
+                | BatchOperation::GifConverter => ext.parse::<VideoFormat>().is_ok(),
                 BatchOperation::GifTransparency => ext.eq_ignore_ascii_case("gif"),
             }
         } else {
@@ -267,13 +350,15 @@ impl BatchProcessor {
 
     /// Process the batch operation on the input files
     pub fn process(&self, input_paths: &[PathBuf]) -> Result<Vec<BatchItemResult>> {
+        // Discover and validate every destination before starting a media job.
+        let input_files = self.find_input_files(input_paths)?;
+        self.validate_output_collisions(&input_files)?;
+
         // Check if FFmpeg is installed
         if !check_ffmpeg() {
             return Err(BatchError::Other("FFmpeg not found".to_string()));
         }
 
-        // Find input files
-        let input_files = self.find_input_files(input_paths)?;
         let total_files = input_files.len();
 
         // Create a progress bar if there's no custom callback
@@ -387,12 +472,13 @@ impl BatchProcessor {
         }
 
         // Run the clipper
-        match clipper::clip_video(
+        match clipper::clip_video_with_format(
             &input_file.to_string_lossy(),
             &config.time_ranges,
             &config.output_dir.to_string_lossy(),
             config.copy_codec,
             config.suffix.as_deref(),
+            self.output_format,
         ) {
             Ok(true) => BatchItemResult {
                 input: input_file.to_path_buf(),
@@ -553,12 +639,17 @@ impl BatchProcessor {
         }
 
         // Run the splitter
-        match splitter::split_video(
+        // Each source needs its own prefix so parallel jobs do not overwrite
+        // the same five slices in the shared output directory.
+        let source_stem = input_file.file_stem().unwrap_or_default().to_string_lossy();
+        let output_prefix = format!("{}_{}", source_stem, config.prefix);
+        match splitter::split_video_with_format(
             &input_file.to_string_lossy(),
             &config.output_dir.to_string_lossy(),
-            &config.prefix,
+            &output_prefix,
             config.custom_encode.as_deref(),
             config.force,
+            self.output_format,
         ) {
             Ok(true) => BatchItemResult {
                 input: input_file.to_path_buf(),
@@ -608,7 +699,11 @@ impl BatchProcessor {
             }
         };
 
-        let output_file = config.output_dir.join(format!("{}_merged.mp4", file_stem));
+        let output_file = config.output_dir.join(format!(
+            "{}_merged.{}",
+            file_stem,
+            self.output_format.extension()
+        ));
 
         // Create the output directory
         if let Err(e) = std::fs::create_dir_all(&config.output_dir) {
@@ -621,12 +716,13 @@ impl BatchProcessor {
         }
 
         // Run the merger
-        match merger::merge_audio_video(
+        match merger::merge_audio_video_with_format(
             &input_file.to_string_lossy(),
             &config.audio_file.to_string_lossy(),
             &output_file.to_string_lossy(),
             config.use_shortest,
             config.copy_codec,
+            self.output_format,
         ) {
             Ok(()) => BatchItemResult {
                 input: input_file.to_path_buf(),
@@ -740,5 +836,213 @@ impl BatchProcessor {
         };
 
         Self::new(BatchOperation::Merger).with_merger_config(config)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    static NEXT_TEST_DIRECTORY: AtomicU64 = AtomicU64::new(0);
+
+    struct TestDirectory(PathBuf);
+
+    impl TestDirectory {
+        fn new() -> Self {
+            let path = std::env::temp_dir().join(format!(
+                "video-toolkit-batch-discovery-{}-{}-{}",
+                std::process::id(),
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap()
+                    .as_nanos(),
+                NEXT_TEST_DIRECTORY.fetch_add(1, Ordering::Relaxed)
+            ));
+            std::fs::create_dir(&path).unwrap();
+            Self(path)
+        }
+
+        fn file(&self, name: &str) -> PathBuf {
+            let path = self.0.join(name);
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(&path, b"discovery fixture; no FFmpeg required").unwrap();
+            path
+        }
+    }
+
+    impl Drop for TestDirectory {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+
+    const VIDEO_OPERATIONS: [BatchOperation; 4] = [
+        BatchOperation::Clipper,
+        BatchOperation::Splitter,
+        BatchOperation::Merger,
+        BatchOperation::GifConverter,
+    ];
+
+    #[test]
+    fn discovery_accepts_all_video_formats_uppercase_extensions_and_aliases() {
+        let directory = TestDirectory::new();
+        let mut expected: Vec<_> = VideoFormat::all()
+            .iter()
+            .map(|format| {
+                directory.file(&format!(
+                    "video-{}.{}",
+                    format.extension(),
+                    format.extension()
+                ))
+            })
+            .collect();
+        expected.push(directory.file("nested/uppercase.WEBM"));
+        expected.push(directory.file("legacy-alias.mpg"));
+        directory.file("not-a-video.txt");
+        directory.file("not-a-video.gif");
+        expected.sort();
+
+        for operation in VIDEO_OPERATIONS {
+            let processor = BatchProcessor::new(operation).with_recursive(true);
+            let mut inputs = processor
+                .find_input_files(std::slice::from_ref(&directory.0))
+                .unwrap();
+            inputs.sort();
+            assert_eq!(inputs, expected, "incorrect discovery for {operation}");
+            processor.validate_output_collisions(&inputs).unwrap();
+        }
+    }
+
+    #[test]
+    fn overlapping_inputs_and_canonical_aliases_are_processed_once() {
+        let directory = TestDirectory::new();
+        let input = directory.file("video.webm");
+        std::fs::create_dir(directory.0.join("aliases")).unwrap();
+        let alias = directory.0.join("aliases").join("..").join("video.webm");
+
+        for operation in VIDEO_OPERATIONS {
+            let processor = BatchProcessor::new(operation).with_recursive(true);
+            let files = processor
+                .find_input_files(&[input.clone(), directory.0.clone(), alias.clone()])
+                .unwrap();
+            assert_eq!(files, vec![input.clone()]);
+            processor.validate_output_collisions(&files).unwrap();
+        }
+    }
+
+    #[test]
+    fn preflight_rejects_case_insensitive_stem_collisions_before_output_creation() {
+        let directory = TestDirectory::new();
+        let first = directory.file("left/Recording.mp4");
+        let second = directory.file("right/recording.mkv");
+        let output = directory.0.join("outputs-not-created");
+
+        for operation in VIDEO_OPERATIONS {
+            let processor = match operation {
+                BatchOperation::Clipper => {
+                    BatchProcessor::create_clipper(&["0-1".to_string()], &output, false, None)
+                        .unwrap()
+                }
+                BatchOperation::Splitter => {
+                    BatchProcessor::create_splitter(&output, "slice", None, false)
+                }
+                BatchOperation::Merger => {
+                    BatchProcessor::create_merger(&first, &output, true, false)
+                }
+                BatchOperation::GifConverter => {
+                    BatchProcessor::create_gif_converter(None, 10, 5.0, false, &output)
+                }
+                BatchOperation::GifTransparency => unreachable!(),
+            };
+            let files = processor
+                .find_input_files(&[first.clone(), second.clone()])
+                .unwrap();
+            // Public process must stop at preflight without even requiring
+            // FFmpeg, and without creating any configured output directory.
+            let error = processor.process(&files).unwrap_err();
+            assert!(matches!(error, BatchError::InvalidOperation(_)));
+            let message = error.to_string();
+            assert!(message.contains(&first.display().to_string()));
+            assert!(message.contains(&second.display().to_string()));
+            assert!(message.contains("Rename one input"));
+            assert!(message.contains("separate output directories"));
+            assert!(!output.exists());
+        }
+
+        assert_eq!(
+            std::fs::read(first).unwrap(),
+            b"discovery fixture; no FFmpeg required"
+        );
+        assert_eq!(
+            std::fs::read(second).unwrap(),
+            b"discovery fixture; no FFmpeg required"
+        );
+    }
+
+    #[test]
+    fn transparency_deduplicates_sources_but_allows_matching_stems_in_other_directories() {
+        let directory = TestDirectory::new();
+        let first = directory.file("left/recording.gif");
+        let second = directory.file("right/recording.gif");
+        let processor = BatchProcessor::new(BatchOperation::GifTransparency).with_recursive(true);
+        let files = processor
+            .find_input_files(&[first.clone(), directory.0.clone()])
+            .unwrap();
+        assert_eq!(files.len(), 2);
+        assert!(files.contains(&first));
+        assert!(files.contains(&second));
+        processor.validate_output_collisions(&files).unwrap();
+    }
+
+    #[test]
+    fn clip_preflight_rejects_cross_range_collisions_between_different_stems() {
+        let directory = TestDirectory::new();
+        let first = directory.file("lesson_01.mp4");
+        let second = directory.file("lesson.mp4");
+        let output = directory.0.join("clips-not-created");
+        let processor = BatchProcessor::create_clipper(
+            &["02-01:03".to_string(), "01:02-01:03".to_string()],
+            &output,
+            false,
+            Some("highlight"),
+        )
+        .unwrap()
+        .with_output_format(VideoFormat::WebM);
+
+        let error = processor
+            .process(&[first.clone(), second.clone()])
+            .unwrap_err();
+        assert!(matches!(error, BatchError::InvalidOperation(_)));
+        let message = error.to_string();
+        assert!(message.contains("lesson_01_02-01_03_highlight.webm"));
+        assert!(message.contains(&first.display().to_string()));
+        assert!(message.contains(&second.display().to_string()));
+        assert!(!output.exists());
+    }
+
+    #[test]
+    fn clip_preflight_rejects_duplicate_ranges_after_timestamp_trimming() {
+        let directory = TestDirectory::new();
+        let input = directory.file("lesson.mp4");
+        let output = directory.0.join("clips-not-created");
+        let processor =
+            BatchProcessor::new(BatchOperation::Clipper).with_clipper_config(BatchClipperConfig {
+                time_ranges: vec![
+                    ("0".to_string(), "1".to_string()),
+                    (" 0 ".to_string(), " 1 ".to_string()),
+                ],
+                output_dir: output.clone(),
+                copy_codec: false,
+                suffix: None,
+            });
+
+        let error = processor.process(std::slice::from_ref(&input)).unwrap_err();
+        assert!(matches!(error, BatchError::InvalidOperation(_)));
+        let message = error.to_string();
+        assert!(message.contains("lesson_0-1.mp4"));
+        assert!(message.contains(&input.display().to_string()));
+        assert!(message.contains("duplicate ranges"));
+        assert!(!output.exists());
     }
 }

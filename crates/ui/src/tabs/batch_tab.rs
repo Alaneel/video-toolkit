@@ -4,6 +4,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 use batch_processing::{BatchItemResult, BatchProcessor};
+use common::VideoFormat;
 
 #[derive(PartialEq, Clone, Copy)]
 pub enum BatchOperationType {
@@ -33,6 +34,7 @@ pub struct BatchTab {
     recursive: bool,
     pattern: String,
     parallel: bool,
+    output_format: VideoFormat,
 
     // Operation-specific settings
 
@@ -79,6 +81,7 @@ impl BatchTab {
             recursive: true,
             pattern: String::new(),
             parallel: true,
+            output_format: VideoFormat::MP4,
 
             clipper_time_ranges: vec![String::new()],
             clipper_output_dir: String::from("output_clips"),
@@ -101,7 +104,7 @@ impl BatchTab {
             merger_audio_file: String::new(),
             merger_output_dir: String::from("output_merged"),
             merger_shortest: true,
-            merger_copy_codec: true,
+            merger_copy_codec: false,
 
             status,
             processing: processing.clone(),
@@ -205,6 +208,26 @@ impl BatchTab {
             BatchOperationType::Merger => self.merger_settings_ui(ui),
         }
 
+        if matches!(
+            self.operation_type,
+            BatchOperationType::Clipper | BatchOperationType::Splitter | BatchOperationType::Merger
+        ) {
+            ui.horizontal(|ui| {
+                ui.label("Output Format:");
+                ComboBox::from_id_source("batch_output_format")
+                    .selected_text(self.output_format.to_string())
+                    .show_ui(ui, |ui| {
+                        for format in VideoFormat::all() {
+                            ui.selectable_value(
+                                &mut self.output_format,
+                                format,
+                                format.to_string(),
+                            );
+                        }
+                    });
+            });
+        }
+
         ui.separator();
 
         // Process button and progress
@@ -294,6 +317,7 @@ impl BatchTab {
             let recursive = self.recursive;
             let pattern = self.pattern.clone();
             let parallel = self.parallel;
+            let output_format = self.output_format;
 
             // Operation-specific clones
             let clipper_time_ranges = self.clipper_time_ranges.clone();
@@ -422,7 +446,10 @@ impl BatchTab {
                 };
 
                 // Configure processor
-                processor = processor.with_recursive(recursive).with_parallel(parallel);
+                processor = processor
+                    .with_recursive(recursive)
+                    .with_parallel(parallel)
+                    .with_output_format(output_format);
 
                 if !pattern.is_empty() {
                     processor = match processor.with_pattern(&pattern) {

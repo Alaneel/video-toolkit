@@ -2,13 +2,15 @@ use eframe::egui::{self, Ui};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-use splitter::split_video;
+use common::VideoFormat;
+use splitter::split_video_with_format;
 
 pub struct SplitterTab {
     input_file: String,
     output_dir: String,
     prefix: String,
     encode_options: String,
+    output_format: VideoFormat,
     force: bool,
     status: Arc<Mutex<String>>,
     processing: Arc<Mutex<bool>>,
@@ -21,6 +23,7 @@ impl SplitterTab {
             output_dir: String::from("output_slices"),
             prefix: String::from("slice"),
             encode_options: String::new(),
+            output_format: VideoFormat::MP4,
             force: false,
             status,
             processing,
@@ -34,7 +37,7 @@ impl SplitterTab {
             ui.text_edit_singleline(&mut self.input_file);
             if ui.button("Browse").clicked() {
                 if let Some(path) = rfd::FileDialog::new()
-                    .add_filter("Video Files", &["mp4", "avi", "mov", "mkv"])
+                    .add_filter("Video Files", &common::get_supported_formats("splitter"))
                     .pick_file()
                 {
                     self.input_file = path.to_string_lossy().to_string();
@@ -60,6 +63,17 @@ impl SplitterTab {
 
         // Options section
         ui.heading("Options");
+
+        ui.horizontal(|ui| {
+            ui.label("Output Format:");
+            egui::ComboBox::from_id_source("splitter_output_format")
+                .selected_text(self.output_format.to_string())
+                .show_ui(ui, |ui| {
+                    for format in VideoFormat::all() {
+                        ui.selectable_value(&mut self.output_format, format, format.to_string());
+                    }
+                });
+        });
 
         ui.horizontal(|ui| {
             ui.label("Filename Prefix:");
@@ -105,16 +119,18 @@ impl SplitterTab {
                 Some(self.encode_options.clone())
             };
             let force = self.force;
+            let output_format = self.output_format;
             let status_clone = Arc::clone(&self.status);
             let processing_clone = Arc::clone(&self.processing);
 
             thread::spawn(move || {
-                let result = split_video(
+                let result = split_video_with_format(
                     &input_file,
                     &output_dir,
                     &prefix,
                     encode_options.as_deref(),
                     force,
+                    output_format,
                 );
 
                 match result {
