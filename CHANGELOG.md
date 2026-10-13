@@ -18,6 +18,7 @@ All notable changes to Video Toolkit are documented here. The project follows [S
 ### Changed
 
 - Restored the project version to the existing v2 release line after the repository polish work.
+- Updated CI and release checkout steps to the current Node.js 24-based action runtime.
 - FFmpeg availability is checked once at application startup instead of once per frame.
 - GIF background transparency now uses valid GIF89a graphic control extensions.
 - The package metadata and binary name are normalized to `video-toolkit`.
