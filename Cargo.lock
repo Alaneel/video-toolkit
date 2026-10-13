@@ -496,6 +496,7 @@ dependencies = [
  "gif_transparency",
  "indicatif",
  "merger",
+ "profile_system",
  "rayon",
  "regex",
  "serde",

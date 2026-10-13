@@ -28,7 +28,7 @@ Most video utilities either hide FFmpeg behind a subscription or make simple wor
 | ▥ Video splitter | Turn a 1920×1080 video into five equal vertical slices |
 | ⇄ Media merger | Replace a video's audio using an audio file or another video, optionally stopping at the shortest stream |
 | ▦ Batch processing | Run clip, GIF, split, merge, and GIF operations across folders in parallel |
-| ☆ Profiles | Save reusable operation settings as portable profiles |
+| ☆ Profiles | Save reusable settings, load them into desktop batch processing, or run them directly from the CLI |
 | ⬡ Plugins | Discover and run dynamic extensions; a watermark plugin is included as an example |
 
 The app supports common video formats including MP4, WebM, MKV, AVI, MOV, FLV, MPEG, and OGV, plus widely used audio and image formats.
@@ -97,6 +97,47 @@ Choose an output container with `--format` for clip, split, and their batch comm
 
 The merger infers its container from `--output final.webm`, or accepts `--format webm` with a matching extension. Without an extension, it adds the requested extension (MP4 by default). Conflicting extensions and unknown formats are rejected before processing. The output always uses the video from the first input and the audio from the selected audio source. Batch slices include the source filename, for example `recording_slice_1.mkv`, so different source filenames keep separate outputs. Repeated inputs are processed once; different inputs with conflicting output names are rejected before any output is created. Rename those sources or run them into separate output directories.
 
+## Reusable profiles
+
+Save a preset once, then apply it to different inputs:
+
+```bash
+video-toolkit profile create web-preview --profile-type clipper \
+  --params 'ranges=0-00:15,00:30-00:45' 'format=webm' \
+  'output_dir=previews' 'recursive=true' 'parallel=false'
+
+video-toolkit batch with-profile ./recordings \
+  --profile web-preview --profile-type clipper
+
+# Override this run without changing the saved preset
+video-toolkit batch with-profile ./recordings \
+  --profile web-preview --profile-type clipper \
+  --output-dir review-clips --recursive=false --parallel=true \
+  --pattern '\.mp4$'
+
+# Export and import portable JSON presets
+video-toolkit profile export web-preview --profile-type clipper --output web-preview.json
+video-toolkit profile import web-preview.json
+```
+
+In the desktop app, open **Profiles**, select or create a preset, and choose **Use in Batch**. The app loads its settings into Batch Processing; choose inputs, review or adjust the settings, and start the job. Loading a preset does not start processing or change the saved preset.
+
+Profiles use the following parameters and defaults. Numbers must be positive (`max_size` must also be finite), booleans are `true`/`false`, and unknown keys or conflicting aliases are rejected before processing.
+
+| Profile type | Required parameters | Optional parameters and defaults |
+| --- | --- | --- |
+| `clipper` | `ranges`: comma- or space-separated `START-END` ranges | `output_dir=output_clips`, `format=mp4`, `copy_codec=false`, `suffix` |
+| `gif_converter` | None | `width` (up to 480 px by default), `fps=10`, `max_size=5.0` MB, `optimize=false`, `output_dir=output_gifs` |
+| `gif_transparency` | None | `backup=false`; modifies the input GIFs in place |
+| `splitter` | None | `output_dir=output_slices`, `prefix=slice`, `format=mp4`, `custom_encode`, `force=false` |
+| `merger` | `audio`: audio file or source-video path | `output_dir=output_merged`, `format=mp4`, `shortest=false`, `copy_codec=false` |
+
+Every profile also accepts `recursive=false`, `parallel=true`, and `pattern` (an optional filename regex). Regex whitespace is preserved; an empty value disables filtering. Relative audio and output paths are resolved from the working directory when the job runs. With GIF optimization enabled, conversion starts at the requested width/FPS and may reduce them to meet the size limit. GIF transparency with `backup=true` preserves the original in a `.gif.bak` file and keeps that first backup on repeated runs.
+
+The aliases `time_ranges`, `max_size_mb`, `create_backup`, `audio_file`, `use_shortest`, `output_format`, and `encode_options` correspond to `ranges`, `max_size`, `backup`, `audio`, `shortest`, `format`, and `custom_encode`. Supply one key from each pair. Empty optional `width`, `suffix`, `custom_encode`, and `pattern` values are allowed; required fields cannot be blank. Custom profile types can be stored and exported, but cannot be run by the built-in batch tools.
+
+Profiles normally use the platform's application configuration directory. Use the global `--profiles-dir ./presets` option to select a portable storage directory for CLI commands or the desktop app. Profile names and custom type names must be portable filename components; imported metadata must match its stored name and type. Profile management and native GIF transparency remain available without FFmpeg. A missing input, invalid preset, empty match set, or failed media job returns a nonzero CLI exit status.
+
 ## Architecture
 
 Video Toolkit is a Rust workspace with small, focused crates:
@@ -134,10 +175,10 @@ cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace --all-targets
 # Requires FFmpeg/ffprobe: encode real fixtures, exercise the CLI, and probe outputs
-cargo test --test media_workflows -- --ignored
+cargo test --tests -- --ignored
 ```
 
-CI checks formatting and Clippy on Linux and runs workspace tests on Linux, macOS, and Windows. Linux also executes real FFmpeg integration tests that verify containers, codecs, replacement audio, and batch outputs. See [CONTRIBUTING.md](CONTRIBUTING.md) for the contribution workflow, and [CHANGELOG.md](CHANGELOG.md) for release history.
+CI checks formatting and Clippy on Linux and runs workspace tests on Linux, macOS, and Windows. Linux also executes real FFmpeg integration tests that verify containers, codecs, replacement audio, batch outputs, and saved-profile processing. Dependency-free CLI tests verify profile storage and native GIF workflows with FFmpeg removed from `PATH`. See [CONTRIBUTING.md](CONTRIBUTING.md) for the contribution workflow, and [CHANGELOG.md](CHANGELOG.md) for release history.
 
 ## Roadmap
 

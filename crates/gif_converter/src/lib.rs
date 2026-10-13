@@ -110,9 +110,42 @@ pub fn optimize_conversion(
     max_size_mb: f64,
     initial_width: Option<u32>,
 ) -> Result<bool> {
+    optimize_conversion_with_fps(input_file, output_file, max_size_mb, initial_width, 10)
+}
+
+/// Optimize from the requested width/FPS downward without exceeding either limit.
+pub fn optimize_conversion_with_fps(
+    input_file: &str,
+    output_file: &str,
+    max_size_mb: f64,
+    initial_width: Option<u32>,
+    initial_fps: u32,
+) -> Result<bool> {
+    if initial_width == Some(0)
+        || initial_fps == 0
+        || !max_size_mb.is_finite()
+        || max_size_mb <= 0.0
+    {
+        return Err(VideoToolkitError::Other(
+            "GIF width, FPS, and maximum size must be positive finite values.".to_string(),
+        ));
+    }
+    let initial_width = initial_width.unwrap_or_else(|| {
+        get_video_dimensions(input_file)
+            .map(|(width, _)| width.min(480))
+            .unwrap_or(480)
+    });
     // Try with different quality settings
-    let width_options = vec![initial_width.unwrap_or(480), 360, 320, 240, 160];
-    let fps_options = vec![10, 8, 5];
+    let mut width_options: Vec<u32> = [initial_width, 360, 320, 240, 160]
+        .into_iter()
+        .map(|width| width.min(initial_width))
+        .collect();
+    width_options.dedup();
+    let mut fps_options: Vec<u32> = [initial_fps, 8, 5]
+        .into_iter()
+        .map(|fps| fps.min(initial_fps))
+        .collect();
+    fps_options.dedup();
 
     for width in width_options {
         for &fps in &fps_options {
@@ -142,7 +175,13 @@ pub fn optimize_conversion(
     println!("Could not achieve target file size with any optimization settings.");
 
     // As a last resort, try with the lowest settings
-    convert_video_to_gif(input_file, output_file, Some(120), 3, max_size_mb)
+    convert_video_to_gif(
+        input_file,
+        output_file,
+        Some(initial_width.min(120)),
+        initial_fps.min(3),
+        max_size_mb,
+    )
 }
 
 // For backward compatibility - will be deprecated

@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-use gif_converter::{convert_video_to_gif, optimize_conversion};
+use gif_converter::{convert_video_to_gif, optimize_conversion_with_fps};
 
 pub struct GifConverterTab {
     input_file: String,
@@ -165,7 +165,7 @@ impl GifConverterTab {
 
             thread::spawn(move || {
                 let result = if optimize {
-                    optimize_conversion(&input_file, &output_file, max_size, width)
+                    optimize_conversion_with_fps(&input_file, &output_file, max_size, width, fps)
                 } else {
                     convert_video_to_gif(&input_file, &output_file, width, fps, max_size)
                 };
