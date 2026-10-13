@@ -1,6 +1,6 @@
 [package]
 name = "video-toolkit"
-version = "0.2.0"
+version = "2.1.0"
 edition = "2021"
 authors = ["Alaneel"]
 description = "A local-first desktop and CLI toolkit for practical FFmpeg workflows"
