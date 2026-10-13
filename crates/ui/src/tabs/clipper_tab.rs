@@ -2,14 +2,15 @@ use eframe::egui::{self, Ui};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-use clipper::clip_video;
-use common::validate_time_range;
+use clipper::clip_video_with_format;
+use common::{validate_time_range, VideoFormat};
 
 pub struct ClipperTab {
     input_file: String,
     output_dir: String,
     time_ranges: Vec<String>,
     copy_codec: bool,
+    output_format: VideoFormat,
     suffix: String,
     status: Arc<Mutex<String>>,
     processing: Arc<Mutex<bool>>,
@@ -22,6 +23,7 @@ impl ClipperTab {
             output_dir: String::from("output_clips"),
             time_ranges: vec![String::new()],
             copy_codec: false,
+            output_format: VideoFormat::MP4,
             suffix: String::new(),
             status,
             processing,
@@ -35,7 +37,7 @@ impl ClipperTab {
             ui.text_edit_singleline(&mut self.input_file);
             if ui.button("Browse").clicked() {
                 if let Some(path) = rfd::FileDialog::new()
-                    .add_filter("Video Files", &["mp4", "avi", "mov", "mkv"])
+                    .add_filter("Video Files", &common::get_supported_formats("clipper"))
                     .pick_file()
                 {
                     self.input_file = path.to_string_lossy().to_string();
@@ -89,6 +91,16 @@ impl ClipperTab {
 
         // Options section
         ui.heading("Options");
+        ui.horizontal(|ui| {
+            ui.label("Output Format:");
+            egui::ComboBox::from_id_source("clipper_output_format")
+                .selected_text(self.output_format.to_string())
+                .show_ui(ui, |ui| {
+                    for format in VideoFormat::all() {
+                        ui.selectable_value(&mut self.output_format, format, format.to_string());
+                    }
+                });
+        });
         ui.checkbox(&mut self.copy_codec, "Copy codec (faster but less precise)");
 
         ui.horizontal(|ui| {
@@ -142,6 +154,7 @@ impl ClipperTab {
             let input_file = self.input_file.clone();
             let output_dir = self.output_dir.clone();
             let copy_codec = self.copy_codec;
+            let output_format = self.output_format;
             let suffix = if self.suffix.is_empty() {
                 None
             } else {
@@ -151,12 +164,13 @@ impl ClipperTab {
             let processing_clone = Arc::clone(&self.processing);
 
             thread::spawn(move || {
-                let result = clip_video(
+                let result = clip_video_with_format(
                     &input_file,
                     &parsed_ranges,
                     &output_dir,
                     copy_codec,
                     suffix.as_deref(),
+                    output_format,
                 );
 
                 match result {

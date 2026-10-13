@@ -1,5 +1,5 @@
 use std::fmt;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use thiserror::Error;
@@ -35,6 +35,104 @@ pub enum VideoFormat {
 }
 
 impl VideoFormat {
+    /// FFmpeg muxer name; file extensions are not always muxer names.
+    pub fn muxer(&self) -> &'static str {
+        match self {
+            Self::MP4 => "mp4",
+            Self::MKV => "matroska",
+            Self::AVI => "avi",
+            Self::MOV => "mov",
+            Self::WebM => "webm",
+            Self::FLV => "flv",
+            Self::WMV => "asf",
+            Self::TS => "mpegts",
+            Self::M4V => "ipod",
+            Self::MPEG => "mpeg",
+            Self::VOB => "vob",
+            Self::OGV => "ogg",
+        }
+    }
+
+    /// Compatible defaults for re-encoding video and audio into this container.
+    /// The FFmpeg installation must include the selected encoders.
+    pub fn encoding_options(&self) -> &'static [&'static str] {
+        match self {
+            Self::MP4 | Self::MKV | Self::MOV | Self::FLV | Self::TS | Self::M4V => &[
+                "-c:v", "libx264", "-preset", "medium", "-crf", "22", "-pix_fmt", "yuv420p",
+                "-c:a", "aac",
+            ],
+            Self::AVI => &[
+                "-c:v",
+                "mpeg4",
+                "-q:v",
+                "5",
+                "-pix_fmt",
+                "yuv420p",
+                "-c:a",
+                "libmp3lame",
+                "-ac",
+                "2",
+            ],
+            Self::WebM => &[
+                "-c:v",
+                "libvpx-vp9",
+                "-crf",
+                "32",
+                "-b:v",
+                "0",
+                "-pix_fmt",
+                "yuv420p",
+                "-c:a",
+                "libopus",
+            ],
+            Self::WMV => &[
+                "-c:v", "wmv2", "-pix_fmt", "yuv420p", "-c:a", "wmav2", "-ac", "2",
+            ],
+            Self::MPEG => &[
+                "-c:v",
+                "mpeg2video",
+                "-r",
+                "25",
+                "-q:v",
+                "5",
+                "-pix_fmt",
+                "yuv420p",
+                "-c:a",
+                "mp2",
+                "-ac",
+                "2",
+                "-ar",
+                "48000",
+            ],
+            Self::VOB => &[
+                "-c:v",
+                "mpeg2video",
+                "-r",
+                "25",
+                "-q:v",
+                "5",
+                "-pix_fmt",
+                "yuv420p",
+                "-c:a",
+                "ac3",
+                "-ac",
+                "2",
+                "-ar",
+                "48000",
+            ],
+            Self::OGV => &[
+                "-c:v",
+                "libtheora",
+                "-q:v",
+                "7",
+                "-pix_fmt",
+                "yuv420p",
+                "-c:a",
+                "libvorbis",
+            ],
+        }
+    }
+
     /// Get the file extension for this format
     pub fn extension(&self) -> &str {
         match self {
@@ -128,6 +226,78 @@ impl FromStr for VideoFormat {
             "ogv" => Ok(VideoFormat::OGV),
             _ => Err(FormatError::UnknownFormat(s.to_string())),
         }
+    }
+}
+
+/// Resolve a video output path without silently changing an existing extension.
+/// A missing extension is filled in; an explicit format must agree with the path.
+pub fn resolve_video_output(
+    path: &Path,
+    requested: Option<VideoFormat>,
+) -> Result<(PathBuf, VideoFormat), FormatError> {
+    let extension_format = path
+        .extension()
+        .map(|extension| {
+            extension
+                .to_str()
+                .ok_or_else(|| {
+                    FormatError::UnknownFormat(extension.to_string_lossy().into_owned())
+                })?
+                .parse::<VideoFormat>()
+        })
+        .transpose()?;
+    if let (Some(requested), Some(extension)) = (requested, extension_format) {
+        if requested != extension {
+            return Err(FormatError::InvalidFormatForOperation(format!(
+                "output '{}' has .{} extension but --format is {}; use a matching output extension",
+                path.display(),
+                extension.extension(),
+                requested.extension()
+            )));
+        }
+    }
+    let format = requested.or(extension_format).unwrap_or(VideoFormat::MP4);
+    let output = if extension_format.is_none() {
+        path.with_extension(format.extension())
+    } else {
+        path.to_path_buf()
+    };
+    Ok((output, format))
+}
+
+#[cfg(test)]
+mod output_tests {
+    use super::*;
+
+    #[test]
+    fn infers_container_and_preserves_paths() {
+        let path = Path::new("folder with spaces/result.MKV");
+        let (resolved, format) = resolve_video_output(path, None).unwrap();
+        assert_eq!(resolved, path);
+        assert_eq!(format, VideoFormat::MKV);
+        assert_eq!(
+            resolve_video_output(Path::new("result"), None).unwrap().0,
+            Path::new("result.mp4")
+        );
+        assert_eq!(
+            resolve_video_output(Path::new("result"), Some(VideoFormat::WebM))
+                .unwrap()
+                .0,
+            Path::new("result.webm")
+        );
+    }
+
+    #[test]
+    fn rejects_ambiguous_or_non_video_output() {
+        assert!(resolve_video_output(Path::new("result.mp4"), Some(VideoFormat::WebM)).is_err());
+        assert!(resolve_video_output(Path::new("result.mp3"), None).is_err());
+        assert!(resolve_video_output(Path::new("result.unknown"), None).is_err());
+        assert_eq!(
+            resolve_video_output(Path::new("result.mpg"), Some(VideoFormat::MPEG))
+                .unwrap()
+                .1,
+            VideoFormat::MPEG
+        );
     }
 }
 

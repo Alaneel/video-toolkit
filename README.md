@@ -26,7 +26,7 @@ Most video utilities either hide FFmpeg behind a subscription or make simple wor
 | ✂️ Video clipper | Extract one or many timestamp ranges, with fast codec copy or precise re-encoding |
 | ◈ GIF converter | Generate palette-optimized GIFs and automatically search for a target file size |
 | ▥ Video splitter | Turn a 1920×1080 video into five equal vertical slices |
-| ⇄ Media merger | Replace or combine a video's audio track, optionally stopping at the shortest stream |
+| ⇄ Media merger | Replace a video's audio using an audio file or another video, optionally stopping at the shortest stream |
 | ▦ Batch processing | Run clip, GIF, split, merge, and GIF operations across folders in parallel |
 | ☆ Profiles | Save reusable operation settings as portable profiles |
 | ⬡ Plugins | Discover and run dynamic extensions; a watermark plugin is included as an example |
@@ -70,6 +70,10 @@ video-toolkit clipper video.mp4 \
   --ranges 00:01:00-00:02:00 00:05:30-00:06:15 \
   --output-dir clips
 
+# Export clips as WebM with compatible VP9/Opus encoding
+video-toolkit clipper video.mp4 --ranges 00:00-00:15 \
+  --output-dir web-clips --format webm
+
 # Convert a WebM to a palette-optimized GIF under 5 MB
 video-toolkit gif-converter demo.webm \
   --output demo.gif --width 480 --fps 10 --max-size 5 --optimize
@@ -88,6 +92,10 @@ video-toolkit formats
 ```
 
 Every command is also available through Cargo during development by replacing `video-toolkit` with `cargo run --release --`.
+
+Choose an output container with `--format` for clip, split, and their batch commands: `mp4` (default), `mkv`, `avi`, `mov`, `webm`, `flv`, `wmv`, `ts`, `m4v`, `mpeg` (or `mpg`), `vob`, and `ogv`. The desktop clip, split, and batch tools offer the same selection. FFmpeg must include the corresponding encoders. Defaults select compatible video/audio codecs; AVI, WMV, MPEG, and VOB use stereo audio, and MPEG/VOB use 25 fps. `--copy-codec` preserves the source codecs, which must already be supported by the chosen container. Custom split encoding options replace the default codecs.
+
+The merger infers its container from `--output final.webm`, or accepts `--format webm` with a matching extension. Without an extension, it adds the requested extension (MP4 by default). Conflicting extensions and unknown formats are rejected before processing. The output always uses the video from the first input and the audio from the selected audio source. Batch slices include the source filename, for example `recording_slice_1.mkv`, so different source filenames keep separate outputs. Repeated inputs are processed once; different inputs with conflicting output names are rejected before any output is created. Rename those sources or run them into separate output directories.
 
 ## Architecture
 
@@ -125,9 +133,11 @@ Because loading a dynamic library executes native code, only install plugins you
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace --all-targets
+# Requires FFmpeg/ffprobe: encode real fixtures, exercise the CLI, and probe outputs
+cargo test --test media_workflows -- --ignored
 ```
 
-CI runs the same checks on Linux, macOS, and Windows. See [CONTRIBUTING.md](CONTRIBUTING.md) for the contribution workflow, and [CHANGELOG.md](CHANGELOG.md) for release history.
+CI checks formatting and Clippy on Linux and runs workspace tests on Linux, macOS, and Windows. Linux also executes real FFmpeg integration tests that verify containers, codecs, replacement audio, and batch outputs. See [CONTRIBUTING.md](CONTRIBUTING.md) for the contribution workflow, and [CHANGELOG.md](CHANGELOG.md) for release history.
 
 ## Roadmap
 

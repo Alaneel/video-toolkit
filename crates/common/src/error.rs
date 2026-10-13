@@ -2,6 +2,9 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum VideoToolkitError {
+    #[error(transparent)]
+    InvalidFormat(#[from] crate::formats::FormatError),
+
     #[error("FFmpeg not found. Please install FFmpeg and make sure it's in your PATH.")]
     FFmpegNotFound,
 

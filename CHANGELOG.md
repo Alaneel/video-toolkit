@@ -4,6 +4,21 @@ All notable changes to Video Toolkit are documented here. The project follows [S
 
 ## [Unreleased]
 
+### Added
+
+- Shared output-container selection for desktop and CLI clip, split, and batch workflows.
+- Real FFmpeg CLI integration tests that probe generated containers, codecs, and audio sources in CI.
+
+### Fixed
+
+- All six CLI `--format` options now select output extensions, compatible codecs, and an explicit muxer.
+- Audio/video merging always uses the specified audio source instead of FFmpeg's automatic stream selection.
+- Batch splitting includes the source filename to prevent different sources overwriting the same five slices.
+- Batch media discovery accepts every supported video container, deduplicates repeated sources, and rejects conflicting output names before processing.
+- Merger output extensions are inferred or validated before processing, and input files cannot be overwritten by the merger.
+- Clipping validates every requested range before creating outputs.
+- Batch commands no longer have colliding short flags, and custom encoding arguments accept codec flags beginning with a hyphen.
+
 ## [2.1.0] - 2026-10-13
 
 ### Added
