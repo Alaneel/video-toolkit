@@ -24,6 +24,7 @@ All notable changes to Video Toolkit are documented here. The project follows [S
 
 ### Fixed
 
+- Profile-system tests use isolated temporary directories and no longer race in parallel CI runs.
 - Invalid or reversed clip ranges are rejected before invoking FFmpeg.
 - GIF transparency processing preserves the required `0x3B` file trailer.
 - The workspace builds cleanly with Clippy warnings treated as errors.
