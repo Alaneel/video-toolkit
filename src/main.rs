@@ -497,7 +497,7 @@ fn main() -> Result<(), eframe::Error> {
             ..Default::default()
         };
         return eframe::run_native(
-            "Video-ToolKit",
+            "Video Toolkit",
             options,
             Box::new(|cc| {
                 let mut visuals = egui::Visuals::dark();

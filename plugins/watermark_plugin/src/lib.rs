@@ -22,7 +22,7 @@ impl WatermarkPlugin {
             metadata: PluginMetadata {
                 name: "watermark_plugin".to_string(),
                 version: "0.1.0".to_string(),
-                author: "Video-ToolKit Team".to_string(),
+                author: "Video Toolkit Team".to_string(),
                 description: "Adds a text watermark to videos".to_string(),
                 api_version: PLUGIN_API_VERSION,
             },
@@ -149,7 +149,7 @@ impl Plugin for WatermarkPlugin {
                 name: "watermark_text".to_string(),
                 description: "Text to use as watermark".to_string(),
                 required: true,
-                default_value: Some("© Video-ToolKit".to_string()),
+                default_value: Some("© Video Toolkit".to_string()),
                 parameter_type: ParameterType::String,
             },
             ParameterInfo {
