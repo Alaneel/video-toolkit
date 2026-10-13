@@ -83,12 +83,12 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           ldd "target/$RUST_TARGET/release/video-toolkit" | tee "$RUNNER_TEMP/video-toolkit-libraries.txt"
-          if rg 'not found' "$RUNNER_TEMP/video-toolkit-libraries.txt"; then exit 1; fi
+          if grep -q 'not found' "$RUNNER_TEMP/video-toolkit-libraries.txt"; then exit 1; fi
       - name: Inspect macOS runtime libraries and deployment target
         if: runner.os == 'macOS'
         run: |
           otool -L "target/$RUST_TARGET/release/video-toolkit"
-          otool -l "target/$RUST_TARGET/release/video-toolkit" | rg -A 4 'LC_BUILD_VERSION|LC_VERSION_MIN_MACOSX'
+          otool -l "target/$RUST_TARGET/release/video-toolkit" | grep -A 4 -E 'LC_BUILD_VERSION|LC_VERSION_MIN_MACOSX'
       - name: Check Windows does not require a separate C runtime download
         if: runner.os == 'Windows'
         shell: pwsh
