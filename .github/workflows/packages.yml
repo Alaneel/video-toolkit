@@ -1,0 +1,162 @@
+name: Package binaries
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      release_tag:
+        description: Exact v-prefixed Cargo version for tagged releases
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: packages-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+jobs:
+  build:
+    name: Package (${{ matrix.target }})
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            suffix: ""
+            extension: tar.gz
+          - os: macos-15
+            target: aarch64-apple-darwin
+            suffix: ""
+            extension: tar.gz
+          - os: macos-15-intel
+            target: x86_64-apple-darwin
+            suffix: ""
+            extension: tar.gz
+          - os: windows-2022
+            target: x86_64-pc-windows-msvc
+            suffix: .exe
+            extension: zip
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      CARGO_TERM_COLOR: always
+      RUST_TARGET: ${{ matrix.target }}
+      BINARY_SUFFIX: ${{ matrix.suffix }}
+      RELEASE_TAG: ${{ inputs.release_tag }}
+      MACOSX_DEPLOYMENT_TARGET: "11.0"
+      RUSTFLAGS: ${{ matrix.os == 'windows-2022' && '-C target-feature=+crt-static' || '' }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - name: Validate version and release tooling
+        id: version
+        run: |
+          tag_args=()
+          if [ -n "$RELEASE_TAG" ]; then tag_args=(--tag "$RELEASE_TAG"); fi
+          version=$(python scripts/release.py version "${tag_args[@]}")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          python -m unittest discover -s scripts -p 'test_*.py' -v
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: release-${{ matrix.target }}
+      - name: Install Linux desktop and media dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev libxcb-shape0-dev libxcb-xfixes0-dev ffmpeg
+      - name: Build explicit native target
+        run: cargo build --release --locked --target "$RUST_TARGET"
+      - name: Inspect Linux runtime libraries
+        if: runner.os == 'Linux'
+        run: |
+          ldd "target/$RUST_TARGET/release/video-toolkit" | tee "$RUNNER_TEMP/video-toolkit-libraries.txt"
+          if rg 'not found' "$RUNNER_TEMP/video-toolkit-libraries.txt"; then exit 1; fi
+      - name: Inspect macOS runtime libraries and deployment target
+        if: runner.os == 'macOS'
+        run: |
+          otool -L "target/$RUST_TARGET/release/video-toolkit"
+          otool -l "target/$RUST_TARGET/release/video-toolkit" | rg -A 4 'LC_BUILD_VERSION|LC_VERSION_MIN_MACOSX'
+      - name: Check Windows does not require a separate C runtime download
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $dumpbin = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -find 'VC\Tools\MSVC\**\bin\Hostx64\x64\dumpbin.exe' | Select-Object -First 1
+          if (-not $dumpbin) { throw 'Could not find the native dependency inspector' }
+          $dependencies = & $dumpbin /dependents "target/$env:RUST_TARGET/release/video-toolkit.exe"
+          if ($LASTEXITCODE -ne 0) { throw 'Could not inspect executable dependencies' }
+          $dependencies | Write-Output
+          if ($dependencies -match '(?i)(VCRUNTIME|MSVCP|ucrtbase|api-ms-win-crt-)') {
+            throw 'Release executable unexpectedly depends on a separately installed C runtime'
+          }
+      - name: Archive executable with installation notes and manifest
+        run: |
+          tag_args=()
+          if [ -n "$RELEASE_TAG" ]; then tag_args=(--tag "$RELEASE_TAG"); fi
+          python scripts/release.py package \
+            --binary "target/$RUST_TARGET/release/video-toolkit$BINARY_SUFFIX" \
+            --target "$RUST_TARGET" --output-dir dist --commit "$GITHUB_SHA" \
+            "${tag_args[@]}"
+      - name: Verify and run the extracted package
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          ARCHIVE_EXTENSION: ${{ matrix.extension }}
+        run: |
+          smoke_args=(--run-smoke)
+          if [ "$RUNNER_OS" = Linux ]; then smoke_args+=(--media-smoke); fi
+          python scripts/release.py verify \
+            "dist/video-toolkit-$VERSION-$RUST_TARGET.$ARCHIVE_EXTENSION" \
+            --expected-target "$RUST_TARGET" --expected-version "$VERSION" \
+            --expected-commit "$GITHUB_SHA" "${smoke_args[@]}"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: package-${{ matrix.target }}
+          path: dist/*.${{ matrix.extension }}
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+          overwrite: true
+      - name: Record package verification
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          ARCHIVE_EXTENSION: ${{ matrix.extension }}
+        run: |
+          echo "### Verified video-toolkit-$VERSION-$RUST_TARGET.$ARCHIVE_EXTENSION" >> "$GITHUB_STEP_SUMMARY"
+          echo 'Native binary architecture, archive integrity, executable permissions, and extracted CLI/profile smoke tests passed.' >> "$GITHUB_STEP_SUMMARY"
+
+  checksums:
+    name: Verify package set and checksums
+    needs: build
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: package-*
+          merge-multiple: true
+          path: dist
+      - name: Revalidate the complete package set
+        run: python scripts/release.py checksums dist --expected-commit "$GITHUB_SHA"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-checksums
+          path: dist/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 14
+          overwrite: true
