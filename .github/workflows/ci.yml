@@ -24,7 +24,7 @@ jobs:
       - run: cargo clippy --workspace --all-targets -- -D warnings
       - run: cargo test --workspace --all-targets
       - name: Verify real FFmpeg workflows
-        run: cargo test --test media_workflows -- --ignored
+        run: cargo test --tests -- --ignored
 
   test-platforms:
     name: Test (${{ matrix.os }})

@@ -1,5 +1,6 @@
 use eframe::egui;
 use egui::{Color32, RichText};
+use std::path::Path;
 use std::sync::{Arc, Mutex};
 
 use crate::tabs::{
@@ -39,6 +40,12 @@ pub struct VideoToolKitApp {
 
 impl Default for VideoToolKitApp {
     fn default() -> Self {
+        Self::with_profiles_directory(None)
+    }
+}
+
+impl VideoToolKitApp {
+    pub fn with_profiles_directory(directory: Option<&Path>) -> Self {
         let status = Arc::new(Mutex::new("Ready".to_string()));
         let processing = Arc::new(Mutex::new(false));
 
@@ -57,7 +64,11 @@ impl Default for VideoToolKitApp {
             splitter_tab: SplitterTab::new(Arc::clone(&status), Arc::clone(&processing)),
             merger_tab: MergerTab::new(Arc::clone(&status), Arc::clone(&processing)),
             batch_tab: BatchTab::new(Arc::clone(&status), Arc::clone(&processing)),
-            profiles_tab: ProfilesTab::new(Arc::clone(&status), Arc::clone(&processing)),
+            profiles_tab: ProfilesTab::with_directory(
+                Arc::clone(&status),
+                Arc::clone(&processing),
+                directory,
+            ),
             plugins_tab: PluginsTab::new(Arc::clone(&status), Arc::clone(&processing)),
         }
     }
@@ -126,7 +137,7 @@ impl eframe::App for VideoToolKitApp {
 
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.add_space(12.0);
-            if !self.ffmpeg_available {
+            if !self.ffmpeg_available && !matches!(self.active_tab, Tab::Profiles | Tab::Plugins | Tab::GifTransparency | Tab::Batch) {
                 egui::Frame::none()
                     .fill(Color32::from_rgb(72, 35, 42))
                     .rounding(8.0)
@@ -137,7 +148,10 @@ impl eframe::App for VideoToolKitApp {
                 return;
             }
 
-            match self.active_tab {
+            egui::ScrollArea::vertical()
+                .id_source(("tool_content", std::mem::discriminant(&self.active_tab)))
+                .auto_shrink([false, false])
+                .show(ui, |ui| match self.active_tab {
                 Tab::Clipper => self.clipper_tab.ui(ui),
                 Tab::GifConverter => self.gif_converter_tab.ui(ui),
                 Tab::GifTransparency => self.gif_transparency_tab.ui(ui),
@@ -146,8 +160,22 @@ impl eframe::App for VideoToolKitApp {
                 Tab::Batch => self.batch_tab.ui(ui),
                 Tab::Profiles => self.profiles_tab.ui(ui),
                 Tab::Plugins => self.plugins_tab.ui(ui),
-            }
-
+                });
         });
+
+        if let Some(profile) = self.profiles_tab.take_batch_profile() {
+            match self.batch_tab.apply_profile(&profile) {
+                Ok(()) => {
+                    self.active_tab = Tab::Batch;
+                    *self.status.lock().unwrap() = format!(
+                        "Profile '{}' loaded. Add inputs and start batch processing when ready.",
+                        profile.name
+                    );
+                }
+                Err(error) => {
+                    *self.status.lock().unwrap() = format!("Error loading profile: {}", error);
+                }
+            }
+        }
     }
 }

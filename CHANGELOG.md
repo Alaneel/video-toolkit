@@ -6,11 +6,19 @@ All notable changes to Video Toolkit are documented here. The project follows [S
 
 ### Added
 
+- Validated profile-driven batch execution for all five built-in operations in the CLI and desktop app.
+- Portable profile storage via `--profiles-dir`, editable desktop defaults, and per-run CLI overrides.
+- Profile workflow tests covering storage round-trips without FFmpeg and real media processing.
 - Shared output-container selection for desktop and CLI clip, split, and batch workflows.
 - Real FFmpeg CLI integration tests that probe generated containers, codecs, and audio sources in CI.
 
 ### Fixed
 
+- `batch with-profile` processes its inputs instead of printing a placeholder and reporting success.
+- Profile saves, edits, and imports validate runnable parameters before storage; regex whitespace and saved settings are preserved.
+- Profile names cannot traverse directories, JSON identity is checked on load, and updates/renames preserve creation dates and existing profiles on failure.
+- GIF optimization starts from the requested FPS and width; GIF batch transparency honors backup settings and preserves the first original backup.
+- Missing inputs and discovery errors fail before processing instead of being silently skipped.
 - All six CLI `--format` options now select output extensions, compatible codecs, and an explicit muxer.
 - Audio/video merging always uses the specified audio source instead of FFmpeg's automatic stream selection.
 - Batch splitting includes the source filename to prevent different sources overwriting the same five slices.

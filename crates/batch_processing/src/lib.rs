@@ -12,6 +12,9 @@ use common::{
     check_ffmpeg, validate_time_range, verify_input_file, VideoFormat, VideoToolkitError,
 };
 
+pub mod profiles;
+pub use profiles::{default_profile_parameters, ProfileBatchConfig, ProfileOperationConfig};
+
 /// Errors specific to batch processing
 #[derive(Error, Debug)]
 pub enum BatchError {
@@ -216,12 +219,18 @@ impl BatchProcessor {
         let mut files = Vec::new();
 
         for path in input_paths {
-            if path.is_file() {
+            let metadata = std::fs::metadata(path).map_err(|error| {
+                BatchError::Other(format!(
+                    "Cannot read input path '{}': {error}",
+                    path.display()
+                ))
+            })?;
+            if metadata.is_file() {
                 // Process a single file
                 if self.matches_pattern(path) {
                     files.push(path.clone());
                 }
-            } else if path.is_dir() {
+            } else if metadata.is_dir() {
                 // Process a directory
                 let walker = if self.recursive {
                     WalkDir::new(path)
@@ -229,12 +238,23 @@ impl BatchProcessor {
                     WalkDir::new(path).max_depth(1)
                 };
 
-                for entry in walker.into_iter().filter_map(|e| e.ok()) {
+                for entry in walker {
+                    let entry = entry.map_err(|error| {
+                        BatchError::Other(format!(
+                            "Cannot discover inputs in '{}': {error}",
+                            path.display()
+                        ))
+                    })?;
                     let entry_path = entry.path();
                     if entry_path.is_file() && self.matches_pattern(entry_path) {
                         files.push(entry_path.to_path_buf());
                     }
                 }
+            } else {
+                return Err(BatchError::InvalidOperation(format!(
+                    "Input path '{}' is not a regular file or directory",
+                    path.display()
+                )));
             }
         }
 
@@ -354,8 +374,8 @@ impl BatchProcessor {
         let input_files = self.find_input_files(input_paths)?;
         self.validate_output_collisions(&input_files)?;
 
-        // Check if FFmpeg is installed
-        if !check_ffmpeg() {
+        // Transparency edits use the native GIF codec, not FFmpeg.
+        if self.operation != BatchOperation::GifTransparency && !check_ffmpeg() {
             return Err(BatchError::Other("FFmpeg not found".to_string()));
         }
 
@@ -542,11 +562,12 @@ impl BatchProcessor {
 
         // Run the GIF converter
         let result = if config.optimize {
-            gif_converter::optimize_conversion(
+            gif_converter::optimize_conversion_with_fps(
                 &input_file.to_string_lossy(),
                 &output_file.to_string_lossy(),
                 config.max_size_mb,
                 config.width,
+                config.fps,
             )
         } else {
             gif_converter::convert_video_to_gif(
@@ -585,7 +606,7 @@ impl BatchProcessor {
 
     /// Process a file with the GIF transparency tool
     fn process_gif_transparency(&self, input_file: &Path) -> BatchItemResult {
-        let _config = match &self.gif_transparency_config {
+        let config = match &self.gif_transparency_config {
             Some(config) => config,
             None => {
                 return BatchItemResult {
@@ -598,7 +619,7 @@ impl BatchProcessor {
         };
 
         // Run the GIF transparency tool
-        match gif_transparency::make_gif_transparent(input_file) {
+        match gif_transparency::make_gif_transparent_with_backup(input_file, config.create_backup) {
             Ok(()) => BatchItemResult {
                 input: input_file.to_path_buf(),
                 output: Some(input_file.to_path_buf()), // The output is the same file

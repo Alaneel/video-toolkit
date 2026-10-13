@@ -1,5 +1,5 @@
-use std::fs::{self, File};
-use std::io::Read;
+use std::fs::{self, File, OpenOptions};
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
 use indicatif::{ProgressBar, ProgressStyle};
@@ -139,8 +139,32 @@ fn add_background_transparency(data: &[u8]) -> Result<Vec<u8>> {
 
 /// Marks the GIF logical background color as transparent for every frame.
 pub fn make_gif_transparent(file_path: &Path) -> Result<()> {
+    make_gif_transparent_with_backup(file_path, false)
+}
+
+/// Validate first and preserve the first backup when transparency is applied again.
+pub fn make_gif_transparent_with_backup(file_path: &Path, create_backup: bool) -> Result<()> {
     let data = fs::read(file_path).map_err(VideoToolkitError::IoError)?;
     let transparent = add_background_transparency(&data)?;
+    if create_backup {
+        let backup_path = file_path.with_extension("gif.bak");
+        match OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&backup_path)
+        {
+            Ok(mut backup) => {
+                if let Err(error) = backup.write_all(&data).and_then(|()| backup.sync_all()) {
+                    drop(backup);
+                    let _ = fs::remove_file(backup_path);
+                    return Err(VideoToolkitError::IoError(error));
+                }
+            }
+            Err(error)
+                if error.kind() == std::io::ErrorKind::AlreadyExists && backup_path.is_file() => {}
+            Err(error) => return Err(VideoToolkitError::IoError(error)),
+        }
+    }
     fs::write(file_path, transparent).map_err(VideoToolkitError::IoError)
 }
 
@@ -191,19 +215,11 @@ pub fn batch_process_gifs(
             .unwrap(),
     );
 
-    // Create backups if requested
-    if create_backup {
-        for file_path in &gif_files {
-            let backup_path = file_path.with_extension("gif.bak");
-            fs::copy(file_path, backup_path).map_err(VideoToolkitError::IoError)?;
-        }
-    }
-
     // Process files in parallel
     let results: Vec<Result<()>> = gif_files
         .par_iter()
         .map(|file_path| {
-            let result = make_gif_transparent(file_path);
+            let result = make_gif_transparent_with_backup(file_path, create_backup);
             progress_bar.inc(1);
             result
         })

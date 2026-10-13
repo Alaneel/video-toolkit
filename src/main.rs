@@ -3,10 +3,10 @@ use eframe::NativeOptions;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
-use batch_processing::BatchProcessor;
+use batch_processing::{BatchProcessor, ProfileBatchConfig};
 use clipper::{clip_video_with_format, parse_time_ranges};
 use common::{check_ffmpeg, formats::*, get_supported_formats};
-use gif_converter::{convert_video_to_gif, optimize_conversion};
+use gif_converter::{convert_video_to_gif, optimize_conversion_with_fps};
 use gif_transparency::{batch_process_gifs, process_directory};
 use merger::merge_audio_video_with_format;
 use plugin_system::PluginManager;
@@ -17,6 +17,10 @@ use ui::VideoToolKitApp;
 #[derive(Parser)]
 #[clap(author, version, about = "Video processing utilities")]
 struct Cli {
+    /// Use a custom profile storage directory (the directory containing type folders)
+    #[clap(long, global = true)]
+    profiles_dir: Option<PathBuf>,
+
     #[clap(subcommand)]
     command: Option<Commands>,
 }
@@ -233,7 +237,7 @@ enum ProfileCommands {
         description: Option<String>,
 
         /// Parameters for the profile (key=value)
-        #[clap(short, long)]
+        #[clap(short, long, num_args = 1..)]
         params: Vec<String>,
     },
 
@@ -456,8 +460,8 @@ enum BatchCommands {
         inputs: Vec<PathBuf>,
 
         /// Process directories recursively
-        #[clap(short, long)]
-        recursive: bool,
+        #[clap(short, long, num_args = 0..=1, default_missing_value = "true", require_equals = true)]
+        recursive: Option<bool>,
 
         /// File pattern to match (regex)
         #[clap(short, long)]
@@ -471,19 +475,35 @@ enum BatchCommands {
         #[clap(long, required = true)]
         profile_type: String,
 
-        /// Process files in parallel
-        #[clap(long, default_value = "true")]
-        parallel: bool,
+        /// Override the profile's output directory (except in-place GIF transparency)
+        #[clap(short, long)]
+        output_dir: Option<PathBuf>,
+
+        /// Override parallel processing; use --parallel=false to run sequentially
+        #[clap(long, num_args = 0..=1, default_missing_value = "true", require_equals = true)]
+        parallel: Option<bool>,
     },
+}
+
+impl Commands {
+    fn requires_ffmpeg(&self) -> bool {
+        matches!(
+            self,
+            Self::Clipper { .. }
+                | Self::GifConverter { .. }
+                | Self::Splitter { .. }
+                | Self::Merger { .. }
+        )
+    }
 }
 
 fn main() -> Result<(), eframe::Error> {
     // Parse command-line arguments
     let cli = Cli::parse();
 
-    // Keep metadata commands such as --help and --version available on machines
-    // where FFmpeg has not been installed yet. The GUI renders its own setup hint.
-    if cli.command.is_some() && !check_ffmpeg() {
+    // Metadata, profile storage, and native GIF operations do not need FFmpeg.
+    // The batch processor checks availability for its selected operation.
+    if cli.command.as_ref().is_some_and(Commands::requires_ffmpeg) && !check_ffmpeg() {
         eprintln!("Error: FFmpeg is not installed or not found in PATH. Please install FFmpeg.");
         std::process::exit(1);
     }
@@ -499,13 +519,15 @@ fn main() -> Result<(), eframe::Error> {
         return eframe::run_native(
             "Video Toolkit",
             options,
-            Box::new(|cc| {
+            Box::new(move |cc| {
                 let mut visuals = egui::Visuals::dark();
                 visuals.widgets.active.bg_fill = egui::Color32::from_rgb(38, 125, 190);
                 visuals.widgets.hovered.bg_fill = egui::Color32::from_rgb(45, 68, 86);
                 visuals.selection.bg_fill = egui::Color32::from_rgb(29, 104, 156);
                 cc.egui_ctx.set_visuals(visuals);
-                Box::new(VideoToolKitApp::default())
+                Box::new(VideoToolKitApp::with_profiles_directory(
+                    cli.profiles_dir.as_deref(),
+                ))
             }),
         );
     }
@@ -583,7 +605,7 @@ fn main() -> Result<(), eframe::Error> {
             };
 
             let result = if optimize {
-                optimize_conversion(&input, &output, max_size, width)
+                optimize_conversion_with_fps(&input, &output, max_size, width, fps)
             } else {
                 convert_video_to_gif(&input, &output, width, fps, max_size)
             };
@@ -724,11 +746,11 @@ fn main() -> Result<(), eframe::Error> {
         }
 
         Commands::Profile(profile_cmd) => {
-            handle_profile_command(profile_cmd);
+            handle_profile_command(profile_cmd, cli.profiles_dir.as_deref());
         }
 
         Commands::Batch(batch_cmd) => {
-            handle_batch_command(batch_cmd);
+            handle_batch_command(batch_cmd, cli.profiles_dir.as_deref());
         }
 
         Commands::Formats { operation } => {
@@ -897,8 +919,22 @@ fn handle_plugin_command(cmd: PluginCommands) {
     }
 }
 
-fn handle_profile_command(cmd: ProfileCommands) {
-    let profile_manager = match ProfileManager::new() {
+fn profile_manager(directory: Option<&Path>) -> profile_system::Result<ProfileManager> {
+    match directory {
+        Some(path) => ProfileManager::with_directory(path),
+        None => ProfileManager::new(),
+    }
+}
+
+fn validate_runnable_profile(profile: &Profile) -> batch_processing::Result<()> {
+    if !matches!(profile.profile_type, ProfileType::Custom(_)) {
+        ProfileBatchConfig::from_profile(profile)?;
+    }
+    Ok(())
+}
+
+fn handle_profile_command(cmd: ProfileCommands, profiles_directory: Option<&Path>) {
+    let profile_manager = match profile_manager(profiles_directory) {
         Ok(manager) => manager,
         Err(e) => {
             eprintln!("Error creating profile manager: {}", e);
@@ -1004,8 +1040,15 @@ fn handle_profile_command(cmd: ProfileCommands) {
             let mut parameters = HashMap::new();
             for param in params {
                 let parts: Vec<&str> = param.splitn(2, '=').collect();
-                if parts.len() == 2 {
-                    parameters.insert(parts[0].to_string(), parts[1].to_string());
+                if parts.len() == 2 && !parts[0].trim().is_empty() {
+                    let key = parts[0].trim().to_string();
+                    if parameters
+                        .insert(key.clone(), parts[1].to_string())
+                        .is_some()
+                    {
+                        eprintln!("Error: Duplicate profile parameter '{key}'.");
+                        std::process::exit(1);
+                    }
                 } else {
                     eprintln!("Invalid parameter format: {}. Expected key=value", param);
                     std::process::exit(1);
@@ -1025,6 +1068,11 @@ fn handle_profile_command(cmd: ProfileCommands) {
             let mut profile = Profile::new(&name, profile_type, parameters);
             if let Some(desc) = description {
                 profile = profile.with_description(&desc);
+            }
+
+            if let Err(error) = validate_runnable_profile(&profile) {
+                eprintln!("Error: {error}");
+                std::process::exit(1);
             }
 
             // Save profile
@@ -1057,7 +1105,13 @@ fn handle_profile_command(cmd: ProfileCommands) {
         }
 
         ProfileCommands::Import { path } => {
-            match profile_manager.import_profile(Path::new(&path)) {
+            let result = (|| -> anyhow::Result<Profile> {
+                let profile = ProfileManager::read_profile(Path::new(&path))?;
+                validate_runnable_profile(&profile)?;
+                profile_manager.save_profile(&profile)?;
+                Ok(profile)
+            })();
+            match result {
                 Ok(profile) => println!("Profile '{}' imported successfully!", profile.name),
                 Err(e) => {
                     eprintln!("Error importing profile: {}", e);
@@ -1091,7 +1145,7 @@ fn handle_profile_command(cmd: ProfileCommands) {
     }
 }
 
-fn handle_batch_command(cmd: BatchCommands) {
+fn handle_batch_command(cmd: BatchCommands, profiles_directory: Option<&Path>) {
     match cmd {
         BatchCommands::Clipper {
             inputs,
@@ -1405,17 +1459,18 @@ fn handle_batch_command(cmd: BatchCommands) {
         }
 
         BatchCommands::WithProfile {
-            inputs: _,
-            recursive: _,
-            pattern: _,
+            inputs,
+            recursive,
+            pattern,
             profile,
             profile_type,
-            parallel: _,
+            output_dir,
+            parallel,
         } => {
             println!("Running batch processing with profile '{}'...", profile);
 
             // Load profile
-            let profile_manager = match ProfileManager::new() {
+            let profile_manager = match profile_manager(profiles_directory) {
                 Ok(m) => m,
                 Err(e) => {
                     eprintln!("Error creating profile manager: {}", e);
@@ -1440,12 +1495,56 @@ fn handle_batch_command(cmd: BatchCommands) {
                 }
             };
 
-            // TODO: Implement profile-based batch processing
-            println!("Profile-based batch processing not fully implemented yet.");
-            println!("Profile details:");
-            println!("  Name: {}", profile.name);
-            println!("  Type: {:?}", profile.profile_type);
-            println!("  Parameters: {:?}", profile.parameters);
+            let result = (|| -> batch_processing::Result<BatchProcessor> {
+                let mut config = ProfileBatchConfig::from_profile(&profile)?;
+                if let Some(output_dir) = output_dir {
+                    config = config.with_output_directory(output_dir)?;
+                }
+                if let Some(recursive) = recursive {
+                    config.recursive = recursive;
+                }
+                if let Some(parallel) = parallel {
+                    config.parallel = parallel;
+                }
+                if let Some(pattern) = pattern {
+                    config.pattern = Some(pattern);
+                }
+                config.into_processor()
+            })();
+            let processor = match result {
+                Ok(processor) => processor,
+                Err(error) => {
+                    eprintln!("Error configuring profile '{}': {error}", profile.name);
+                    std::process::exit(1);
+                }
+            };
+            match processor.process(&inputs) {
+                Ok(results) => {
+                    let success_count = results.iter().filter(|result| result.success).count();
+                    println!(
+                        "Successfully processed {success_count}/{} files using profile '{}'.",
+                        results.len(),
+                        profile.name
+                    );
+                    for result in results.iter().filter(|result| !result.success) {
+                        eprintln!(
+                            "  {}: {}",
+                            result.input.display(),
+                            result
+                                .error_message
+                                .as_deref()
+                                .unwrap_or("Processing failed")
+                        );
+                    }
+                    if success_count != results.len() {
+                        std::process::exit(1);
+                    }
+                }
+                Err(error) => {
+                    eprintln!("Error during profile batch processing: {error}");
+                    std::process::exit(1);
+                }
+            }
         }
     }
 }
