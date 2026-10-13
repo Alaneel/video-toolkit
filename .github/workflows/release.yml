@@ -5,59 +5,108 @@ on:
     tags: ["v*"]
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  build:
-    name: Build (${{ matrix.os }})
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-latest
-            artifact: video-toolkit-linux-x86_64
-            binary: target/release/video-toolkit
-          - os: macos-13
-            artifact: video-toolkit-macos-x86_64
-            binary: target/release/video-toolkit
-          - os: windows-latest
-            artifact: video-toolkit-windows-x86_64
-            binary: target/release/video-toolkit.exe
-    runs-on: ${{ matrix.os }}
+  version:
+    name: Validate version tag
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-      - name: Install Linux desktop dependencies
-        if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev libxcb-shape0-dev libxcb-xfixes0-dev
-      - run: cargo build --release --locked
-      - name: Assemble package
-        shell: bash
-        run: |
-          mkdir package
-          cp "${{ matrix.binary }}" package/
-          cp README.md LICENSE package/
-      - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact }}
-          path: package/
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - name: Check tag matches Cargo version and belongs to master
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          python scripts/release.py version --tag "$RELEASE_TAG"
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/master
+
+  quality:
+    name: Release quality gate
+    needs: version
+    uses: ./.github/workflows/ci.yml
+
+  packages:
+    name: Release packages
+    needs: version
+    uses: ./.github/workflows/packages.yml
+    with:
+      release_tag: ${{ github.ref_name }}
 
   publish:
-    name: Publish GitHub release
-    needs: build
-    runs-on: ubuntu-latest
+    name: Publish verified archives
+    needs: [quality, packages]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
         with:
-          path: artifacts
-      - name: Create archives
+          python-version: "3.13"
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: package-*
+          merge-multiple: true
+          path: dist
+      - name: Revalidate all four archives and create checksums
+        run: python scripts/release.py checksums dist --expected-commit "$GITHUB_SHA"
+      - name: Refuse to mix new checksums with existing release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
         run: |
-          for directory in artifacts/*; do
-            name=$(basename "$directory")
-            tar -czf "$name.tar.gz" -C "$directory" .
-          done
-      - uses: softprops/action-gh-release@v2
+          python - <<'PY'
+          import json
+          import os
+          import urllib.error
+          import urllib.parse
+          import urllib.request
+
+          tag = urllib.parse.quote(os.environ["RELEASE_TAG"], safe="")
+          url = f'https://api.github.com/repos/{os.environ["GITHUB_REPOSITORY"]}/releases/tags/{tag}'
+          request = urllib.request.Request(url, headers={
+              "Accept": "application/vnd.github+json",
+              "Authorization": f'Bearer {os.environ["GH_TOKEN"]}',
+              "X-GitHub-Api-Version": "2022-11-28",
+          })
+          try:
+              with urllib.request.urlopen(request, timeout=30) as response:
+                  release = json.load(response)
+          except urllib.error.HTTPError as error:
+              if error.code != 404:
+                  raise
+          else:
+              if release.get("assets"):
+                  raise SystemExit("Release already has assets; refusing to replace or mix verified packages. Use a new version tag.")
+          PY
+      - uses: softprops/action-gh-release@v3
         with:
           generate_release_notes: true
-          files: "*.tar.gz"
+          fail_on_unmatched_files: true
+          overwrite_files: false
+          body: |
+            Download the archive matching your operating system and CPU, plus `SHA256SUMS`.
+            Linux and macOS packages use `.tar.gz`; Windows packages use `.zip`.
+            Each archive contains the executable, version/commit metadata, and `INSTALL.txt`.
+
+            Rust is not required. Install FFmpeg and ffprobe separately and make both available
+            in PATH. Linux also requires GTK3 and a desktop session for the GUI.
+            macOS binaries are not Developer ID signed or notarized; launch from a terminal
+            after reviewing the installation notes. Do not disable system-wide security checks.
+
+            All four archives were verified and their extracted executables passed CLI/profile
+            smoke tests on their native runners. Linux also passed real FFmpeg processing tests.
+          files: |
+            dist/*.tar.gz
+            dist/*.zip
+            dist/SHA256SUMS

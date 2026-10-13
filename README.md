@@ -35,32 +35,116 @@ The app supports common video formats including MP4, WebM, MKV, AVI, MOV, FLV, M
 
 ## Quick start
 
-### Prerequisites
+### Download a prebuilt binary
 
-- The latest stable [Rust toolchain](https://www.rust-lang.org/tools/install)
-- [FFmpeg](https://ffmpeg.org/download.html), including `ffprobe`, available in your `PATH`
+Prebuilt packages do **not** require Rust. Get the package for your operating system and CPU from [Releases](https://github.com/Alaneel/video-toolkit/releases), together with that release's `SHA256SUMS` file.
 
-Verify FFmpeg before building:
+Tagged releases built by the current workflow use the archive/checksum layout below. Older releases such as v2.0.0 contain bare binaries instead. To try an unreleased build, use artifacts from a successful [release-packaging preview](https://github.com/Alaneel/video-toolkit/actions/workflows/packages.yml) or build from source. For a preview, download your `package-…` artifact and `release-checksums`, then extract GitHub's outer ZIP files to access the archive and `SHA256SUMS`.
+
+| Your machine | Archive name for 2.1.0 |
+| --- | --- |
+| Linux, Ubuntu 22.04+ / compatible x86_64 desktop | `video-toolkit-2.1.0-x86_64-unknown-linux-gnu.tar.gz` |
+| macOS, Apple Silicon (M1 or newer, `arm64`) | `video-toolkit-2.1.0-aarch64-apple-darwin.tar.gz` |
+| macOS, Intel (`x86_64`) | `video-toolkit-2.1.0-x86_64-apple-darwin.tar.gz` |
+| Windows, x64 | `video-toolkit-2.1.0-x86_64-pc-windows-msvc.zip` |
+
+On macOS, check **About This Mac** to choose the native package; `uname -m` also reports the current terminal's architecture. Archives contain the executable, license, README, installation notes, and a build manifest. FFmpeg is not bundled.
+
+#### Install the runtime dependencies
+
+Media conversion needs both [FFmpeg and ffprobe](https://ffmpeg.org/download.html) in your `PATH`. Profile management and native GIF transparency can run without them.
+
+On Ubuntu 22.04, install the desktop runtime and FFmpeg:
+
+```bash
+sudo apt update
+sudo apt install libgtk-3-0 libxcb-shape0 libxcb-xfixes0 ffmpeg
+```
+
+Ubuntu 24.04 and newer use [`libgtk-3-0t64`](https://packages.ubuntu.com/noble/libgtk-3-0t64) in place of `libgtk-3-0`; use the package provided by your distribution. A graphical desktop is needed to open the GUI, but the CLI can run without a display.
+
+On macOS with [Homebrew](https://formulae.brew.sh/formula/ffmpeg), install FFmpeg with `brew install ffmpeg`. On Windows, use a build linked from the [FFmpeg download page](https://ffmpeg.org/download.html#build-windows), then add its `bin` folder, containing both `ffmpeg.exe` and `ffprobe.exe`, to `PATH`. Open a new terminal after changing `PATH`.
+
+Check both programs before processing media:
 
 ```bash
 ffmpeg -version
 ffprobe -version
 ```
 
-### Build and launch
+#### Verify and launch
+
+In the folder where you downloaded the archive and `SHA256SUMS`, calculate the archive's SHA-256 hash and compare it with the matching filename in `SHA256SUMS`. Proceed only if the entire hash matches. Checksums detect damaged or mismatched downloads; these packages are not signed installers.
+
+```bash
+# Linux
+sha256sum video-toolkit-2.1.0-x86_64-unknown-linux-gnu.tar.gz
+
+# macOS (Apple Silicon example; use x86_64-apple-darwin for Intel)
+shasum -a 256 video-toolkit-2.1.0-aarch64-apple-darwin.tar.gz
+```
+
+```powershell
+# Windows PowerShell
+Get-FileHash .\video-toolkit-2.1.0-x86_64-pc-windows-msvc.zip -Algorithm SHA256
+```
+
+Extract the package, enter its folder, and run the executable. On Linux:
+
+```bash
+tar -xzf video-toolkit-2.1.0-x86_64-unknown-linux-gnu.tar.gz
+cd video-toolkit-2.1.0-x86_64-unknown-linux-gnu
+./video-toolkit --version
+./video-toolkit --help
+./video-toolkit
+```
+
+On macOS (Apple Silicon example):
+
+```bash
+tar -xzf video-toolkit-2.1.0-aarch64-apple-darwin.tar.gz
+cd video-toolkit-2.1.0-aarch64-apple-darwin
+./video-toolkit --version
+./video-toolkit
+```
+
+macOS packages are unsigned command-line executables, not notarized `.app` bundles. Launch them from Terminal. macOS may ask you to approve a downloaded executable; review the package's source and checksum before using Apple's [**Privacy & Security** approval controls](https://support.apple.com/en-us/102445). Do not disable Gatekeeper globally. If your security policy forbids unsigned downloads, build from source instead.
+
+On Windows PowerShell:
+
+```powershell
+Expand-Archive .\video-toolkit-2.1.0-x86_64-pc-windows-msvc.zip -DestinationPath .
+Set-Location .\video-toolkit-2.1.0-x86_64-pc-windows-msvc
+.\video-toolkit.exe --version
+.\video-toolkit.exe --help
+.\video-toolkit.exe
+```
+
+No subcommand opens the native desktop app. To use the CLI examples below from the extracted folder, replace `video-toolkit` with `./video-toolkit` on Linux/macOS or `.\video-toolkit.exe` in PowerShell. Alternatively, add the executable's folder to `PATH`.
+
+### Build from source
+
+Install the latest stable [Rust toolchain](https://www.rust-lang.org/tools/install) and the runtime dependencies above. Source builds also need your platform's native compiler/linker. On Ubuntu, install the development libraries used by the desktop UI:
+
+```bash
+sudo apt update
+sudo apt install build-essential pkg-config libgtk-3-dev libxcb-shape0-dev libxcb-xfixes0-dev ffmpeg
+```
 
 ```bash
 git clone https://github.com/Alaneel/video-toolkit.git
 cd video-toolkit
-cargo run --release
+cargo run --release --locked
 ```
 
-No subcommand opens the native desktop app. To build a standalone binary:
+To build a standalone binary:
 
 ```bash
-cargo build --release
+cargo build --release --locked
 ./target/release/video-toolkit --help
 ```
+
+On Windows, the built executable is `target\release\video-toolkit.exe`. Prebuilt releases are the simpler choice if you do not already have a Rust development environment.
 
 ## CLI examples
 
@@ -179,6 +263,8 @@ cargo test --tests -- --ignored
 ```
 
 CI checks formatting and Clippy on Linux and runs workspace tests on Linux, macOS, and Windows. Linux also executes real FFmpeg integration tests that verify containers, codecs, replacement audio, batch outputs, and saved-profile processing. Dependency-free CLI tests verify profile storage and native GIF workflows with FFmpeg removed from `PATH`. See [CONTRIBUTING.md](CONTRIBUTING.md) for the contribution workflow, and [CHANGELOG.md](CHANGELOG.md) for release history.
+
+The release workflow builds explicit Linux x86_64, macOS Intel, macOS Apple Silicon, and Windows x64 targets. It packages executables on their build machines, verifies extracted archives before upload, and checks version tags against the Cargo package version. Preview runs do not publish releases; a matching version tag produces the archives and `SHA256SUMS` on the Releases page.
 
 ## Roadmap
 
