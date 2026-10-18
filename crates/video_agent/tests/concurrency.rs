@@ -406,7 +406,7 @@ fn hard_kill_parallel_sampler_charges_one_batch_bound_and_resumes_unique_samples
     let original = media::hash_file(&input).unwrap();
     let workspace = Workspace::create(
         &root.path().join("tasks"),
-        &[input.clone()],
+        std::slice::from_ref(&input),
         "Parallel hard-kill accounting fixture; no model".into(),
         1000,
         Limits {

@@ -518,7 +518,7 @@ mod tests {
         };
         let workspace = Workspace::create(
             root.path(),
-            &[input.clone()],
+            std::slice::from_ref(&input),
             "Crash accounting, not semantic selection".into(),
             1000,
             limits,
