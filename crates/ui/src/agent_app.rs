@@ -34,7 +34,13 @@ enum JobResult {
         time_ms: u64,
         task: Box<Task>,
     },
-    Player(Child),
+    Player(Child, String),
+    SmartFeedback {
+        path: PathBuf,
+        task: Box<Task>,
+        report: Option<Box<video_agent::smart_feedback::SmartReport>>,
+        explicitly_adopted: bool,
+    },
     Error {
         message: String,
         retained: Option<Box<Task>>,
@@ -77,6 +83,8 @@ pub struct VideoAgentApp {
     provider_ready: bool,
     provider_model: String,
     provider_error: Option<String>,
+    smart_upload_consent: bool,
+    smart_report: Option<video_agent::smart_feedback::SmartReport>,
 }
 
 impl VideoAgentApp {
@@ -109,6 +117,8 @@ impl VideoAgentApp {
             provider_ready: false,
             provider_model: String::new(),
             provider_error: None,
+            smart_upload_consent: false,
+            smart_report: None,
         };
         app.refresh_provider();
         if let Some(path) = workspace {
@@ -143,7 +153,7 @@ impl VideoAgentApp {
                 }
             };
             // Child does not kill the process on drop. If the app closed, do not leak ffplay.
-            if let Err(mpsc::SendError(JobResult::Player(mut child))) = sender.send(result) {
+            if let Err(mpsc::SendError(JobResult::Player(mut child, _))) = sender.send(result) {
                 let _ = child.kill();
                 let _ = child.wait();
             }
@@ -196,6 +206,8 @@ impl VideoAgentApp {
             self.preview_path = None;
             self.source_index = 0;
             self.preview_seconds = 0.0;
+            self.smart_upload_consent = false;
+            self.smart_report = None;
         }
         self.resume_path = path.display().to_string();
         self.task_dir = Some(path);
@@ -244,11 +256,28 @@ impl VideoAgentApp {
                     self.notice =
                         "Local preview frame ready. This frame is not sent to a model.".into();
                 }
-                JobResult::Player(child) => {
+                JobResult::Player(child, message) => {
                     self.player = Some(child);
-                    self.notice =
-                        "Playing the source interval in ffplay, including its original audio."
-                            .into();
+                    self.notice = message;
+                }
+                JobResult::SmartFeedback {
+                    path,
+                    task,
+                    report,
+                    explicitly_adopted,
+                } => {
+                    if self.task_dir.as_ref() == Some(&path) && self.dirty {
+                        // Refreshing historical status must never discard unsaved human edits.
+                        self.task = Some(*task);
+                    } else {
+                        self.accept_task(path, *task);
+                    }
+                    self.smart_report = report.map(|report| *report);
+                    self.notice = if explicitly_adopted {
+                        "Explicit adoption completed. Check the saved revision and its approval state before exporting."
+                    } else {
+                        "AI feedback records loaded. Candidates remain separate from your saved plan and still require human review."
+                    }.into();
                 }
                 JobResult::Error { message, retained } => {
                     self.error = Some(message);
@@ -322,9 +351,166 @@ impl VideoAgentApp {
                 Workspace::open_with_cancel(&path, &cancel).map_err(|e| e.to_string())?;
             workspace
                 .spawn_preview_with_cancel(&clip, &cancel)
-                .map(JobResult::Player)
+                .map(|child| {
+                    JobResult::Player(
+                        child,
+                        "Playing the source interval in ffplay, including its original audio."
+                            .into(),
+                    )
+                })
                 .map_err(|e| e.to_string())
         });
+    }
+
+    fn smart_feedback_panel(&mut self, ui: &mut egui::Ui) {
+        let Some(task) = self.task.clone() else {
+            return;
+        };
+        if task.plan.is_none() {
+            return;
+        }
+        let max_rounds = smart_round_limit(&task, self.smart_report.as_ref());
+        ui.add_space(10.0);
+        egui::CollapsingHeader::new("AI preview feedback · optional, separate consent")
+            .default_open(true)
+            .show(ui, |ui| {
+                ui.label("Render → inspect sparse preview images → suggest a bounded revision. This does not change, approve or export your saved plan.");
+                ui.label(RichText::new("Uploads: rendered-preview JPEGs, bounded source JPEG samples, your intent, current plan and objective checks. No audio or full video. Sparse vision can miss actions and timing; its verdict is not human acceptance.").small().color(WARNING));
+                ui.label(RichText::new(format!(
+                    "Run bound: {max_rounds} rounds. New runs default to 2; a loaded run keeps its original bound (1–3). Uses remaining task model/token/cost/time budgets and persistent preview attempts. Calls used: {} / {} · estimated cost used: ${:.4}.",
+                    task.usage.model_calls, task.limits.max_model_calls,
+                    task.usage.estimated_cost_usd
+                )).small().color(MUTED));
+                ui.add_enabled_ui(self.job.is_none(), |ui| {
+                    ui.checkbox(
+                        &mut self.smart_upload_consent,
+                        "I separately allow these preview images and task details to be sent to the configured model",
+                    );
+                });
+                ui.horizontal_wrapped(|ui| {
+                    if ui.add_enabled(
+                        smart_run_allowed(&task, self.dirty, self.job.is_some(), self.smart_upload_consent),
+                        egui::Button::new(format!("Run / resume AI feedback · up to {max_rounds} rounds")),
+                    ).clicked() {
+                        if let Some(path) = self.task_dir.clone() {
+                            let consent = self.smart_upload_consent;
+                            self.start_job("Rendering and reviewing bounded AI previews", move |cancel| {
+                                let task = Workspace::snapshot(&path).map_err(|_| "Task metadata is unavailable; no feedback request was sent.".to_owned())?;
+                                let provider = OpenAiVision::from_env(&task.limits).map_err(|_| "The private model configuration is unavailable. Check it locally; no credential is displayed.".to_owned())?;
+                                let report = video_agent::smart_feedback::run(&path, &provider, max_rounds, consent, &cancel)
+                                    .map_err(|_| "AI feedback stopped. Reload its saved status to inspect retained progress; no candidate was approved or exported.".to_owned())?;
+                                let task = Workspace::snapshot(&path).map_err(|_| "Feedback was saved, but task metadata could not be reloaded.".to_owned())?;
+                                Ok(JobResult::SmartFeedback { path, task: Box::new(task), report: Some(Box::new(report)), explicitly_adopted: false })
+                            });
+                        }
+                    }
+                    if ui.add_enabled(self.job.is_none(), egui::Button::new("Load saved feedback status")).clicked() {
+                        if let Some(path) = self.task_dir.clone() {
+                            self.start_job("Reading saved AI feedback, without model calls", move |_cancel| {
+                                let report = video_agent::smart_feedback::status(&path).map_err(|_| "Saved feedback is unavailable or invalid. No model was called.".to_owned())?;
+                                let task = Workspace::snapshot(&path).map_err(|_| "Task metadata is unavailable.".to_owned())?;
+                                Ok(JobResult::SmartFeedback { path, task: Box::new(task), report: report.map(Box::new), explicitly_adopted: false })
+                            });
+                        }
+                    }
+                });
+                if self.dirty {
+                    ui.colored_label(WARNING, "Save or discard your human edits before starting feedback or adopting a candidate. Loading status will preserve unsaved edits.");
+                }
+                if task.samples.is_empty() {
+                    ui.colored_label(WARNING, "Generate the local storyboard on Observed frames first. Feedback is disabled until source samples exist; no preview or model attempt is started here.");
+                }
+                // Own the snapshot while buttons may start a job and mutably borrow the app.
+                let report = self.smart_report.take();
+                if let Some(report) = report.as_ref() {
+                    ui.label(RichText::new(format!("Saved run {} · phase {} · {} / {} rounds", report.run_id, report.phase, report.rounds.len(), report.max_rounds)).strong());
+                    ui.label(RichText::new(format!("Base plan: {}", report.base_plan_digest)).small().color(MUTED));
+                    if let Some(reason) = &report.stopped_reason {
+                        ui.label(format!("Stop reason: {reason}"));
+                    }
+                    let current_matches = report.matches_current_plan && task.plan.as_ref().is_some_and(|plan| {
+                        video_agent::workflow::plan_digest(&task, plan).is_ok_and(|digest| digest == report.base_plan_digest)
+                    });
+                    if !current_matches {
+                        ui.colored_label(WARNING, "This is historical feedback for a different saved plan. It is not fresh media verification or permission to adopt/export.");
+                    }
+                    for round in &report.rounds {
+                        egui::CollapsingHeader::new(format!("Round {} · objective checks {}", round.round, if round.preview.quality.objective_pass { "passed" } else { "need attention" }))
+                            .id_source(("smart-feedback-round", &report.run_id, round.round))
+                            .show(ui, |ui| {
+                                ui.label(format!("Preview {} · {:.2}s planned · {:.2}s observed", round.preview.bundle_id, round.preview.quality.plan_duration_ms as f64 / 1000.0, round.preview.quality.observed_duration_ms as f64 / 1000.0));
+                                for check in &round.preview.quality.checks {
+                                    ui.label(format!("{} · {} · {}", if check.passed { "PASS" } else { "CHECK" }, check.name, check.detail));
+                                }
+                                if let Some(review) = &round.review {
+                                    let real_review = round.model_call_id.as_ref().is_some_and(|id| task.model_calls.iter().any(|call| {
+                                        &call.call_id == id && call.backend == "openai_responses"
+                                            && call.prompt_version == video_agent::review::PROMPT_VERSION
+                                            && call.provider_response_id.is_some()
+                                    }));
+                                    if !real_review {
+                                        ui.colored_label(WARNING, "SIMULATED / NON-PRODUCTION REVIEW · This is not evidence of an actual model assessment.");
+                                    }
+                                    ui.label(RichText::new("Model review of sparse images — not a human score").color(WARNING));
+                                    let verdict = match review.verdict {
+                                        video_agent::review::ReviewVerdict::Accept => "The sampled images support this cut; human review still required",
+                                        video_agent::review::ReviewVerdict::Revise => "The model suggests a bounded replacement cut",
+                                        video_agent::review::ReviewVerdict::Uncertain => "The sampled images are insufficient for a reliable decision",
+                                    };
+                                    ui.label(RichText::new(verdict).strong());
+                                    ui.label(&review.summary);
+                                    for issue in &review.issues {
+                                        ui.label(format!("{} · {}: {}", issue.clip_id, issue.kind, issue.detail));
+                                        ui.label(RichText::new(format!("Observed evidence: {}", issue.evidence_ids.join(", "))).small().color(MUTED));
+                                    }
+                                    if !review.revised_clips.is_empty() {
+                                        ui.label("Suggested source intervals (not yet adopted):");
+                                        for clip in &review.revised_clips {
+                                            ui.label(format!("{} · {} → {} · {}", clip.source_id, timecode(clip.start_ms), timecode(clip.end_ms), clip.reason));
+                                            ui.label(RichText::new(format!("Uncertainty: {}", clip.uncertainty)).small().color(WARNING));
+                                        }
+                                    }
+                                } else {
+                                    ui.label("No persisted model review for this round. A preview alone is not a semantic assessment.");
+                                }
+                            });
+                    }
+                    if report.selected_plan.is_some() {
+                        if current_matches {
+                            ui.colored_label(ACCENT, "A reviewed candidate is available. Adoption is optional and does not confirm it for export.");
+                        } else {
+                            ui.colored_label(MUTED, "Historical selection only. This run cannot be adopted against the current saved plan.");
+                        }
+                    }
+                    ui.horizontal_wrapped(|ui| {
+                        if ui.add_enabled(self.can_run_task() && current_matches && !report.rounds.is_empty(), egui::Button::new("Re-check & play latest AI preview")).clicked() {
+                            if let Some(path) = self.task_dir.clone() {
+                                self.start_job("Rechecking and playing saved AI preview", move |cancel| {
+                                    let child = video_agent::smart_feedback::spawn_preview(&path, &cancel)
+                                        .map_err(|_| "AI preview could not be safely reverified or played. Check the task budget and local ffplay installation.".to_owned())?;
+                                    Ok(JobResult::Player(child, "Playing a freshly checked what-if preview. This is not a final export or human approval.".into()))
+                                });
+                            }
+                        }
+                        if ui.add_enabled(self.can_run_task() && !self.dirty && current_matches && report.selected_plan.is_some(), egui::Button::new("Adopt reviewed candidate · still needs approval")).clicked() {
+                            if let Some(path) = self.task_dir.clone() {
+                                let run_id = report.run_id.clone();
+                                self.start_job("Explicitly adopting reviewed AI candidate, without approval", move |cancel| {
+                                    let task = video_agent::smart_feedback::adopt(&path, &run_id, &cancel)
+                                        .map_err(|_| "Candidate was not adopted. Reload the saved plan and feedback; source/run/plan identity must still match.".to_owned())?;
+                                    let report = video_agent::smart_feedback::status(&path)
+                                        .map_err(|_| "Candidate was saved, but feedback status could not be reloaded. Reopen the task to inspect its current revision.".to_owned())?;
+                                    Ok(JobResult::SmartFeedback { path, task: Box::new(task), report: report.map(Box::new), explicitly_adopted: true })
+                                });
+                            }
+                        }
+                    });
+                    ui.label(RichText::new("Saved status is historical. Playback re-checks the core-owned preview; no model-provided path is opened. Adoption creates a new revision and revokes old approval; review and confirm it separately.").small().color(MUTED));
+                } else {
+                    ui.label(RichText::new("No feedback status loaded. Loading is local and does not send images or run a model.").small().color(MUTED));
+                }
+                self.smart_report = report;
+            });
     }
 
     fn install_fonts(&mut self, ctx: &egui::Context) {
@@ -388,7 +574,7 @@ impl VideoAgentApp {
             });
             ui.label(
                 RichText::new(format!(
-                    "Requested model: {} · OpenAI Responses · only timestamped JPEG samples",
+                    "Requested model: {} · OpenAI Responses · sparse source/preview JPEGs, not video/audio",
                     self.provider_model
                 ))
                 .small()
@@ -815,6 +1001,13 @@ impl VideoAgentApp {
                     "Origin: real model proposal. Human modifications are labelled per clip.",
                 )
                 .color(ACCENT),
+            );
+        } else if video_agent::smart_feedback::is_adopted_model_plan(&task) {
+            ui.label(
+                RichText::new(
+                    "Origin: simulated review provider — not a real model. No semantic-quality claim is established.",
+                )
+                .color(WARNING),
             );
         } else {
             ui.label(
@@ -1248,7 +1441,12 @@ impl VideoAgentApp {
             });
             if !plan_has_model_origin(&task) {
                 ui.add_space(8.0);
-                ui.label(RichText::new("This export demonstrates the manual media workflow only. It is not evidence of real-model semantic quality.").color(WARNING));
+                let notice = if video_agent::smart_feedback::is_adopted_model_plan(&task) {
+                    "Origin: simulated review provider — not a real model. This export is not evidence of real-model semantic quality."
+                } else {
+                    "No current real-model provenance is verified for this plan. Export checks establish the media workflow, not semantic quality."
+                };
+                ui.label(RichText::new(notice).color(WARNING));
             }
             ui.add_space(12.0);
             ui.label("A decodable file is not proof of correct selection. Evaluate relevance, omissions and reasons on the fixed task set separately.");
@@ -1379,6 +1577,9 @@ impl eframe::App for VideoAgentApp {
                     Page::Edit => self.edit_page(ui),
                     Page::Result => self.result_page(ui),
                 }
+                if matches!(self.page, Page::Edit | Page::Result) {
+                    self.smart_feedback_panel(ui);
+                }
                 ui.add_space(20.0);
             });
         });
@@ -1401,7 +1602,7 @@ impl Drop for VideoAgentApp {
                 }
             }
             while let Ok(result) = job.receiver.try_recv() {
-                if let JobResult::Player(mut player) = result {
+                if let JobResult::Player(mut player, _) = result {
                     let _ = player.kill();
                     let _ = player.wait();
                 }
@@ -1460,6 +1661,34 @@ fn execution_usage_summary(usage: &video_agent::Usage) -> String {
 fn has_execution_budget(usage: &video_agent::Usage, limits: &Limits) -> bool {
     usage.elapsed_ms.saturating_add(5) <= limits.max_execution_secs.saturating_mul(1000)
 }
+fn smart_round_limit(
+    task: &Task,
+    report: Option<&video_agent::smart_feedback::SmartReport>,
+) -> u32 {
+    let current_digest = task
+        .plan
+        .as_ref()
+        .and_then(|plan| video_agent::workflow::plan_digest(task, plan).ok());
+    report
+        .filter(|report| {
+            report.matches_current_plan && current_digest.as_ref() == Some(&report.base_plan_digest)
+        })
+        .map(|report| report.max_rounds)
+        .filter(|rounds| (1..=3).contains(rounds))
+        .unwrap_or(2)
+}
+fn smart_run_allowed(task: &Task, dirty: bool, busy: bool, preview_consent: bool) -> bool {
+    preview_consent
+        && !dirty
+        && !busy
+        && task.status != TaskStatus::Stale
+        && !task.samples.is_empty()
+        && has_execution_budget(&task.usage, &task.limits)
+        && task
+            .plan
+            .as_ref()
+            .is_some_and(|plan| !plan.clips.is_empty())
+}
 fn task_status_label(task: &Task) -> &'static str {
     if task.status != TaskStatus::Stale && !has_execution_budget(&task.usage, &task.limits) {
         "Execution budget exhausted · saved records only"
@@ -1486,6 +1715,9 @@ fn unique_human_clip_id(plan: &EditPlan) -> String {
     }
 }
 fn plan_has_model_origin(task: &Task) -> bool {
+    if video_agent::smart_feedback::is_real_adopted_model_plan(task) {
+        return true;
+    }
     let model_is_latest = task
         .history
         .iter()
@@ -1604,6 +1836,77 @@ fn open_native(path: &Path) -> std::result::Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn ai_feedback_resumes_the_saved_bound_only_for_the_same_plan() {
+        let task = task_snapshot();
+        assert_eq!(smart_round_limit(&task, None), 2);
+        let mut report = video_agent::smart_feedback::SmartReport {
+            schema: "unit-only".into(),
+            run_id: "unit-only".into(),
+            base_plan_digest: video_agent::workflow::plan_digest(
+                &task,
+                task.plan.as_ref().unwrap(),
+            )
+            .unwrap(),
+            max_rounds: 3,
+            rounds: vec![],
+            phase: "unit-only".into(),
+            stopped_reason: None,
+            selected_plan: None,
+            needs_human_review: true,
+            task_plan_unchanged: true,
+            matches_current_plan: true,
+            semantic_evaluation: "unit-only-not-a-model-assessment".into(),
+            verification_scope: "unit-only-not-media-verification".into(),
+            events: vec![],
+        };
+        assert_eq!(smart_round_limit(&task, Some(&report)), 3);
+        report.max_rounds = 1;
+        assert_eq!(smart_round_limit(&task, Some(&report)), 1);
+        report.max_rounds = 4;
+        assert_eq!(smart_round_limit(&task, Some(&report)), 2);
+        report.max_rounds = 3;
+        report.matches_current_plan = false;
+        assert_eq!(smart_round_limit(&task, Some(&report)), 2);
+        report.matches_current_plan = true;
+        report.base_plan_digest = "different-plan".into();
+        assert_eq!(smart_round_limit(&task, Some(&report)), 2);
+    }
+    #[test]
+    fn ai_preview_feedback_requires_its_own_consent_and_a_saved_usable_draft() {
+        let mut task = task_snapshot();
+        task.cloud_consent = true;
+        task.plan.as_mut().unwrap().clips.push(Clip {
+            id: "manual-unit-clip".into(),
+            source_id: "unit-only".into(),
+            start_ms: 0,
+            end_ms: 1000,
+            reason: "MANUAL unit fixture; no real media or provider".into(),
+            uncertainty: "Not evaluated".into(),
+            evidence_ids: vec![],
+            human_modified: true,
+        });
+        assert!(!smart_run_allowed(&task, false, false, false));
+        assert!(!smart_run_allowed(&task, false, false, true));
+        task.samples.push(video_agent::Sample {
+            id: "unit-only-0".into(),
+            source_id: "unit-only".into(),
+            time_ms: 0,
+            image_path: PathBuf::from("not-read-by-ui-gate-test.jpg"),
+            sha256: "unit-fixture-no-file".into(),
+        });
+        assert!(smart_run_allowed(&task, false, false, true));
+        assert!(!smart_run_allowed(&task, true, false, true));
+        assert!(!smart_run_allowed(&task, false, true, true));
+        task.status = TaskStatus::Stale;
+        assert!(!smart_run_allowed(&task, false, false, true));
+        task.status = TaskStatus::Review;
+        task.usage.elapsed_ms = task.limits.max_execution_secs * 1000;
+        assert!(!smart_run_allowed(&task, false, false, true));
+        task.usage.elapsed_ms = 0;
+        task.plan = None;
+        assert!(!smart_run_allowed(&task, false, false, true));
+    }
     #[test]
     fn exhausted_execution_budget_locks_processing_without_hiding_saved_records() {
         let limits = Limits {
@@ -1744,6 +2047,21 @@ mod tests {
             at: "unit-test".into(),
             kind: "manual_plan".into(),
             detail: "Explicit manual replacement".into(),
+        });
+        assert!(!plan_has_model_origin(&task));
+    }
+
+    #[test]
+    fn a_smart_adoption_history_label_without_model_evidence_is_not_ai_origin() {
+        let mut task = task_snapshot();
+        let digest =
+            video_agent::workflow::plan_digest(&task, task.plan.as_ref().unwrap()).unwrap();
+        task.history.push(video_agent::Event {
+            at: "unit-test".into(),
+            kind: "smart_feedback_adopted".into(),
+            detail: format!(
+                "{{\"run_id\":\"unit-only\",\"base_plan_digest\":\"{digest}\",\"selected_plan_digest\":\"{digest}\",\"revision\":1,\"proposal_call_id\":\"not-a-model-call\"}}"
+            ),
         });
         assert!(!plan_has_model_origin(&task));
     }

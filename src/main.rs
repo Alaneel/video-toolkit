@@ -35,8 +35,8 @@ enum Commands {
     },
 
     /// Inspect and exercise persistent Video Agent tasks without the desktop
-    #[clap(subcommand)]
-    AgentTask(AgentTaskCommands),
+    #[clap(version = env!("CARGO_PKG_VERSION"), propagate_version = true)]
+    AgentTask(AgentTaskOptions),
 
     /// Extract specific time ranges from video files
     Clipper {
@@ -190,8 +190,21 @@ enum Commands {
     },
 }
 
+#[derive(clap::Args)]
+struct AgentTaskOptions {
+    /// Emit one video-agent-cli/v1 JSON response, including structured errors
+    #[clap(long, global = true)]
+    json: bool,
+
+    #[clap(subcommand)]
+    command: AgentTaskCommands,
+}
+
 #[derive(Subcommand)]
 enum AgentTaskCommands {
+    /// List implemented Agent capabilities and boundaries without opening a task or calling tools
+    Discover,
+
     /// Fingerprint local sources and create a private task; does not upload or call a model
     Create {
         #[clap(required = true, num_args = 1..)]
@@ -232,6 +245,48 @@ enum AgentTaskCommands {
     },
     /// Export the approved plan; reuses verified completed shards after interruption
     Export { workspace: PathBuf },
+
+    /// Validate the current or supplied edit plan without saving or approving it
+    Validate {
+        workspace: PathBuf,
+        /// Optional bounded EditPlan JSON file; omitted means the current saved plan
+        #[clap(long)]
+        plan: Option<PathBuf>,
+    },
+    /// Render a task-owned, unapproved whole-plan preview and objective checks
+    Preview { workspace: PathBuf },
+    /// Recheck objective preview quality; this is not a semantic or human score
+    Quality { workspace: PathBuf },
+    /// Inspect the latest preview record; does not approve or export it
+    PreviewLatest { workspace: PathBuf },
+    /// Read the local feedback trajectory; may contain private task metadata
+    Trajectory { workspace: PathBuf },
+    /// Preview the saved plan, then bounded supplied candidates; no cloud calls or approval
+    Iterate {
+        workspace: PathBuf,
+        /// EditPlan JSON array; at most max-attempts minus one candidates (64 KiB total)
+        #[clap(long)]
+        candidates: PathBuf,
+        #[clap(long, default_value = "3", value_parser = clap::value_parser!(u32).range(1..=3))]
+        max_attempts: u32,
+    },
+    /// Render, sparsely review and revise previews with explicit cloud-upload consent
+    SmartIterate {
+        workspace: PathBuf,
+        #[clap(long, default_value = "3", value_parser = clap::value_parser!(u32).range(1..=3))]
+        max_rounds: u32,
+        /// Allow rendered-preview JPEGs and bounded source samples to reach the model
+        #[clap(long)]
+        consent_preview_upload: bool,
+    },
+    /// Read persisted AI preview feedback; does not call a model or reverify media
+    SmartStatus { workspace: PathBuf },
+    /// Explicitly adopt this run's model candidate; still requires separate approval/export
+    SmartAdopt {
+        workspace: PathBuf,
+        #[clap(long)]
+        run_id: String,
+    },
 }
 
 #[derive(Subcommand)]
@@ -553,8 +608,22 @@ impl Commands {
 }
 
 fn main() -> Result<(), eframe::Error> {
-    // Parse command-line arguments
-    let cli = Cli::parse();
+    // Keep the machine-readable mode scoped to agent-task, including parse errors.
+    let arguments: Vec<_> = std::env::args_os().collect();
+    let cli = match Cli::try_parse_from(&arguments) {
+        Ok(cli) => cli,
+        Err(error) => {
+            if !matches!(
+                error.kind(),
+                clap::error::ErrorKind::DisplayHelp | clap::error::ErrorKind::DisplayVersion
+            ) && agent_json_requested(&arguments)
+            {
+                print_agent_json_error("parse", "Invalid", "Invalid Agent command arguments.");
+                std::process::exit(2);
+            }
+            error.exit();
+        }
+    };
 
     // Metadata, profile storage, and native GIF operations do not need FFmpeg.
     // The batch processor checks availability for its selected operation.
@@ -592,8 +661,25 @@ fn main() -> Result<(), eframe::Error> {
         Commands::Agent { workspace } => {
             return ui::run_video_agent(workspace);
         }
-        Commands::AgentTask(command) => {
-            if let Err(error) = handle_agent_task(command) {
+        Commands::AgentTask(options) => {
+            let command_name = options.command.name();
+            let result = execute_agent_task(options.command);
+            if options.json {
+                match result {
+                    Ok(output) => println!(
+                        "{}",
+                        serde_json::json!({
+                            "schema": "video-agent-cli/v1", "ok": true,
+                            "command": command_name, "result": output.result, "error": null
+                        })
+                    ),
+                    Err(error) => {
+                        let (code, message) = agent_error_contract(&error);
+                        print_agent_json_error(command_name, code, message);
+                        std::process::exit(1);
+                    }
+                }
+            } else if let Err(error) = result.and_then(print_agent_text) {
                 eprintln!("Video Agent: {error}");
                 std::process::exit(1);
             }
@@ -852,10 +938,229 @@ fn main() -> Result<(), eframe::Error> {
     Ok(())
 }
 
-fn handle_agent_task(command: AgentTaskCommands) -> video_agent::Result<()> {
+impl AgentTaskCommands {
+    fn name(&self) -> &'static str {
+        match self {
+            Self::Discover => "discover",
+            Self::Create { .. } => "create",
+            Self::Show { .. } => "show",
+            Self::Sample { .. } => "sample",
+            Self::Analyze { .. } => "analyze",
+            Self::ManualDraft { .. } => "manual-draft",
+            Self::Edit { .. } => "edit",
+            Self::Approve { .. } => "approve",
+            Self::Export { .. } => "export",
+            Self::Validate { .. } => "validate",
+            Self::Preview { .. } => "preview",
+            Self::Quality { .. } => "quality",
+            Self::PreviewLatest { .. } => "preview-latest",
+            Self::Trajectory { .. } => "trajectory",
+            Self::Iterate { .. } => "iterate",
+            Self::SmartIterate { .. } => "smart-iterate",
+            Self::SmartStatus { .. } => "smart-status",
+            Self::SmartAdopt { .. } => "smart-adopt",
+        }
+    }
+}
+
+fn agent_json_requested(arguments: &[std::ffi::OsString]) -> bool {
+    let mut index = 1;
+    while let Some(argument) = arguments.get(index) {
+        if argument == "--profiles-dir" {
+            index += 2;
+            continue;
+        }
+        if argument
+            .to_str()
+            .is_some_and(|value| value.starts_with("--profiles-dir="))
+        {
+            index += 1;
+            continue;
+        }
+        return argument == "agent-task"
+            && arguments[index + 1..]
+                .iter()
+                .take_while(|value| *value != "--")
+                .any(|value| value == "--json");
+    }
+    false
+}
+
+fn agent_error_contract(error: &video_agent::AgentError) -> (&'static str, &'static str) {
+    use video_agent::AgentError;
+    // Never echo raw provider/FFmpeg errors, JSON content, paths, or arguments in
+    // machine-mode errors. Private task records retain the underlying failure.
+    match error {
+        AgentError::Invalid(_) => (
+            "Invalid",
+            "The Agent request failed validation or a safety check.",
+        ),
+        AgentError::ModelResponseRejected { .. } => (
+            "ModelResponseRejected",
+            "The model response was rejected; no plan was approved or exported.",
+        ),
+        AgentError::Cancelled => (
+            "Cancelled",
+            "The operation was cancelled; retained stages may be resumed.",
+        ),
+        AgentError::TimedOut => (
+            "TimedOut",
+            "The execution deadline or available task budget was exhausted.",
+        ),
+        AgentError::Io(_) => ("Io", "A required local file or tool could not be accessed."),
+        AgentError::Json(_) => (
+            "Json",
+            "The bounded JSON input or saved task data was invalid.",
+        ),
+    }
+}
+
+fn print_agent_json_error(command: &str, code: &str, message: &str) {
+    println!(
+        "{}",
+        serde_json::json!({
+            "schema": "video-agent-cli/v1", "ok": false, "command": command,
+            "result": null, "error": {"code": code, "message": message}
+        })
+    );
+}
+
+struct AgentTaskOutput {
+    result: serde_json::Value,
+    text_task: Option<video_agent::Task>,
+    workspace_header: Option<PathBuf>,
+    plan_digest: Option<String>,
+}
+
+impl AgentTaskOutput {
+    fn report(value: impl serde::Serialize) -> video_agent::Result<Self> {
+        Ok(Self {
+            result: serde_json::to_value(value)?,
+            text_task: None,
+            workspace_header: None,
+            plan_digest: None,
+        })
+    }
+
+    fn task(
+        task: video_agent::Task,
+        workspace: PathBuf,
+        show_workspace: bool,
+    ) -> video_agent::Result<Self> {
+        let digest = task
+            .plan
+            .as_ref()
+            .map(|plan| video_agent::workflow::plan_digest(&task, plan))
+            .transpose()?;
+        Ok(Self {
+            result: serde_json::json!({
+                "workspace": workspace, "plan_digest": digest,
+                "task": serde_json::to_value(&task)?
+            }),
+            text_task: Some(task),
+            workspace_header: show_workspace.then_some(workspace),
+            plan_digest: digest,
+        })
+    }
+}
+
+fn print_agent_text(output: AgentTaskOutput) -> video_agent::Result<()> {
+    if let Some(workspace) = output.workspace_header {
+        println!("Workspace: {}", workspace.display());
+    }
+    if let Some(digest) = output.plan_digest {
+        println!("Plan digest: {digest}");
+    }
+    if let Some(task) = output.text_task {
+        println!("{}", serde_json::to_string_pretty(&task)?);
+    } else {
+        println!("{}", serde_json::to_string_pretty(&output.result)?);
+    }
+    Ok(())
+}
+
+fn read_agent_json<T: serde::de::DeserializeOwned>(path: &Path) -> video_agent::Result<T> {
+    use std::io::Read;
+    const MAX_JSON_BYTES: u64 = video_agent::feedback::MAX_PLAN_BYTES;
+    let metadata = std::fs::symlink_metadata(path)?;
+    if metadata.file_type().is_symlink() || !metadata.is_file() || metadata.len() > MAX_JSON_BYTES {
+        return Err(video_agent::AgentError::Invalid(
+            "Input must be a bounded regular, non-symlink JSON file".into(),
+        ));
+    }
+    let mut bytes = Vec::new();
+    std::fs::File::open(path)?
+        .take(MAX_JSON_BYTES + 1)
+        .read_to_end(&mut bytes)?;
+    if bytes.len() as u64 > MAX_JSON_BYTES {
+        return Err(video_agent::AgentError::Invalid(
+            "JSON input exceeds its byte limit".into(),
+        ));
+    }
+    Ok(serde_json::from_slice(&bytes)?)
+}
+
+fn agent_discovery() -> serde_json::Value {
+    use video_agent::feedback::{
+        MAX_ATTEMPTS, MAX_CLIPS, MAX_MEDIA_BYTES, MAX_PLAN_BYTES, MAX_PREVIEW_MS,
+    };
+    serde_json::json!({
+        "capability_schema": "video-agent-capabilities/v1",
+        "commands": ["discover", "create", "show", "sample", "analyze", "manual-draft",
+            "edit", "validate", "preview", "quality", "preview-latest", "trajectory",
+            "iterate", "smart-iterate", "smart-status", "smart-adopt", "approve", "export"],
+        "json_mode": "agent-task --json COMMAND",
+        "structured_edit_plan": {
+            "format": "EditPlan JSON", "maximum_input_bytes": MAX_PLAN_BYTES,
+            "time_unit": "integer milliseconds", "interval": "half-open [start_ms, end_ms)",
+            "paths_from_model": false, "shell_commands": false,
+            "validation_limits": "Bound to the existing task limits and source fingerprints"
+        },
+        "dependencies": [
+            {"tool": "ffmpeg", "external": true, "bundled": false,
+             "purpose": "frame extraction, preview rendering, export and full-stream decoding"},
+            {"tool": "ffprobe", "external": true, "bundled": false,
+             "purpose": "local media stream and duration inspection"},
+            {"tool": "ffplay", "external": true, "bundled": false, "optional": true,
+             "purpose": "native desktop source-interval playback; not needed for headless preview rendering"}
+        ],
+        "dependency_installation_checked": false,
+        "preview": {"whole_plan": true, "requires_approval": false, "is_final_export": false,
+            "maximum_duration_ms": MAX_PREVIEW_MS, "maximum_clip_count": MAX_CLIPS,
+            "maximum_media_bytes": MAX_MEDIA_BYTES, "maximum_plan_bytes": MAX_PLAN_BYTES,
+            "persistent_attempt_limit": MAX_ATTEMPTS,
+            "media_size_limit_scope": "post_generation_acceptance_not_os_quota"},
+        "quality": {"objective_media_checks": true, "semantic": "not_evaluated",
+            "human_scores": "not_generated"},
+        "iteration": {"candidate_source": "explicit local EditPlan JSON array",
+            "includes_current_saved_plan": true, "maximum_attempts": 3,
+            "maximum_supplied_candidates": 2, "persistent_preview_attempt_limit": MAX_ATTEMPTS,
+            "cloud_calls": false, "automatic_approval": false},
+        "smart_feedback": {"maximum_rounds": 3, "desktop_default_maximum_rounds": 2,
+            "desktop_resumes_saved_round_bound": true,
+            "candidate_source": "model review of sparse rendered JPEGs and bounded source samples",
+            "separate_preview_upload_consent_required": true,
+            "resume_persisted_results": true, "status_is_historical_not_fresh_verification": true,
+            "semantic_scope": "sparse_model_review_not_human_acceptance_or_full_video_understanding",
+            "automatic_plan_adoption": false, "automatic_approval": false,
+            "automatic_export": false, "explicit_adoption_command": "smart-adopt"},
+        "cloud": {"commands": ["analyze", "smart-iterate"],
+            "explicit_consent_required": true, "credentials_required": true,
+            "uploads": {"analyze": "bounded labeled source JPEG observations, intent and source metadata",
+                "smart-iterate": "rendered-preview JPEGs, bounded source JPEG samples, intent, current plan and objective quality"},
+            "source_video_uploaded": false, "audio_uploaded": false,
+            "sparse_samples_only": true},
+        "safety": {"source_overwrite": false, "automatic_approval": false,
+            "final_export_requires_exact_human_approval": true,
+            "external_hub_installation": false, "trajectory_is_private_by_default": true}
+    })
+}
+
+fn execute_agent_task(command: AgentTaskCommands) -> video_agent::Result<AgentTaskOutput> {
     use video_agent::{CancelToken, Limits, OpenAiVision, VisionProvider, Workspace};
     let cancel = CancelToken::default();
-    let task = match command {
+    let (task, workspace_path, show_workspace) = match command {
+        AgentTaskCommands::Discover => return AgentTaskOutput::report(agent_discovery()),
         AgentTaskCommands::Create {
             inputs,
             workspace_root,
@@ -871,11 +1176,16 @@ fn handle_agent_task(command: AgentTaskCommands) -> video_agent::Result<()> {
                 ..Limits::default()
             };
             let workspace = Workspace::create(&workspace_root, &inputs, intent, millis, limits)?;
-            println!("Workspace: {}", workspace.task_dir().display());
-            workspace.load()?
+            (workspace.load()?, workspace.task_dir().to_path_buf(), true)
         }
-        AgentTaskCommands::Show { workspace } => Workspace::open(&workspace)?.load()?,
-        AgentTaskCommands::Sample { workspace } => Workspace::open(&workspace)?.sample(&cancel)?,
+        AgentTaskCommands::Show { workspace } => {
+            (Workspace::open(&workspace)?.load()?, workspace, false)
+        }
+        AgentTaskCommands::Sample { workspace } => (
+            Workspace::open(&workspace)?.sample(&cancel)?,
+            workspace,
+            false,
+        ),
         AgentTaskCommands::Analyze {
             workspace,
             allow_cloud,
@@ -890,35 +1200,100 @@ fn handle_agent_task(command: AgentTaskCommands) -> video_agent::Result<()> {
             if allow_cloud {
                 workspace.set_consent(true)?;
             }
-            workspace.analyze(&provider, &cancel)?
+            (
+                workspace.analyze(&provider, &cancel)?,
+                workspace.task_dir().to_path_buf(),
+                false,
+            )
         }
-        AgentTaskCommands::ManualDraft { workspace } => {
-            Workspace::open(&workspace)?.manual_draft()?
-        }
+        AgentTaskCommands::ManualDraft { workspace } => (
+            Workspace::open(&workspace)?.manual_draft()?,
+            workspace,
+            false,
+        ),
         AgentTaskCommands::Edit { workspace, plan } => {
-            let meta = std::fs::symlink_metadata(&plan)?;
-            if !meta.is_file() || meta.len() > 65_536 {
-                return Err(video_agent::AgentError::Invalid(
-                    "Plan must be a bounded regular JSON file".into(),
-                ));
-            }
-            let plan = serde_json::from_reader(std::fs::File::open(plan)?)?;
-            Workspace::open(&workspace)?.save_plan(plan)?
+            let plan = read_agent_json(&plan)?;
+            (
+                Workspace::open(&workspace)?.save_plan(plan)?,
+                workspace,
+                false,
+            )
         }
         AgentTaskCommands::Approve {
             workspace,
             plan_digest,
-        } => Workspace::open(&workspace)?.approve(&plan_digest)?,
-        AgentTaskCommands::Export { workspace } => Workspace::open(&workspace)?.export(&cancel)?,
+        } => (
+            Workspace::open(&workspace)?.approve(&plan_digest)?,
+            workspace,
+            false,
+        ),
+        AgentTaskCommands::Export { workspace } => (
+            Workspace::open(&workspace)?.export(&cancel)?,
+            workspace,
+            false,
+        ),
+        AgentTaskCommands::Validate { workspace, plan } => {
+            let plan = plan.as_deref().map(read_agent_json).transpose()?;
+            return AgentTaskOutput::report(video_agent::feedback::validate(
+                &workspace, plan, &cancel,
+            )?);
+        }
+        AgentTaskCommands::Preview { workspace } => {
+            return AgentTaskOutput::report(video_agent::feedback::capture(&workspace, &cancel)?);
+        }
+        AgentTaskCommands::Quality { workspace } => {
+            return AgentTaskOutput::report(video_agent::feedback::quality(&workspace, &cancel)?);
+        }
+        AgentTaskCommands::PreviewLatest { workspace } => {
+            return AgentTaskOutput::report(video_agent::feedback::latest(&workspace)?);
+        }
+        AgentTaskCommands::Trajectory { workspace } => {
+            return AgentTaskOutput::report(video_agent::feedback::trajectory(&workspace)?);
+        }
+        AgentTaskCommands::Iterate {
+            workspace,
+            candidates,
+            max_attempts,
+        } => {
+            let candidates = read_agent_json(&candidates)?;
+            return AgentTaskOutput::report(video_agent::feedback::iterate(
+                &workspace,
+                candidates,
+                max_attempts,
+                &cancel,
+            )?);
+        }
+        AgentTaskCommands::SmartIterate {
+            workspace,
+            max_rounds,
+            consent_preview_upload,
+        } => {
+            // Refuse before opening a task or private provider configuration.
+            if !consent_preview_upload {
+                return Err(video_agent::AgentError::Invalid(
+                    "Separate consent for rendered-preview uploads is required".into(),
+                ));
+            }
+            let task = Workspace::snapshot(&workspace)?;
+            let provider = OpenAiVision::from_env(&task.limits)?;
+            return AgentTaskOutput::report(video_agent::smart_feedback::run(
+                &workspace,
+                &provider,
+                max_rounds,
+                consent_preview_upload,
+                &cancel,
+            )?);
+        }
+        AgentTaskCommands::SmartStatus { workspace } => {
+            return AgentTaskOutput::report(video_agent::smart_feedback::status(&workspace)?);
+        }
+        AgentTaskCommands::SmartAdopt { workspace, run_id } => (
+            video_agent::smart_feedback::adopt(&workspace, &run_id, &cancel)?,
+            workspace,
+            false,
+        ),
     };
-    if let Some(plan) = &task.plan {
-        println!(
-            "Plan digest: {}",
-            video_agent::workflow::plan_digest(&task, plan)?
-        );
-    }
-    println!("{}", serde_json::to_string_pretty(&task)?);
-    Ok(())
+    AgentTaskOutput::task(task, workspace_path, show_workspace)
 }
 
 fn handle_plugin_command(cmd: PluginCommands) {
@@ -1714,8 +2089,10 @@ mod cli_tests {
             let mut args = arguments();
             args.extend([flag, value]);
             let parsed = Cli::try_parse_from(args).unwrap();
-            let Some(Commands::AgentTask(AgentTaskCommands::Create { frame_workers, .. })) =
-                parsed.command
+            let Some(Commands::AgentTask(AgentTaskOptions {
+                command: AgentTaskCommands::Create { frame_workers, .. },
+                ..
+            })) = parsed.command
             else {
                 panic!("Expected task creation arguments");
             };
@@ -1729,10 +2106,176 @@ mod cli_tests {
         let parsed = Cli::try_parse_from(arguments()).unwrap();
         assert!(matches!(
             parsed.command,
-            Some(Commands::AgentTask(AgentTaskCommands::Create {
-                frame_workers: 1,
+            Some(Commands::AgentTask(AgentTaskOptions {
+                command: AgentTaskCommands::Create {
+                    frame_workers: 1,
+                    ..
+                },
                 ..
             }))
         ));
+    }
+
+    #[test]
+    fn json_is_scoped_to_agent_task_and_propagates_to_its_commands() {
+        for arguments in [
+            vec!["video-toolkit", "agent-task", "--json", "discover"],
+            vec!["video-toolkit", "agent-task", "discover", "--json"],
+        ] {
+            let cli = Cli::try_parse_from(arguments).unwrap();
+            assert!(matches!(
+                cli.command,
+                Some(Commands::AgentTask(AgentTaskOptions {
+                    json: true,
+                    command: AgentTaskCommands::Discover,
+                }))
+            ));
+        }
+        assert!(Cli::try_parse_from(["video-toolkit", "--json", "formats"]).is_err());
+        assert!(Cli::try_parse_from(["video-toolkit", "formats", "--json"]).is_err());
+    }
+
+    #[test]
+    fn json_parse_detection_does_not_claim_legacy_commands_or_positional_values() {
+        let detect = |arguments: &[&str]| {
+            let arguments: Vec<_> = arguments.iter().map(std::ffi::OsString::from).collect();
+            agent_json_requested(&arguments)
+        };
+        assert!(detect(&["video-toolkit", "agent-task", "--json"]));
+        assert!(detect(&[
+            "video-toolkit",
+            "--profiles-dir",
+            "private",
+            "agent-task",
+            "--json",
+            "discover"
+        ]));
+        assert!(!detect(&["video-toolkit", "formats", "--json"]));
+        assert!(!detect(&[
+            "video-toolkit",
+            "--profiles-dir",
+            "agent-task",
+            "formats",
+            "--json"
+        ]));
+        assert!(!detect(&[
+            "video-toolkit",
+            "agent-task",
+            "show",
+            "--",
+            "--json"
+        ]));
+    }
+
+    #[test]
+    fn feedback_iteration_has_a_small_explicit_attempt_bound() {
+        for (value, valid) in [("1", true), ("3", true), ("0", false), ("4", false)] {
+            let parsed = Cli::try_parse_from([
+                "video-toolkit",
+                "agent-task",
+                "iterate",
+                "unused-workspace",
+                "--candidates",
+                "unused-candidates.json",
+                "--max-attempts",
+                value,
+            ]);
+            assert_eq!(parsed.is_ok(), valid);
+        }
+    }
+
+    #[test]
+    fn smart_feedback_rounds_are_bounded_and_preview_upload_consent_is_never_implicit() {
+        for (value, valid) in [("1", true), ("3", true), ("0", false), ("4", false)] {
+            let parsed = Cli::try_parse_from([
+                "video-toolkit",
+                "agent-task",
+                "smart-iterate",
+                "unused-workspace",
+                "--max-rounds",
+                value,
+            ]);
+            assert_eq!(parsed.is_ok(), valid);
+            if let Ok(cli) = parsed {
+                assert!(matches!(
+                    cli.command,
+                    Some(Commands::AgentTask(AgentTaskOptions {
+                        command: AgentTaskCommands::SmartIterate {
+                            consent_preview_upload: false,
+                            ..
+                        },
+                        ..
+                    }))
+                ));
+            }
+        }
+        let parsed = Cli::try_parse_from([
+            "video-toolkit",
+            "agent-task",
+            "smart-iterate",
+            "unused-workspace",
+            "--consent-preview-upload",
+        ])
+        .unwrap();
+        assert!(matches!(
+            parsed.command,
+            Some(Commands::AgentTask(AgentTaskOptions {
+                command: AgentTaskCommands::SmartIterate {
+                    max_rounds: 3,
+                    consent_preview_upload: true,
+                    ..
+                },
+                ..
+            }))
+        ));
+    }
+
+    #[test]
+    fn machine_error_contract_has_stable_codes_and_no_raw_diagnostics() {
+        use video_agent::AgentError;
+        let json_error =
+            serde_json::from_str::<serde_json::Value>("inert-private-marker").unwrap_err();
+        let record = video_agent::ModelCall {
+            call_id: "fixture".into(),
+            backend: "SIMULATED-UNIT-TEST".into(),
+            requested_model: String::new(),
+            model: String::new(),
+            prompt_version: String::new(),
+            sample_ids: vec![],
+            provider_response_id: None,
+            request_id: None,
+            input_tokens: 0,
+            output_tokens: 0,
+            estimated_cost_usd: 0.0,
+            elapsed_ms: 0,
+            status: "rejected".into(),
+            decision: None,
+            error: None,
+        };
+        let cases = [
+            (
+                AgentError::Invalid("inert-private-marker".into()),
+                "Invalid",
+            ),
+            (AgentError::Cancelled, "Cancelled"),
+            (AgentError::TimedOut, "TimedOut"),
+            (
+                AgentError::Io(std::io::Error::other("inert-private-marker")),
+                "Io",
+            ),
+            (AgentError::Json(json_error), "Json"),
+            (
+                AgentError::ModelResponseRejected {
+                    message: "inert-private-marker".into(),
+                    record: Box::new(record),
+                },
+                "ModelResponseRejected",
+            ),
+        ];
+        for (error, expected) in cases {
+            let (code, message) = agent_error_contract(&error);
+            assert_eq!(code, expected);
+            assert!(!message.contains("inert-private-marker"));
+        }
     }
 }
