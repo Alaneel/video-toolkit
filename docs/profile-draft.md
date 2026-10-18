@@ -31,9 +31,9 @@ Computer Science graduate from **Nanyang Technological University**, based in Si
 
 A native desktop agent that turns timestamped visual observations into a reviewable clip plan. Typed tools, exact-revision approval and recoverable FFmpeg stages connect model proposals to real media execution—without giving the model authority to approve or export.
 
-**Experimental source preview.** GPT-6 Luna has produced a structurally validated draft after requesting additional observations; user-directed editing/export and semantic evaluation are still pending. Native manual exports are separate evidence. Public Agent binaries remain gated; [v2.1.0](https://github.com/Alaneel/video-toolkit/releases/tag/v2.1.0) is the existing Toolkit only.
+**Experimental source preview.** A real GPT-6 Luna draft reached a verified, playable 20-second export after the user authorized removal of its first clip; the development agent applied the edit and exact-revision approval in the native UI. Formal human semantic evaluation remains pending; public Agent binaries remain gated. [v2.1.0](https://github.com/Alaneel/video-toolkit/releases/tag/v2.1.0) is the existing Toolkit only.
 
-[Native interface & source](https://github.com/Alaneel/video-toolkit) · [Evidence & limits](https://github.com/Alaneel/video-toolkit/blob/master/docs/video-agent-evidence.json) · [Evaluation status](https://github.com/Alaneel/video-toolkit/blob/master/evals/video-agent/results/status.json)
+[20-second output](https://raw.githubusercontent.com/Alaneel/video-toolkit/master/assets/video-agent/luna-human-edited-20s.mp4) · [Interface & media credits](https://github.com/Alaneel/video-toolkit#video-agent) · [Evidence & limits](https://github.com/Alaneel/video-toolkit/blob/master/docs/video-agent-evidence.json) · [Evaluation status](https://github.com/Alaneel/video-toolkit/blob/master/evals/video-agent/results/status.json)
 
 ### [OpsPilot · AI Production Incident Copilot](https://github.com/Alaneel/ai-production-incident-copilot)
 

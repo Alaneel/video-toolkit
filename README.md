@@ -8,11 +8,13 @@ A native Rust desktop workflow for timestamped observations, model-proposed clip
 
 [Try the Agent](#try-the-agent) · [How it works](#how-it-works) · [Evidence & limits](#evidence-not-hype) · [Toolkit downloads](https://github.com/Alaneel/video-toolkit/releases/tag/v2.1.0)
 
-**[Source preview r2](https://github.com/Alaneel/video-toolkit/releases/tag/agent-source-preview-20261018-r2) · `2.2.0-rc.1`.** A real GPT-6 Luna draft has passed structural validation and awaits user-directed editing and export. Human semantic evaluation is pending; [public Agent binaries remain gated](docs/video-agent.md#dependency-notices).
+**[Source preview r2](https://github.com/Alaneel/video-toolkit/releases/tag/agent-source-preview-20261018-r2) · `2.2.0-rc.1`.** Real GPT-6 Luna proposal → **user-authorized removal of the first clip** → verified, playable **20-second MP4**. Formal human semantic evaluation is still pending; [public Agent binaries remain gated](docs/video-agent.md#dependency-notices).
 
-![Real GPT-6 Luna proposal in Video Agent's native human-review interface](assets/video-agent/real-luna-review.jpg)
+![Video Agent's native verified-output view after exporting the user-edited 20-second Luna selection](assets/video-agent/real-luna-verified-output.jpg)
 
-<sub>Actual 25-second model draft across five clips—not an accepted final cut. Its first clip is explicitly described as lacking a clearly visible rabbit; the user can reject it. This is not a semantic-evaluation result. Footage: (c) copyright 2008, Blender Foundation / www.bigbuckbunny.org, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/); trimmed and re-encoded. [Evidence & limitations](docs/video-agent-evidence.json).</sub>
+[Watch the user-authorized 20-second edit](https://raw.githubusercontent.com/Alaneel/video-toolkit/master/assets/video-agent/luna-human-edited-20s.mp4) · [Inspect the evidence](docs/video-agent-evidence.json)
+
+<sub>The user instructed removal of the draft's first clip; the development agent applied that edit and exact-revision confirmation in the native UI. The resulting four-clip MP4 was fully decoded and actually played in VLC. This is a development demonstration, not a continuous screen recording or a blind semantic evaluation. Footage: (c) copyright 2008, Blender Foundation / www.bigbuckbunny.org, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/); trimmed, concatenated and re-encoded.</sub>
 
 ## Try the Agent
 
@@ -60,12 +62,23 @@ Recovery is at task stages and verified clip shards, not arbitrary encoder posit
 
 | Question | Current evidence |
 | --- | --- |
-| Does the local media workflow run? | Native manual walkthroughs, actual playable exports, real FFmpeg tests and recorded source/output hashes. |
-| What ran on the real backend? | **A structurally validated draft, awaiting user review.** GPT-6 Luna requested two additional observations, then proposed five clips. Human-directed editing and model-origin export remain pending; rejected attempts are retained. |
+| Does the local media workflow run? | The user-edited, model-origin 20-second MP4 passed full video/audio decode and actual playback; approval, plan and export identities match, and source bytes are unchanged. Separate manual walkthroughs and real FFmpeg tests cover other paths. |
+| What ran on the real backend? | **Four GPT-6 Luna calls.** Two additional observations, one rejected citation and a validated five-clip draft. The user authorized removal of the first clip; the development agent applied the edit, confirmation and export through the native UI. Original proposals and rejected attempts are retained. |
 | Is it better than uniform sampling? | **Not established.** Frozen tasks and a human-review rubric exist; semantic scores remain pending. |
 | Can I download a public Agent release? | **Source preview only.** Build locally for review; unresolved dependency notice questions block public binary distribution. |
 
 [Machine-readable evidence](docs/video-agent-evidence.json) · [Authoritative evaluation status](evals/video-agent/results/status.json) · [Chinese audit & handoff](docs/video-agent-audit.zh-CN.md) · [Dependency notices](THIRD_PARTY_NOTICES.txt)
+
+<details>
+<summary>Inspect the original 25-second model draft, before the user's edit</summary>
+
+![Original, unedited five-clip GPT-6 Luna draft in the native review interface](assets/video-agent/real-luna-review.jpg)
+
+This is the **original 25-second draft**, not the exported final cut. Its first clip was explicitly described as lacking a clearly visible rabbit. The user directed its removal, leaving the other four five-second clips unchanged. The development agent carried out the instruction in the native UI; that is not an independent human blind review. Formal semantic scores remain unset and heldout tasks were not used for this development demonstration.
+
+Footage: (c) copyright 2008, Blender Foundation / www.bigbuckbunny.org, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/); source trimmed and re-encoded.
+
+</details>
 
 <details>
 <summary>See the manual review and verified-output interfaces</summary>

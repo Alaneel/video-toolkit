@@ -5,7 +5,7 @@
   "base_commit": "6462b920f519e98c5b882e7282b469a9244750d7",
   "platform": {"architecture": "arm64", "os": "macOS 26.7.1 (25G241)", "ffmpeg": "7.1.1", "rust": "1.87.0"},
   "real_model": {
-    "status": "luna_validated_proposal_awaiting_author_edit_and_export",
+    "status": "user_directed_edited_export_verified",
     "calls": 7,
     "legacy_model_calls": 3,
     "luna_calls": 4,
@@ -13,6 +13,9 @@
     "latest_attempt_date": "2026-10-18",
     "records": ["../evals/video-agent/results/dev-rabbit-woodland-20261018-v1.json", "../evals/video-agent/results/dev-rabbit-woodland-20261018-v2.json", "../evals/video-agent/results/dev-rabbit-woodland-20261018-v3.json", "../evals/video-agent/results/dev-rabbit-woodland-20261018-luna.json"],
     "end_to_end_validated": false,
+    "workflow_smoke_verified": true,
+    "end_to_end_validation_scope": "Full frozen semantic/heldout acceptance remains incomplete; workflow_smoke_verified is limited to this single user-directed development task",
+    "runtime_code_commit": "42f1909a87016c9ceb1c8e530dd25dcb131b4fda",
     "luna_observations_saved": 35,
     "luna_unique_images_submitted": 28,
     "luna_per_call_image_counts": [12, 24, 16, 16],
@@ -22,9 +25,37 @@
     "luna_accounted_output_tokens": 1222,
     "luna_estimated_cost_usd": 0.004361500000000002,
     "luna_provider_invoice_usd": null,
-    "current_user_decision": "Asked whether to reject the first clip and export the remaining 20 seconds; no answer assumed",
-    "screenshots": ["assets/video-agent/real-luna-review.jpg"],
-    "scope": "Real provider observation and structurally validated draft, not semantic acceptance, a continuous demo recording, or a final model-driven export"
+    "current_user_decision": "The user explicitly authorized deleting the first clip and exporting the remaining 20 seconds; the development agent executed this through the native UI",
+    "author_edit": {
+      "authorization": "direct_user_confirmation",
+      "operator": "development_agent_using_native_desktop_ui",
+      "removed_interval_ms": [625, 5625],
+      "final_source_ranges_ms": [[13125, 18125], [38125, 43125], [50625, 55625], [58167, 63167]],
+      "saved_and_approved_revision": 2,
+      "approved_plan_digest": "fb35f66c7e3766de45db03194c1fc8133fa099a445dc287b6fc4ff775bb641b0"
+    },
+    "verified_export": {
+      "kind": "human_edited_or_other_plan",
+      "asset": "assets/video-agent/luna-human-edited-20s.mp4",
+      "sha256": "4543e1b941fa964fe8487cad30e1ace70ae45e847c88d7537ed32bebb5201417",
+      "persisted_plan_digest": "fb35f66c7e3766de45db03194c1fc8133fa099a445dc287b6fc4ff775bb641b0",
+      "persisted_duration_ms": 20000,
+      "verified_at": "2026-10-18T05:05:40.501984+00:00",
+      "source_sha256_unchanged": "6e084b652e9c43713e6501ea8abbe0cfcf19321429da86c61c76f75fa4965120",
+      "plan_digest_recomputed": true,
+      "task_owned_mp4_count": 1,
+      "independent_full_decode": "passed_ffmpeg_xerror_video_and_audio",
+      "video": "H.264 640x360; nominal 30/1 fps, measured average 1840128/61439 fps",
+      "decoded_video_frames": 599,
+      "video_duration_seconds": 19.999674,
+      "container_duration_seconds": 20.021333,
+      "audio": "AAC 48000 Hz stereo; source audio retained/re-encoded",
+      "native_playback": "Development agent clicked Play in VLC, observed actual footage and completed playback; not a human semantic rating",
+      "private_capture_sha256": "770ec911ca2d14c3cff5853ff42fca042163e490e98c5a1d8432bb8fbb6f9faf",
+      "capture_decode_verification": "task_claim_only_not_reexecuted; independent decode above was a separate real-media check"
+    },
+    "screenshots": ["assets/video-agent/real-luna-review.jpg", "assets/video-agent/real-luna-verified-output.jpg"],
+    "scope": "Real provider observations, preserved original proposals, user-authorized editing, exact-revision approval, verified export and native playback on one development clip; not semantic acceptance, an unchanged initial model export, heldout validation or a continuous demo recording"
   },
   "offline_validation": {
     "recorded_date_utc": "2026-10-16",
@@ -184,7 +215,7 @@
   "attribution": "(c) copyright 2008, Blender Foundation / www.bigbuckbunny.org",
   "media_license": "https://creativecommons.org/licenses/by/3.0/",
   "source_rights": "https://peach.blender.org/about/",
-  "changes": "Source trimmed and re-encoded for development; manual source intervals reordered and re-encoded; genuine app/player screenshots. Snapshot walkthrough is a still-image presentation, not a continuous screen recording.",
+  "changes": "Source trimmed and re-encoded for development; manual source intervals reordered and re-encoded; the user-authorized model-origin export removes the first proposed clip and re-encodes the remaining four; genuine app/player screenshots. Snapshot walkthrough is a still-image presentation, not a continuous screen recording.",
   "dependency_notices": {"collection": "THIRD_PARTY_NOTICES.txt", "target": "aarch64-apple-darwin", "third_party_packages": 240, "embedded_font_notices": 4, "distinct_original_texts": 188, "bytes": 1219678, "additional_source_header_role": "copyright and license reference only; not full license terms", "unresolved_original_code_license_texts": 6, "legal_compliance_audit_complete": false},
-  "remaining": ["human edit/rejection and verified export of a real model proposal", "frozen semantic human comparisons against baseline", "full real-model demo recording", "heldout validation of the user-approved Luna default after code/prompt freeze", "resolve six original dependency code-license notice gaps and obtain target-specific distribution approval before public binary distribution"]
+  "remaining": ["native GUI interruption/resume of a real-model-origin export, distinct from earlier manual and automated recovery checks", "frozen semantic human comparisons against baseline", "full real-model demo recording", "heldout validation of the user-approved Luna default after code/prompt freeze", "resolve six original dependency code-license notice gaps and obtain target-specific distribution approval before public binary distribution"]
 }

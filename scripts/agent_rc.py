@@ -39,7 +39,7 @@ APP_BINARY = f"{APP}/MacOS/video-agent"
 EXECUTABLES = {APP_BINARY, "bin/video-agent", "bin/video-toolkit"}
 SOURCE_FILES = (
     "README.md", "LICENSE", "CHANGELOG.md", "THIRD_PARTY_NOTICES.txt",
-    "assets/video-agent/hero.svg",
+    "assets/video-agent/hero.svg", "assets/video-agent/ATTRIBUTION.md",
     "docs/video-agent.md", "docs/video-agent-audit.zh-CN.md",
     "docs/video-agent-materials.md", "docs/video-agent-evidence.json",
     "docs/test-process-safety.md",
@@ -60,7 +60,7 @@ SCREENSHOTS = tuple(f"assets/video-agent/{name}.jpg" for name in (
     "observed-frames-manual-validation", "human-review-manual-validation",
     "cancelled-manual-export", "verified-manual-output", "actual-output-playback",
     "parallel-observation-manual-validation",
-    "real-luna-review",
+    "real-luna-review", "real-luna-verified-output",
 )) + ("assets/video-toolkit-ui.png",)
 GENERATED = (f"{APP}/Info.plist", f"{APP}/PkgInfo", "INSTALL.txt")
 PAYLOAD_NAMES = set(SOURCE_FILES) | set(SCREENSHOTS) | set(GENERATED) | EXECUTABLES
@@ -76,7 +76,7 @@ NOTICES = {
     "semantic_quality_evaluated": False,
     "developer_id_signed": False,
     "notarized": False,
-    "real_model_status": "Real development calls have begun; end-to-end model selection and human semantic comparison are not yet validated. See the included evaluation status and failure records.",
+    "real_model_status": "One public development workflow completed real calls, user-directed first-clip removal and verified 20-second export. Formal human semantic comparison remains pending; this is not general model-quality acceptance.",
     "signing_status": "Not Developer ID signed or notarized. A linker ad-hoc signature is not a publisher identity.",
     "platform_status": "Local macOS Apple Silicon review candidate only; other Agent targets unverified.",
     "binary_provenance": "Supplied native binaries; the clean checkout SHA is recorded, not a reproducible-build attestation.",
@@ -181,8 +181,9 @@ def installation(version: str) -> bytes:
     return f"""Video Agent {version} — local macOS Apple Silicon review candidate
 
 This is NOT a public release and NOT a completed AI-quality evaluation.
-Real API-backed development calls have produced a structurally validated draft;
-model-origin editing/export and human semantic comparison remain pending.
+Real API-backed development calls produced a draft; a user-directed first-clip
+removal and verified 20-second export have now completed in the native UI.
+Formal human semantic comparison remains pending, not inferred from playback.
 Manual workflow screenshots are explicitly separate non-AI validation.
 The default model is GPT-6 Luna. The configurable legacy GPT-4.1-mini snapshot
 is deprecated, with shutdown scheduled 2027-01-14. See the provider guide for

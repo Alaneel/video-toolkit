@@ -504,7 +504,7 @@
     "accounted_frame_credits": 35,
     "unique_sample_count": 35,
     "local_model_attempts": 4,
-    "effective_accounted_elapsed_ms": 30557,
+    "effective_accounted_elapsed_ms": 36344,
     "conservative_elapsed_ms_included": 0,
     "accounted_input_tokens": 30004,
     "accounted_output_tokens": 1222,
@@ -513,7 +513,7 @@
     "provider_invoiced_cost_usd": null
   },
   "unique_samples_submitted": 28,
-  "outcome": "validated_proposal_awaiting_human_review",
+  "outcome": "user_directed_edited_export_verified",
   "initial_typed_proposal": {
     "call_id": "call-3",
     "status": "rejected",
@@ -621,9 +621,66 @@
     "duration_ms": 25000
   },
   "accepted_plan": true,
-  "export_produced": false,
+  "export_produced": true,
+  "workflow_smoke_verified": true,
+  "author_edit": {
+    "authorization": "direct_user_confirmation",
+    "operator": "development_agent_using_native_desktop_ui",
+    "action": "reject_first_clip_of_call_4",
+    "removed_interval_ms": [625, 5625],
+    "original_validated_duration_ms": 25000,
+    "edited_at": "2026-10-18T05:05:29.570516+00:00",
+    "saved_revision": 2,
+    "approved_revision": 2,
+    "approved_at": "2026-10-18T05:05:32.422357+00:00",
+    "approved_plan_digest": "fb35f66c7e3766de45db03194c1fc8133fa099a445dc287b6fc4ff775bb641b0",
+    "duration_ms": 20000,
+    "final_clips": [
+      {"source_id": "source-1", "start_ms": 13125, "end_ms": 18125, "evidence_ids": ["source-1-15625"]},
+      {"source_id": "source-1", "start_ms": 38125, "end_ms": 43125, "evidence_ids": ["source-1-40625"]},
+      {"source_id": "source-1", "start_ms": 50625, "end_ms": 55625, "evidence_ids": ["source-1-51333", "source-1-52625", "source-1-53125", "source-1-54708"]},
+      {"source_id": "source-1", "start_ms": 58167, "end_ms": 63167, "evidence_ids": ["source-1-60667", "source-1-62000"]}
+    ]
+  },
+  "verified_export": {
+    "kind": "human_edited_or_other_plan",
+    "runtime_code_commit": "42f1909a87016c9ceb1c8e530dd25dcb131b4fda",
+    "asset": "assets/video-agent/luna-human-edited-20s.mp4",
+    "sha256": "4543e1b941fa964fe8487cad30e1ace70ae45e847c88d7537ed32bebb5201417",
+    "persisted_plan_digest": "fb35f66c7e3766de45db03194c1fc8133fa099a445dc287b6fc4ff775bb641b0",
+    "persisted_revision": 2,
+    "persisted_duration_ms": 20000,
+    "verified_at": "2026-10-18T05:05:40.501984+00:00",
+    "plan_digest_recomputed": true,
+    "source_sha256": "6e084b652e9c43713e6501ea8abbe0cfcf19321429da86c61c76f75fa4965120",
+    "source_sha256_unchanged": true,
+    "task_owned_mp4_count": 1,
+    "capture_decode_verification": "task_claim_only_not_reexecuted",
+    "independent_full_decode": "passed_ffmpeg_xerror_video_and_audio",
+    "probe": {
+      "container_duration_seconds": 20.021333,
+      "size_bytes": 1462780,
+      "video_codec": "h264",
+      "width": 640,
+      "height": 360,
+      "video_duration_seconds": 19.999674,
+      "nominal_frame_rate": "30/1",
+      "average_frame_rate": "1840128/61439",
+      "decoded_video_frames": 599,
+      "audio_codec": "aac",
+      "audio_sample_rate_hz": 48000,
+      "audio_channels": 2,
+      "audio_duration_seconds": 20.021333
+    },
+    "native_playback": {
+      "player": "VLC",
+      "actual_playback_observed": true,
+      "operator": "development_agent_using_native_desktop_ui",
+      "semantic_review": false
+    }
+  },
   "semantic_scores": null,
-  "human_review": "awaiting_author_edit_decision",
+  "human_review": "user_directed_edit_completed_formal_semantic_review_pending",
   "retained_failures": [
     "The first two observation phases stopped before another request because conservative context reservations exceeded the original token budget. No automatic budget increase was applied.",
     "The first typed proposal (call-3) cited 59375 ms before its 59500 ms clip start and was rejected; call-4 did not erase it.",
@@ -632,13 +689,17 @@
   "private_capture_sha256": {
     "initial_observations": "440c96c92319d8e57c14945720cb02845886990c0dcf8e110cc327ae366c2fba",
     "second_observations": "75b9b4b606703ea92ebe59feb614aff1f8c0e95ff60c1f3d7f65645135b0b1cb",
-    "validated_proposal": "caa8bcd4b9089c11ba4af7275ce204dad754a8c10485cda2bfb47627558f9d66"
+    "validated_proposal": "caa8bcd4b9089c11ba4af7275ce204dad754a8c10485cda2bfb47627558f9d66",
+    "user_edited_verified_export": "770ec911ca2d14c3cff5853ff42fca042163e490e98c5a1d8432bb8fbb6f9faf"
   },
   "limitations": [
     "Single public development excerpt and evolving development code; not a heldout result or independent human semantic score.",
     "Per-call commits identify private development snapshots, not provider-signed attestations. Runtime JSON and IDs are locally editable.",
     "This summary omits raw task paths, provider trace IDs and model free text; complete private captures are retained separately.",
     "Saved observations are not all sent in each request; call-3 and call-4 each used 16 of 35 frames. No full-video or audio understanding is claimed.",
-    "No invoice amount, initial rejected-plan export, baseline preference or semantic rating is fabricated."
+    "No invoice amount, initial rejected-plan export, baseline preference or semantic rating is fabricated.",
+    "The user-authorized edited export is not an unmodified model candidate and cannot replace the rejected initial proposal or the original 25-second validated draft in evaluation.",
+    "This runtime used the recorded core development snapshot, not the later public source-preview commit. Its capture freezes usage at capture time; later GUI activity is not retroactively included.",
+    "Nominal 30 fps does not establish exact constant frame pacing: the independently decoded output has 599 video frames and a separately recorded average rate."
   ]
 }

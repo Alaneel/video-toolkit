@@ -14,7 +14,7 @@ A native Rust desktop workflow for timestamped observations, model-proposed clip
 
 ## Actual validation and limits
 
-On the public development excerpt, Luna made two follow-up observation requests and produced a structurally valid five-clip, 25-second draft after a retained citation rejection. One clip lacks the requested visible rabbit. User-directed editing and model-origin export are still awaiting the author's decision; formal human semantic scores remain pending. Three earlier legacy-model proposals also remain visible in the results. A valid schema or playable video is not a relevance score.
+On the public development excerpt, Luna made two follow-up observation requests and produced a structurally valid five-clip, 25-second draft after a retained citation rejection. One clip lacks the requested visible rabbit. At the r2 source-tag snapshot, user-directed editing and model-origin export were awaiting the author's decision; see the subsequent update below. Formal human semantic scores remain pending. Three earlier legacy-model proposals also remain visible in the results. A valid schema or playable video is not a relevance score.
 
 Native manual runs separately demonstrate editing, cancellation/reopening and actual playable exports. The first runtime-validated Agent target is macOS Apple Silicon. Other Agent platforms, a continuous real-model demonstration and heldout semantic comparisons are not established by this preview.
 
@@ -38,3 +38,9 @@ This is a **source-only prerelease**, not an installer release. Six unresolved d
 The preview's public commit contains the final source tree on the existing public history. Operator-declared intermediate development snapshot hashes in evidence records remain local and are not public checkout links or signed build attestations.
 
 [Setup and boundaries](https://github.com/Alaneel/video-toolkit/blob/master/docs/video-agent.md) · [Machine-readable evidence](https://github.com/Alaneel/video-toolkit/blob/master/docs/video-agent-evidence.json) · [Evaluation status](https://github.com/Alaneel/video-toolkit/blob/master/evals/video-agent/results/status.json)
+
+## Post-release development evidence update — 2026-10-18
+
+The user explicitly instructed the development agent to delete the first clip and export the remaining four. The native UI saved revision 2, approved its exact digest and produced the [actual 20-second demonstration MP4](https://raw.githubusercontent.com/Alaneel/video-toolkit/master/assets/video-agent/luna-human-edited-20s.mp4). An independent check confirmed unchanged source hashes, the four original remaining intervals, approval/output binding and full video/audio decode; it also played in VLC. The 20.021333-second container includes AAC padding. [Attribution and exact modifications](https://github.com/Alaneel/video-toolkit/blob/master/assets/video-agent/ATTRIBUTION.md).
+
+The demonstration/evidence update is on current master; the r2 tag is not moved. The actual GUI runtime was the declared local `42f1909` core snapshot, not a retroactive run of the later final r2 tree. The initial 25-second model draft and failed proposals remain preserved. This is one user-directed development workflow, not a blind semantic score, heldout result, continuous screen recording or new public installer release.
