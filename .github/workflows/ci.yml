@@ -32,7 +32,8 @@ jobs:
       - run: cargo clippy --workspace --all-targets -- -D warnings
       - run: cargo test --workspace --all-targets
       - name: Verify real FFmpeg workflows
-        run: cargo test --workspace --tests -- --ignored --test-threads=1
+        timeout-minutes: 8
+        run: cargo test --locked --workspace --tests -- --ignored --nocapture --test-threads=1
 
   test-platforms:
     name: Test (${{ matrix.os }})

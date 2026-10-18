@@ -692,7 +692,9 @@ fn fixed_and_optimized_gif_profiles_honor_width_and_requested_low_frame_rate() {
 fn splitter_profile_produces_five_mkv_tiles_with_custom_encoding_and_prefix() {
     let workspace = Workspace::new();
     let input = workspace.path.join("1920 input with spaces.mp4");
+    eprintln!("splitter profile stage: generate input start");
     generate_video(&input, "color=c=navy:s=1920x1080:r=10", "0.3");
+    eprintln!("splitter profile stage: generate input complete");
     let output_dir = workspace.path.join("profile slices");
     workspace.create(
         "wall-slices",
@@ -708,13 +710,17 @@ fn splitter_profile_produces_five_mkv_tiles_with_custom_encoding_and_prefix() {
         ],
     );
     let mut command = workspace.batch("wall-slices", "splitter", &[&input]);
+    eprintln!("splitter profile stage: batch start");
     run_success(&mut command);
+    eprintln!("splitter profile stage: batch complete");
     for (index, file) in output_files(&output_dir, "mkv", 5).iter().enumerate() {
         assert_eq!(
             file.file_name().unwrap().to_string_lossy(),
             format!("1920 input with spaces_panel_{}.mkv", index + 1)
         );
+        eprintln!("splitter profile stage: tile {} probe start", index + 1);
         let metadata = probe(file);
+        eprintln!("splitter profile stage: tile {} probe complete", index + 1);
         assert_eq!(stream(&metadata, "video")["width"], 384);
         assert_eq!(stream(&metadata, "video")["height"], 1080);
         assert_eq!(stream(&metadata, "video")["codec_name"], "mpeg4");
@@ -723,7 +729,9 @@ fn splitter_profile_produces_five_mkv_tiles_with_custom_encoding_and_prefix() {
             .as_str()
             .unwrap()
             .contains("matroska"));
+        eprintln!("splitter profile stage: tile {} decode start", index + 1);
         assert_decodable(file);
+        eprintln!("splitter profile stage: tile {} decode complete", index + 1);
     }
 }
 
