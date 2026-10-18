@@ -9,7 +9,7 @@ use std::{
     collections::HashSet,
     fs,
     io::Cursor,
-    path::PathBuf,
+    path::{Path, PathBuf},
     time::{Duration, Instant},
 };
 
@@ -54,6 +54,73 @@ pub struct OpenAiVision {
 }
 
 impl OpenAiVision {
+    /// Share verified image admission with preview review; never exposes credentials.
+    pub(crate) fn checked_jpeg(&self, path: &Path, sha256: &str) -> Result<(Value, u64)> {
+        let meta = fs::symlink_metadata(path)?;
+        if !meta.is_file() || meta.len() > 1_048_576 {
+            return Err(AgentError::Invalid(
+                "Unsafe or oversized sampled image".into(),
+            ));
+        }
+        let bytes = fs::read(path)?;
+        if bytes.len() > 1_048_576 || hex::encode(Sha256::digest(&bytes)) != sha256 {
+            return Err(AgentError::Invalid(
+                "A sampled image changed after extraction".into(),
+            ));
+        }
+        let (width, height) = Reader::with_format(Cursor::new(&bytes), image::ImageFormat::Jpeg)
+            .into_dimensions()
+            .map_err(|_| AgentError::Invalid("Sample is not a valid JPEG".into()))?;
+        if width == 0 || height == 0 || width > 2048 || height > 2048 {
+            return Err(AgentError::Invalid(
+                "Sample exceeds the image dimension bound".into(),
+            ));
+        }
+        if self.model == DEFAULT_MODEL
+            && self.image_token_bound.unwrap_or(LUNA_IMAGE_TOKEN_ALLOWANCE)
+                <= LUNA_IMAGE_TOKEN_ALLOWANCE
+            && (width > 640 || height > 360)
+        {
+            return Err(AgentError::Invalid("GPT-6 Luna's built-in local image allowance covers only thumbnails up to 640x360; larger JPEGs require an explicitly higher private image token bound".into()));
+        }
+        let tokens = self
+            .image_token_bound
+            .unwrap_or((width as u64).div_ceil(32) * (height as u64).div_ceil(32) * 2 + 128);
+        Ok((
+            json!({"type":"input_image", "detail":"high",
+            "image_url":format!("data:image/jpeg;base64,{}",STANDARD.encode(bytes))}),
+            tokens,
+        ))
+    }
+
+    pub(crate) fn model_body(
+        &self,
+        instructions: &str,
+        content: Vec<Value>,
+        tools: Value,
+        max_output_tokens: u32,
+        input_bound: u64,
+    ) -> Result<Value> {
+        if self.model == DEFAULT_MODEL && input_bound > 272_000 {
+            return Err(AgentError::Invalid("GPT-6 Luna local reservation exceeds the configured short-context pricing range; reduce the observations before retrying".into()));
+        }
+        let mut body = json!({"model":self.model,"store":false,"instructions":instructions,
+            "input":[{"role":"user","content":content}],"tools":tools,
+            "tool_choice":"required","parallel_tool_calls":false,
+            "service_tier":"default","max_output_tokens":max_output_tokens});
+        if self.model == DEFAULT_MODEL {
+            body["reasoning"] = json!({"effort":"low"});
+        }
+        Ok(body)
+    }
+
+    pub(crate) fn estimate_prepared(&self, input: u64, output: u32) -> (u64, f64) {
+        (
+            input + u64::from(output),
+            (input as f64 * self.input_rate + f64::from(output) * self.output_rate) / 1_000_000.0,
+        )
+    }
+
     pub fn from_env(limits: &Limits) -> Result<Self> {
         let configured = std::env::var_os("VIDEO_AGENT_CONFIG").map(PathBuf::from);
         let default_path = std::env::var_os("HOME")
@@ -187,45 +254,10 @@ impl OpenAiVision {
                     "Invalid or duplicate sample identity".into(),
                 ));
             }
-            let meta = fs::symlink_metadata(&sample.image_path)?;
-            if !meta.is_file() || meta.len() > 1_048_576 {
-                return Err(AgentError::Invalid(
-                    "Unsafe or oversized sampled image".into(),
-                ));
-            }
-            let bytes = fs::read(&sample.image_path)?;
-            if hex::encode(Sha256::digest(&bytes)) != sample.sha256 {
-                return Err(AgentError::Invalid(
-                    "A sampled image changed after extraction".into(),
-                ));
-            }
-            let (width, height) =
-                Reader::with_format(Cursor::new(&bytes), image::ImageFormat::Jpeg)
-                    .into_dimensions()
-                    .map_err(|_| AgentError::Invalid("Sample is not a valid JPEG".into()))?;
-            if width == 0 || height == 0 || width > 2048 || height > 2048 {
-                return Err(AgentError::Invalid(
-                    "Sample exceeds the image dimension bound".into(),
-                ));
-            }
-            if self.model == DEFAULT_MODEL
-                && self.image_token_bound.unwrap_or(LUNA_IMAGE_TOKEN_ALLOWANCE)
-                    <= LUNA_IMAGE_TOKEN_ALLOWANCE
-                && (width > 640 || height > 360)
-            {
-                return Err(AgentError::Invalid(
-                    "GPT-6 Luna's built-in local image allowance covers only thumbnails up to 640x360; larger JPEGs require an explicitly higher private image token bound".into(),
-                ));
-            }
-            // Only legacy GPT-4.1-mini falls back to its patch multiplier 1.62,
-            // rounded to integer 2 plus margin. Luna uses the configured local
-            // allowance above; other models require an explicit image bound.
-            image_tokens += self
-                .image_token_bound
-                .unwrap_or((width as u64).div_ceil(32) * (height as u64).div_ceil(32) * 2 + 128);
+            let (image, tokens) = self.checked_jpeg(&sample.image_path, &sample.sha256)?;
+            image_tokens += tokens;
             content.push(json!({"type":"input_text", "text":format!("sample_id={} source_id={} timestamp_ms={}",sample.id,sample.source_id,sample.time_ms)}));
-            content.push(json!({"type":"input_image", "detail":"high",
-                "image_url":format!("data:image/jpeg;base64,{}",STANDARD.encode(bytes))}));
+            content.push(image);
         }
         let tools = tool_schema();
         let text_bytes = INSTRUCTIONS.len()
@@ -237,20 +269,13 @@ impl OpenAiVision {
                 .map(|s| s.id.len() + s.source_id.len() + 128)
                 .sum::<usize>();
         let input_bound = text_bytes as u64 + 4096 + image_tokens;
-        if self.model == DEFAULT_MODEL && input_bound > 272_000 {
-            return Err(AgentError::Invalid(
-                "GPT-6 Luna local reservation exceeds the configured short-context pricing range; reduce the observations before retrying".into(),
-            ));
-        }
-        let mut body = json!({"model":self.model,"store":false,"instructions":INSTRUCTIONS,
-            "input":[{"role":"user","content":content}],"tools":tools,
-            "tool_choice":"required","parallel_tool_calls":false,
-            "service_tier":"default","max_output_tokens":request.limits.max_output_tokens});
-        if self.model == DEFAULT_MODEL {
-            // Explicit bounded reasoning for this model only; GPT-4.1 does not
-            // accept this option. max_output_tokens also includes reasoning.
-            body["reasoning"] = json!({"effort":"low"});
-        }
+        let body = self.model_body(
+            INSTRUCTIONS,
+            content,
+            tools,
+            request.limits.max_output_tokens,
+            input_bound,
+        )?;
         Ok((body, input_bound))
     }
 }
@@ -285,18 +310,35 @@ fn budget_settings(
 
 /// Arithmetic-only examples: no visual scoring, semantic choice, or plan mutation.
 fn legal_windows(request: &VisionRequest) -> Vec<Value> {
-    request
-        .samples
+    legal_sample_windows(
+        &request.assets,
+        &request.samples,
+        request.target_duration_ms,
+        request.limits.max_clip_ms,
+        request.limits.max_output_ms,
+        5000,
+    )
+}
+
+/// Shared arithmetic for each supplied anchor, independent of pixels or relevance.
+pub(crate) fn legal_sample_windows(
+    assets: &[Asset],
+    samples: &[Sample],
+    target_duration_ms: u64,
+    max_clip_ms: u64,
+    max_output_ms: u64,
+    window_cap_ms: u64,
+) -> Vec<Value> {
+    samples
         .iter()
         .filter_map(|anchor| {
-            let source = request
-                .assets
+            let source = assets
                 .iter()
                 .find(|a| a.id == anchor.source_id && anchor.time_ms < a.duration_ms)?;
-            let duration = 5000
-                .min(request.limits.max_clip_ms)
-                .min(request.target_duration_ms)
-                .min(request.limits.max_output_ms)
+            let duration = window_cap_ms
+                .min(max_clip_ms)
+                .min(target_duration_ms)
+                .min(max_output_ms)
                 .min(source.duration_ms);
             if duration < 100 {
                 return None;
@@ -306,8 +348,7 @@ fn legal_windows(request: &VisionRequest) -> Vec<Value> {
                 .saturating_sub(duration / 2)
                 .min(source.duration_ms - duration);
             let end = start + duration;
-            let evidence: Vec<_> = request
-                .samples
+            let evidence: Vec<_> = samples
                 .iter()
                 .filter(|sample| {
                     sample.source_id == source.id && sample.time_ms >= start && sample.time_ms < end
@@ -336,24 +377,60 @@ impl VisionProvider for OpenAiVision {
     }
     fn estimate(&self, request: &VisionRequest) -> Result<(u64, f64)> {
         let (_, input) = self.prepare(request)?;
-        let output = request.limits.max_output_tokens as u64;
-        Ok((
-            input + output,
-            (input as f64 * self.input_rate + output as f64 * self.output_rate) / 1_000_000.0,
-        ))
+        Ok(self.estimate_prepared(input, request.limits.max_output_tokens))
     }
     fn decide(&self, request: &VisionRequest, cancel: &CancelToken) -> Result<VisionOutcome> {
+        cancel.check()?;
+        if self.api_key.is_none() {
+            return Err(AgentError::Invalid(
+                "No OpenAI API credential configured; no model request was sent".into(),
+            ));
+        }
+        let (body, _) = self.prepare(request)?;
+        let (value, mut record) = self.send_prepared(
+            body,
+            &request.call_id,
+            PROMPT_VERSION,
+            request.samples.iter().map(|s| s.id.clone()).collect(),
+            &request.limits,
+            cancel,
+        )?;
+        let decision = match parse_decision(&value) {
+            Ok(decision) => decision,
+            Err(error) => {
+                let message = error.to_string();
+                record.status = "response_rejected".into();
+                record.error = Some(message.clone());
+                return Err(AgentError::ModelResponseRejected {
+                    message,
+                    record: Box::new(record),
+                });
+            }
+        };
+        record.decision = Some(decision.clone());
+        // Caller checks cancellation after recording billed usage, before applying any result.
+        Ok(VisionOutcome { decision, record })
+    }
+}
+
+impl OpenAiVision {
+    /// The only authenticated transport, shared by draft and preview review.
+    pub(crate) fn send_prepared(
+        &self,
+        body: Value,
+        call_id: &str,
+        prompt_version: &str,
+        sample_ids: Vec<String>,
+        limits: &Limits,
+        cancel: &CancelToken,
+    ) -> Result<(Value, ModelCall)> {
         cancel.check()?;
         let key = self.api_key.as_ref().ok_or_else(|| {
             AgentError::Invalid(
                 "No OpenAI API credential configured; no model request was sent".into(),
             )
         })?;
-        let (body, _) = self.prepare(request)?;
-        let timeout_secs = self
-            .timeout_secs
-            .min(request.limits.model_timeout_secs)
-            .max(1);
+        let timeout_secs = self.timeout_secs.min(limits.model_timeout_secs).max(1);
         let client = reqwest::blocking::Client::builder()
             .timeout(Duration::from_secs(timeout_secs))
             .connect_timeout(Duration::from_secs(10))
@@ -386,6 +463,26 @@ impl VisionProvider for OpenAiVision {
         }
         let value: Value = serde_json::from_slice(&bytes)
             .map_err(|_| AgentError::Invalid("OpenAI returned invalid response JSON".into()))?;
+        let record = self.response_record(
+            &value,
+            call_id,
+            prompt_version,
+            sample_ids,
+            request_id,
+            started.elapsed().as_millis() as u64,
+        )?;
+        Ok((value, record))
+    }
+
+    pub(crate) fn response_record(
+        &self,
+        value: &Value,
+        call_id: &str,
+        prompt_version: &str,
+        sample_ids: Vec<String>,
+        request_id: Option<String>,
+        elapsed_ms: u64,
+    ) -> Result<ModelCall> {
         let input_tokens = value
             .pointer("/usage/input_tokens")
             .and_then(Value::as_u64)
@@ -394,14 +491,14 @@ impl VisionProvider for OpenAiVision {
             .pointer("/usage/output_tokens")
             .and_then(Value::as_u64)
             .ok_or_else(|| AgentError::Invalid("Model response omitted token accounting".into()))?;
-        let (actual_model, response_id) = response_identity(&value)?;
-        let mut record = ModelCall {
-            call_id: request.call_id.clone(),
+        let (actual_model, response_id) = response_identity(value)?;
+        Ok(ModelCall {
+            call_id: call_id.into(),
             backend: "openai_responses".into(),
             requested_model: self.model.clone(),
             model: actual_model.into(),
-            prompt_version: PROMPT_VERSION.into(),
-            sample_ids: request.samples.iter().map(|s| s.id.clone()).collect(),
+            prompt_version: prompt_version.into(),
+            sample_ids,
             provider_response_id: Some(response_id.into()),
             request_id,
             input_tokens,
@@ -409,26 +506,23 @@ impl VisionProvider for OpenAiVision {
             estimated_cost_usd: (input_tokens as f64 * self.input_rate
                 + output_tokens as f64 * self.output_rate)
                 / 1_000_000.0,
-            elapsed_ms: started.elapsed().as_millis() as u64,
+            elapsed_ms,
             status: "completed".into(),
             decision: None,
             error: None,
-        };
-        let decision = match parse_decision(&value) {
-            Ok(decision) => decision,
-            Err(error) => {
-                let message = error.to_string();
-                record.status = "response_rejected".into();
-                record.error = Some(message.clone());
-                return Err(AgentError::ModelResponseRejected {
-                    message,
-                    record: Box::new(record),
-                });
-            }
-        };
-        record.decision = Some(decision.clone());
-        // Caller checks cancellation after recording billed usage, before applying any result.
-        Ok(VisionOutcome { decision, record })
+        })
+    }
+
+    #[cfg(test)]
+    pub(crate) fn review_test_provider() -> Self {
+        Self {
+            api_key: Some("inert-review-test-not-a-real-key".into()),
+            model: DEFAULT_MODEL.into(),
+            input_rate: 0.125,
+            output_rate: 0.50,
+            image_token_bound: Some(LUNA_IMAGE_TOKEN_ALLOWANCE),
+            timeout_secs: 45,
+        }
     }
 }
 

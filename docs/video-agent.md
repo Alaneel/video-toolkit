@@ -22,6 +22,8 @@ If the machine's selected Xcode requires an unaccepted license, select an alread
 
 Without a subcommand the application still opens the original Video Toolkit interface. Existing CLI commands retain their behavior. The new `agent-task --help` commands are diagnostic/reproducibility helpers, not a substitute for the native interface.
 
+For automation, `agent-task --json` provides a versioned response envelope, offline discovery, plan validation, whole-plan preview, fresh objective checks and bounded evaluation of explicit candidate plans. The separate `smart-iterate` command and native **AI preview feedback** panel can send actual rendered-result/source JPEGs for model-proposed revisions after separate explicit consent. See [the feedback guide](video-agent-feedback.md). Neither mode automatically changes the saved plan or grants approval/export authority; `smart-adopt` is an explicit human choice, followed by fresh exact-revision approval.
+
 ## Configure the one real provider
 
 OpenAI Responses is the only production vision backend. Credentials are read from `OPENAI_API_KEY`, then `VIDEO_AGENT_API_KEY`, or a private JSON file at `$HOME/.config/video-agent/config.json`. `VIDEO_AGENT_CONFIG` can name another private file outside any Git checkout. Do not paste a key into chat, a command recorded in shell history, task JSON, screenshots or repository files. Configure it locally and launch/relaunch the application from that environment. GUI applications launched from Finder may not inherit shell variables.
@@ -63,7 +65,7 @@ Inputs must be ordinary local media files, not network URLs or playlists. The mo
 
 ## State, cancellation and recovery
 
-Each task stores `task.json`, `execution-ledger.json`, `frames/`, `shards/` and `exports/`. State includes source SHA256/size/mtime, samples and hashes, consent, model decisions and usage, plan revisions, human provenance, approval digest and export verification. Keep this directory private: it contains source paths, intent, images and records even though it contains no API key.
+Each task stores `task.json`, `execution-ledger.json`, `frames/`, `shards/` and `exports/`. Optional feedback adds `previews/`, `preview-trajectory.json`, `feedback-runs/`, `feedback-frames/` and a small head pointer. State includes source SHA256/size/mtime, samples and hashes, consent, model decisions and usage, plan revisions, human provenance, approval digest and export verification. Keep this directory private: it contains source paths, intent, images and records even though it contains no API key.
 
 Task writes are atomic and process-locked. Frame/shard publication is journaled before a no-clobber filesystem operation. Reopening validates inputs and reuses completed stages/shards; a changed or missing source makes the task stale and revokes approval and cloud consent. A changed plan needs a fresh confirmation. An already verified export for that plan is rechecked and reused, not duplicated.
 
@@ -83,7 +85,7 @@ Existing pre-ledger tasks migrate from their saved execution counter and explici
 
 ## Architecture and reuse
 
-`crates/video_agent` contains typed domain data, private provider configuration, bounded media operations, atomic task storage and orchestration. `crates/ui/src/agent_app.rs` is the native interface. The existing `common::VideoFormat::MP4` codec/muxer policy is reused. The old clipping APIs do not offer cancellation, write-ahead recovery or no-clobber publication and use overwrite flags; the small new execution adapter supplies those missing guarantees without replacing FFmpeg or changing legacy workflows. The model's entire tool surface is `observe_interval` and `propose_plan`. Export and approval exist only in deterministic human-facing code.
+`crates/video_agent` contains typed domain data, private provider configuration, bounded media operations, atomic task storage and orchestration. `crates/ui/src/agent_app.rs` is the native interface. The existing `common::VideoFormat::MP4` codec/muxer policy is reused. The old clipping APIs do not offer cancellation, write-ahead recovery or no-clobber publication and use overwrite flags; the small new execution adapter supplies those missing guarantees without replacing FFmpeg or changing legacy workflows. Initial planning exposes only `observe_interval` and `propose_plan`; preview review exposes only the separately typed `review_cut`. Neither tool surface can approve, export, install tools or execute commands. Adoption, approval and export remain deterministic human-facing actions.
 
 ## Validation and known gaps
 

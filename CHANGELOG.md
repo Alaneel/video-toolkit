@@ -4,6 +4,18 @@ All notable changes to Video Toolkit are documented here. The project follows [S
 
 ## [Unreleased]
 
+### Bounded preview-driven feedback
+
+- Add opt-in, agent-task-scoped versioned JSON responses and offline capability discovery while preserving legacy command behavior.
+- Render bounded, unapproved whole-plan FFmpeg previews with plan/media fingerprints, objective checks, published bundle metadata and a persistent local trajectory.
+- Add offline `iterate` for the current draft and explicit candidate plans within three attempts per invocation and eight previews per task; this mode never calls a model, rewrites the task plan or approves/exports automatically. Semantic quality remains unevaluated.
+- Add a separate, explicitly consented `smart-iterate` loop: extract actual rendered-result JPEGs, obtain typed OpenAI reviews, validate source-evidenced revisions and re-render within three rounds and the existing shared task budgets. Model verdicts are sparse-image self-assessments, not formal semantic scores.
+- Add native feedback controls and `smart-status` / `smart-adopt`; explicit adoption preserves the actual model proposal provenance, creates a new revision and revokes approval. No feedback command automatically approves or exports.
+- Journal received review results before accounting settlement so recovery can reuse them without another request; keep interrupted unknown usage charged. Recover the preview-start/history write window conservatively, without refunding attempts or claiming partial-encoder recovery.
+- Keep strict source/output evidence binding, distinct source versus nominally mapped preview timestamps, known-unsent refunds, bounded no-progress termination and simulation-versus-production labeling.
+- Document the pinned CLI-Anything source study, independent design implementation, security differences and unchanged public-binary license gate.
+- Prepare source preview r3 and refresh README/Profile links. Preserve two real Luna feedback development runs (five calls): both rendered revisions, neither reached acceptance; no candidate was automatically adopted or exported.
+
 ### Experimental source preview: 2.2.0-rc.1
 
 - Add a native Video Agent workflow for local inspection, actual-PTS samples, bounded OpenAI vision proposals, human editing, digest-bound approval and verified MP4 output.

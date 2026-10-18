@@ -251,7 +251,7 @@ impl Workspace {
         }
     }
 
-    fn usable_with(&self, cancel: &CancelToken) -> Result<Task> {
+    pub(crate) fn usable_with(&self, cancel: &CancelToken) -> Result<Task> {
         cancel.check()?;
         let mut task = store::read(&self.dir)?;
         if task.status == TaskStatus::Stale {
@@ -1581,7 +1581,7 @@ fn modified_ns(metadata: &fs::Metadata) -> u64 {
         .map_or(0, |d| d.as_nanos().min(u64::MAX as u128) as u64)
 }
 
-fn check_sources_during(task: &Task, cancel: &CancelToken, clock: &Clock) -> Result<()> {
+pub(crate) fn check_sources_during(task: &Task, cancel: &CancelToken, clock: &Clock) -> Result<()> {
     check_sources_bounded(
         task,
         cancel,
@@ -1727,7 +1727,7 @@ fn rejected_proposal_feedback(task: &Task) -> Option<String> {
     }).to_string())
 }
 
-fn validate_plan(task: &Task, plan: &EditPlan, model: bool) -> Result<()> {
+pub(crate) fn validate_plan(task: &Task, plan: &EditPlan, model: bool) -> Result<()> {
     if plan.revision == 0 || plan.clips.len() > 120 || plan.summary.len() > 16000 {
         return Err(invalid("Edit plan exceeds limits"));
     }

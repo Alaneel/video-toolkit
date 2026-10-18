@@ -2,7 +2,10 @@
 mod batch;
 pub mod domain;
 mod execution;
+pub mod feedback;
 pub mod media;
+pub mod review;
+pub mod smart_feedback;
 pub mod store;
 pub mod vision;
 pub mod workflow;

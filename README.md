@@ -8,7 +8,7 @@ A native Rust desktop workflow for timestamped observations, model-proposed clip
 
 [Try the Agent](#try-the-agent) · [How it works](#how-it-works) · [Evidence & limits](#evidence-not-hype) · [Toolkit downloads](https://github.com/Alaneel/video-toolkit/releases/tag/v2.1.0)
 
-**[Source preview r2](https://github.com/Alaneel/video-toolkit/releases/tag/agent-source-preview-20261018-r2) · `2.2.0-rc.1`.** Real GPT-6 Luna proposal → **user-authorized removal of the first clip** → verified, playable **20-second MP4**. Formal human semantic evaluation is still pending; [public Agent binaries remain gated](docs/video-agent.md#dependency-notices).
+**[Source preview r3](https://github.com/Alaneel/video-toolkit/releases/tag/agent-source-preview-20261018-r3) · `2.2.0-rc.1`.** Adds bounded preview-driven model revisions, explicit candidate adoption and recoverable feedback state. The earlier real Luna proposal reached a verified, playable **20-second MP4** after the user authorized removal of its first clip. Formal human semantic evaluation is still pending; [public Agent binaries remain gated](docs/video-agent.md#dependency-notices).
 
 ![Video Agent's native verified-output view after exporting the user-edited 20-second Luna selection](assets/video-agent/real-luna-verified-output.jpg)
 
@@ -40,7 +40,7 @@ Local footage → Timestamped frames → Draft clip plan → Human review → Ve
 ```
 
 - **Observe what is there.** The storyboard records actual decoded timestamps and image identities. Only consented JPEG samples and bounded task metadata go to OpenAI; source video, audio and local paths stay local.
-- **Keep the model's authority small.** It can request an interval observation or propose clips. It cannot approve a plan, export media, select filesystem paths or execute shell commands.
+- **Keep the model's authority small.** Planning can request an interval observation or propose clips; optional preview review can suggest an evidenced revision. Neither can approve a plan, export media, select filesystem paths or execute shell commands.
 - **Make the cut yours.** Play source intervals, trim, delete, reorder or add human-selected clips. Approval is tied to the saved plan's digest; an edit requires fresh approval.
 - **Finish with actual media.** Export H.264 MP4 at 640×360/30 fps, with source audio normalized to AAC or explicitly muted. Verify streams, duration and a full decode before treating the file as complete.
 
@@ -50,24 +50,37 @@ Sparse frames do not establish unseen events or audio understanding. This is a b
 
 | Concern | Concrete design | Start here |
 | --- | --- | --- |
-| Model-to-action boundary | Two typed tools; deterministic validation; human-only export approval | [Vision backend](crates/video_agent/src/vision.rs) · [Domain](crates/video_agent/src/domain.rs) |
+| Model-to-action boundary | Two planning tools and one separate preview-review tool; deterministic validation; human-only adoption and export approval | [Vision backend](crates/video_agent/src/vision.rs) · [Review contract](crates/video_agent/src/review.rs) |
 | Recoverable execution | Atomic task state, process locks, write-ahead records and verified shard reuse | [Store](crates/video_agent/src/store.rs) · [Execution](crates/video_agent/src/execution.rs) |
 | Bounded local work | 1–4 frame-extraction workers, shared batch deadline and conservative interrupted-work accounting | [Batch coordinator](crates/video_agent/src/batch.rs) · [Budget semantics](docs/video-agent.md#state-cancellation-and-recovery) |
+| Preview-driven revisions | Real rendered observations, typed model reviews, evidenced revisions and resumable bounded rounds; separate human adoption and approval | [Feedback guide](docs/video-agent-feedback.md) · [Orchestrator](crates/video_agent/src/smart_feedback.rs) |
 | Inspectable evaluation | Frozen public inputs, uniform baseline, failure-preserving captures and randomized review copies | [Evaluation protocol](evals/video-agent/README.md) |
 | Native product surface | One Rust workspace shares the GUI, CLI and FFmpeg policy | [Agent UI](crates/ui/src/agent_app.rs) · [Common media layer](crates/common) |
 
 Recovery is at task stages and verified clip shards, not arbitrary encoder positions. Runtime limits are accounting/admission controls—not OS resource quotas. The [workflow guide](docs/video-agent.md) documents the exact failure and recovery boundaries.
+
+The desktop and structured CLI now also support an optional feedback loop:
+
+```text
+Saved draft → FFmpeg preview → Actual output JPEGs → Model review → Evidenced revision
+                                  ↑                                     │
+                                  └──────── Bounded re-render ───────────┘
+```
+
+`smart-iterate` requires separate consent before sending rendered/source JPEGs and bounded task details. It shares the task's existing call, frame, token, cost and execution budgets; a run has at most three rounds. Model acceptance is a **sparse-image self-assessment**, not full-video understanding or a human score. Applying a candidate is a separate action; final export still requires approval of the new exact revision. The offline `iterate` command remains available for explicit, caller-supplied candidates without model calls.
+
+[Usage, recovery and limits](docs/video-agent-feedback.md) · [CLI-Anything source study and design attribution](docs/cli-anything-study.md).
 
 ## Evidence, not hype
 
 | Question | Current evidence |
 | --- | --- |
 | Does the local media workflow run? | The user-edited, model-origin 20-second MP4 passed full video/audio decode and actual playback; approval, plan and export identities match, and source bytes are unchanged. Separate manual walkthroughs and real FFmpeg tests cover other paths. |
-| What ran on the real backend? | **Four GPT-6 Luna calls.** Two additional observations, one rejected citation and a validated five-clip draft. The user authorized removal of the first clip; the development agent applied the edit, confirmation and export through the native UI. Original proposals and rejected attempts are retained. |
+| What ran on the real backend? | The earlier rabbit demonstration used **four GPT-6 Luna calls**. The new feedback loop used **five further review calls across two synthetic red/blue runs**: both rendered model revisions, but neither reached acceptance (no edit progress / response rejection). These failures are retained, not counted as successful autonomous cuts. |
 | Is it better than uniform sampling? | **Not established.** Frozen tasks and a human-review rubric exist; semantic scores remain pending. |
 | Can I download a public Agent release? | **Source preview only.** Build locally for review; unresolved dependency notice questions block public binary distribution. |
 
-[Machine-readable evidence](docs/video-agent-evidence.json) · [Authoritative evaluation status](evals/video-agent/results/status.json) · [Chinese audit & handoff](docs/video-agent-audit.zh-CN.md) · [Dependency notices](THIRD_PARTY_NOTICES.txt)
+[20-second export evidence](docs/video-agent-evidence.json) · [Feedback run evidence](docs/smart-feedback-evidence.json) · [Authoritative evaluation status](evals/video-agent/results/status.json) · [Chinese audit & handoff](docs/video-agent-audit.zh-CN.md) · [Dependency notices](THIRD_PARTY_NOTICES.txt)
 
 <details>
 <summary>Inspect the original 25-second model draft, before the user's edit</summary>
