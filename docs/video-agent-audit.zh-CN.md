@@ -4,6 +4,8 @@
 
 本轮在隔离工作树开发 `2.2.0-rc.1`。远端审计基线为 `6462b920f519e98c5b882e7282b469a9244750d7`；原工作树的 `master` 为 `47c34708dd75e92967894c21deefaf6a001a7c4d`。公开版本 v2.1.0 不含本次 Agent。初始开发阶段未获线上发布授权，保持本地；2026-10-18 用户补充授权在配置与验证后发布、整理 README 和 GitHub Profile。该授权不代表许可缺口或语义评价自动通过，公开安装包仍须满足独立分发门槛。
 
+源码预览已通过独立快照 `8adc3572a6b25269534f1b090cda7184ccdabc31` 普通快进进入公开master，唯一父提交为上述远端基线，作者/提交者均使用GitHub隐私邮箱；未推送含本机邮箱的私有开发历史。公开预发布为 [`agent-source-preview-20261018`](https://github.com/Alaneel/video-toolkit/releases/tag/agent-source-preview-20261018)，无安装包附件，稳定版仍为v2.1.0。首次误用以v开头的 `video-agent-source-preview-20261018` 触发旧二进制发布工作流，版本校验拒绝，所有打包/发布任务跳过；该误建标签及空发布页已删除，同一源码与文案完整保留，失败工作流记录未抹去。Profile仅替换已核对的README，保留其他文件。
+
 原工程不是空壳：Rust workspace、egui、CLI、FFmpeg/ffprobe 检查、MP4 格式策略和旧剪辑功能均可复用。但旧剪辑接口不提供取消、任务持久化、精确计划确认和安全发布输出，且存在覆盖参数。因此新增窄边界的 Rust `video_agent` crate，只补编排、类型校验、受限执行和恢复，不另建媒体引擎或通用 Agent 平台。
 
 ## 实现边界

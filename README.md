@@ -8,7 +8,7 @@ A native Rust desktop workflow for timestamped observations, model-proposed clip
 
 [Try the Agent](#try-the-agent) · [How it works](#how-it-works) · [Evidence & limits](#evidence-not-hype) · [Toolkit downloads](https://github.com/Alaneel/video-toolkit/releases/tag/v2.1.0)
 
-**Source preview · `2.2.0-rc.1`.** A real GPT-6 Luna draft has passed structural validation and awaits user-directed editing and export. Human semantic evaluation is pending; [public Agent binaries remain gated](docs/video-agent.md#dependency-notices).
+**[Source preview](https://github.com/Alaneel/video-toolkit/releases/tag/agent-source-preview-20261018) · `2.2.0-rc.1`.** A real GPT-6 Luna draft has passed structural validation and awaits user-directed editing and export. Human semantic evaluation is pending; [public Agent binaries remain gated](docs/video-agent.md#dependency-notices).
 
 ![Real GPT-6 Luna proposal in Video Agent's native human-review interface](assets/video-agent/real-luna-review.jpg)
 
