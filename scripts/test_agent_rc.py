@@ -83,10 +83,16 @@ class AgentRcTests(unittest.TestCase):
         self.assertFalse(manifest["validation"]["developer_id_signed"])
         self.assertFalse(manifest["validation"]["notarized"])
         self.assertEqual(Path(f"{archive}.sha256").read_text(), f"{agent_rc.release.digest(archive.read_bytes())}  {archive.name}\n")
+        _, archive_modes = agent_rc.members(archive)
+        for executable in agent_rc.EXECUTABLES:
+            self.assertEqual(archive_modes[f"{agent_rc.folder_name(VERSION, COMMIT)}/{executable}"], 0o755)
         extracted = agent_rc.extract(archive, self.directory / "unpacked", COMMIT)
         app_binary = extracted / agent_rc.APP_BINARY
         self.assertEqual(app_binary.read_bytes(), self.agent.read_bytes())
-        self.assertEqual(app_binary.stat().st_mode & 0o777, 0o755)
+        # Windows does not expose POSIX executable bits on extracted files.
+        # Archive permissions remain verified on every platform above.
+        if os.name != "nt":
+            self.assertEqual(app_binary.stat().st_mode & 0o777, 0o755)
         self.assertEqual((extracted / "bin/video-toolkit").read_bytes(), self.toolkit.read_bytes())
         metadata = plistlib.loads((extracted / agent_rc.APP / "Info.plist").read_bytes())
         self.assertEqual(metadata["CFBundleExecutable"], "video-agent")

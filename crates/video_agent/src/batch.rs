@@ -35,6 +35,23 @@ struct Active<'a> {
 }
 
 impl Metrics {
+    fn add_worker_ms(&self, ms: u64) {
+        // A CAS loop keeps saturating accounting compatible with Rust 1.87 and
+        // newer toolchains where AtomicU64::fetch_update is deprecated.
+        let mut current = self.worker_ms.load(Ordering::SeqCst);
+        loop {
+            match self.worker_ms.compare_exchange_weak(
+                current,
+                current.saturating_add(ms),
+                Ordering::SeqCst,
+                Ordering::SeqCst,
+            ) {
+                Ok(_) => break,
+                Err(observed) => current = observed,
+            }
+        }
+    }
+
     fn enter(&self) -> Active<'_> {
         let active = self.active.fetch_add(1, Ordering::SeqCst) + 1;
         self.peak.fetch_max(active, Ordering::SeqCst);
@@ -49,12 +66,7 @@ impl Drop for Active<'_> {
     fn drop(&mut self) {
         let ms = self.started.elapsed().as_nanos().div_ceil(1_000_000);
         let ms = ms.min(u128::from(u64::MAX)) as u64;
-        let _ =
-            self.metrics
-                .worker_ms
-                .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |current| {
-                    Some(current.saturating_add(ms))
-                });
+        self.metrics.add_worker_ms(ms);
         self.metrics.active.fetch_sub(1, Ordering::SeqCst);
     }
 }
@@ -238,6 +250,32 @@ mod tests {
         fn drop(&mut self) {
             self.0.fetch_sub(1, Ordering::SeqCst);
         }
+    }
+
+    #[test]
+    fn worker_time_accounting_saturates_instead_of_wrapping() {
+        let metrics = Metrics::default();
+        metrics.worker_ms.store(u64::MAX - 2, Ordering::SeqCst);
+        metrics.add_worker_ms(5);
+        metrics.add_worker_ms(1);
+        assert_eq!(metrics.worker_ms.load(Ordering::SeqCst), u64::MAX);
+    }
+
+    #[test]
+    fn concurrent_worker_time_accounting_retains_every_increment() {
+        let metrics = Metrics::default();
+        let barrier = Barrier::new(4);
+        thread::scope(|scope| {
+            for _ in 0..4 {
+                scope.spawn(|| {
+                    barrier.wait();
+                    for _ in 0..1_000 {
+                        metrics.add_worker_ms(3);
+                    }
+                });
+            }
+        });
+        assert_eq!(metrics.worker_ms.load(Ordering::SeqCst), 12_000);
     }
 
     #[test]
