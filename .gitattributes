@@ -1,0 +1,4 @@
+# Preserve upstream notice bytes, including original line endings/whitespace.
+THIRD_PARTY_NOTICES.txt -text -whitespace
+third_party/licenses/texts/*.txt -text -whitespace
+third_party/licenses/headers/*.txt -text -whitespace

@@ -1,14 +1,104 @@
-# Video Toolkit
+# Video Agent
 
-**Practical FFmpeg workflows, from a desktop window or the command line.**
+![Video Agent — from sampled frames to a cut you control](assets/video-agent/hero.svg)
 
-Clip recordings, replace audio, make GIFs and run repeatable batches locally. The Rust workspace shares processing code between an egui desktop interface and a CLI; reusable profiles keep settings consistent across both.
+A native Rust desktop workflow for timestamped observations, model-proposed clips, human editing and verified video export. Built on the existing **Video Toolkit** media engine.
 
-[v2.1.0 downloads](https://github.com/Alaneel/video-toolkit/releases/tag/v2.1.0) · [CLI and installation guide](#full-installation-and-usage-guide) · [Source](src) · [Tests](tests) · [Changes](CHANGELOG.md)
+`Rust` · `egui` · `FFmpeg` · `OpenAI Responses`
+
+[Try the Agent](#try-the-agent) · [How it works](#how-it-works) · [Evidence & limits](#evidence-not-hype) · [Toolkit downloads](https://github.com/Alaneel/video-toolkit/releases/tag/v2.1.0)
+
+**Source preview · `2.2.0-rc.1`.** A real GPT-6 Luna draft has passed structural validation and awaits user-directed editing and export. Human semantic evaluation is pending; [public Agent binaries remain gated](docs/video-agent.md#dependency-notices).
+
+![Real GPT-6 Luna proposal in Video Agent's native human-review interface](assets/video-agent/real-luna-review.jpg)
+
+<sub>Actual 25-second model draft across five clips—not an accepted final cut. Its first clip is explicitly described as lacking a clearly visible rabbit; the user can reject it. This is not a semantic-evaluation result. Footage: (c) copyright 2008, Blender Foundation / www.bigbuckbunny.org, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/); trimmed and re-encoded. [Evidence & limitations](docs/video-agent-evidence.json).</sub>
+
+## Try the Agent
+
+From this candidate checkout, with **Rust 1.87+**, FFmpeg and ffprobe installed; ffplay enables interval playback:
+
+```sh
+cargo build --locked --release
+./target/release/video-toolkit agent
+```
+
+Choose local footage, describe the desired cut and generate a storyboard. The **Manual workflow — no AI** path lets you explore editing and export without credentials. For model proposals, configure a private local API key and explicitly consent to sharing the sampled frames. Never put a key in this repository or a task file.
+
+[Setup, credentials and platform requirements](docs/video-agent.md#run-the-desktop-application) · [Cloud-data boundary](docs/video-agent.md#use-the-native-workflow)
+
+The first runtime-validated Agent target is **macOS Apple Silicon**. The legacy Toolkit's release matrix does not establish Agent support on other platforms. The default vision model is **GPT-6 Luna**; the [provider guide](docs/video-agent.md#configure-the-one-real-provider) documents its local estimates and the deprecated legacy-model option.
+
+## How it works
+
+```text
+Local footage → Timestamped frames → Draft clip plan → Human review → Verified MP4
+                    ↑                    │                 │
+                    └─ Bounded follow-up ┘          Approve exact revision
+```
+
+- **Observe what is there.** The storyboard records actual decoded timestamps and image identities. Only consented JPEG samples and bounded task metadata go to OpenAI; source video, audio and local paths stay local.
+- **Keep the model's authority small.** It can request an interval observation or propose clips. It cannot approve a plan, export media, select filesystem paths or execute shell commands.
+- **Make the cut yours.** Play source intervals, trim, delete, reorder or add human-selected clips. Approval is tied to the saved plan's digest; an edit requires fresh approval.
+- **Finish with actual media.** Export H.264 MP4 at 640×360/30 fps, with source audio normalized to AAC or explicitly muted. Verify streams, duration and a full decode before treating the file as complete.
+
+Sparse frames do not establish unseen events or audio understanding. This is a bounded rough-cut workflow, not a full timeline editor or source-quality passthrough.
+
+## Engineering worth inspecting
+
+| Concern | Concrete design | Start here |
+| --- | --- | --- |
+| Model-to-action boundary | Two typed tools; deterministic validation; human-only export approval | [Vision backend](crates/video_agent/src/vision.rs) · [Domain](crates/video_agent/src/domain.rs) |
+| Recoverable execution | Atomic task state, process locks, write-ahead records and verified shard reuse | [Store](crates/video_agent/src/store.rs) · [Execution](crates/video_agent/src/execution.rs) |
+| Bounded local work | 1–4 frame-extraction workers, shared batch deadline and conservative interrupted-work accounting | [Batch coordinator](crates/video_agent/src/batch.rs) · [Budget semantics](docs/video-agent.md#state-cancellation-and-recovery) |
+| Inspectable evaluation | Frozen public inputs, uniform baseline, failure-preserving captures and randomized review copies | [Evaluation protocol](evals/video-agent/README.md) |
+| Native product surface | One Rust workspace shares the GUI, CLI and FFmpeg policy | [Agent UI](crates/ui/src/agent_app.rs) · [Common media layer](crates/common) |
+
+Recovery is at task stages and verified clip shards, not arbitrary encoder positions. Runtime limits are accounting/admission controls—not OS resource quotas. The [workflow guide](docs/video-agent.md) documents the exact failure and recovery boundaries.
+
+## Evidence, not hype
+
+| Question | Current evidence |
+| --- | --- |
+| Does the local media workflow run? | Native manual walkthroughs, actual playable exports, real FFmpeg tests and recorded source/output hashes. |
+| What ran on the real backend? | **A structurally validated draft, awaiting user review.** GPT-6 Luna requested two additional observations, then proposed five clips. Human-directed editing and model-origin export remain pending; rejected attempts are retained. |
+| Is it better than uniform sampling? | **Not established.** Frozen tasks and a human-review rubric exist; semantic scores remain pending. |
+| Can I download a public Agent release? | **Source preview only.** Build locally for review; unresolved dependency notice questions block public binary distribution. |
+
+[Machine-readable evidence](docs/video-agent-evidence.json) · [Authoritative evaluation status](evals/video-agent/results/status.json) · [Chinese audit & handoff](docs/video-agent-audit.zh-CN.md) · [Dependency notices](THIRD_PARTY_NOTICES.txt)
+
+<details>
+<summary>See the manual review and verified-output interfaces</summary>
+
+These are genuine local manual runs, with **zero model calls**. They demonstrate the interface and media path, not semantic selection quality.
+
+![Manual clip review, with explicit human-selection labels](assets/video-agent/human-review-manual-validation.jpg)
+
+![Verified output from the manual workflow](assets/video-agent/verified-manual-output.jpg)
+
+Footage: (c) copyright 2008, Blender Foundation / www.bigbuckbunny.org, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/); trimmed, reordered and re-encoded.
+
+</details>
+
+## Video Toolkit
+
+The existing desktop app and CLI remain available: clip recordings, replace audio, split video, create GIFs, run batches and reuse saved profiles. **Video Agent extends this repository; it does not rename it or replace the existing commands.**
+
+[v2.1.0 downloads](https://github.com/Alaneel/video-toolkit/releases/tag/v2.1.0) · [Full installation & usage guide](#full-installation-and-usage-guide) · [Changes](CHANGELOG.md)
+
+```sh
+# Open the original desktop app
+./target/release/video-toolkit
+
+# Or use a deterministic command directly
+./target/release/video-toolkit clipper recording.mp4 \
+  --ranges 00:01:00-00:02:00 --output-dir clips
+```
+
+<details>
+<summary>See the existing Toolkit interface and processing crates</summary>
 
 ![Video Toolkit desktop interface](assets/video-toolkit-ui.png)
-
-## What is here
 
 | Workflow | Implementation |
 | --- | --- |
@@ -17,41 +107,25 @@ Clip recordings, replace audio, make GIFs and run repeatable batches locally. Th
 | Split video or replace its audio | [Splitter](crates/splitter) / [Merger](crates/merger) |
 | Discover inputs and process batches | [Batch processing](crates/batch_processing) |
 | Save and reuse settings | [Profile system](crates/profile_system) |
-| Share validation and FFmpeg invocation | [Common layer](crates/common) |
 
-FFmpeg and ffprobe must be installed separately for media conversion. Run without a subcommand to open the desktop app. GIF transparency can modify input files in place; review its backup option before use. Dynamically loaded plugins execute native code.
+FFmpeg and ffprobe are separate runtime dependencies. GIF transparency can modify inputs in place; review its backup option. Dynamically loaded plugins execute native code.
 
-## Build and try
+</details>
 
-With stable Rust, your platform's native build dependencies, FFmpeg and ffprobe installed:
+## Develop
 
-```bash
-cargo run --release --locked -- --help
-cargo run --release --locked
-```
-
-```bash
-video-toolkit clipper recording.mp4 \
-  --ranges 00:01:00-00:02:00 --output-dir clips
-
-video-toolkit gif-converter demo.webm \
-  --output demo.gif --width 480 --fps 10 --max-size 5 --optimize
-```
-
-For downloaded executables, use `./video-toolkit` on Linux/macOS or `.\video-toolkit.exe` in PowerShell. The published v2.1.0 release provides four native archives and `SHA256SUMS`; the full guide below covers platform dependencies, checksum verification and launch instructions.
-
-## Engineering entry points
-
-The [workspace manifest](Cargo.toml) maps the processing crates. [Tests](tests) include CLI and FFmpeg-backed integration cases; the latter need real runtime dependencies. [CI](.github/workflows/ci.yml) defines platform checks, and [packaging](.github/workflows/packages.yml) defines release builds.
-
-```bash
+```sh
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
-cargo test --workspace --all-targets
-cargo test --tests -- --ignored
+cargo test --locked --workspace --all-targets
+# Real media integration tests; FFmpeg/ffprobe required
+cargo test --locked --workspace --tests -- --ignored --test-threads=1
+python3 -m unittest discover -s evals/video-agent -p 'test_*.py' -v
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) before changing behavior. Code is released under [MIT](LICENSE); FFmpeg and other dependencies retain their own licenses. Packages are unsigned executables, and FFmpeg is not bundled.
+[Contributing](CONTRIBUTING.md) · [CI](.github/workflows/ci.yml) · [Packaging](.github/workflows/packages.yml) · [Agent architecture](docs/video-agent.md#architecture-and-reuse)
+
+Repository code is [MIT](LICENSE). Dependencies and sample footage retain their own licenses; FFmpeg is not bundled. See the [open notice questions](docs/video-agent.md#dependency-notices) before redistributing the Agent candidate.
 
 ## Full installation and usage guide
 
@@ -66,7 +140,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) before changing behavior. Code is release
 
 Prebuilt packages do **not** require Rust. Get the package for your operating system and CPU from [Releases](https://github.com/Alaneel/video-toolkit/releases), together with that release's `SHA256SUMS` file.
 
-Tagged releases built by the current workflow use the archive/checksum layout below. Older releases such as v2.0.0 contain bare binaries instead. To try an unreleased build, use artifacts from a successful [release-packaging preview](https://github.com/Alaneel/video-toolkit/actions/workflows/packages.yml) or build from source. For a preview, download your `package-…` artifact and `release-checksums`, then extract GitHub's outer ZIP files to access the archive and `SHA256SUMS`.
+Tagged releases use the archive/checksum layout below. Older releases such as v2.0.0 contain bare binaries instead. Current source checks still compile the project, but the [packaging workflow](https://github.com/Alaneel/video-toolkit/actions/workflows/packages.yml) skips binary uploads while the public-distribution license gate is unresolved. Build this Agent candidate from source for local review; do not expect downloadable preview artifacts. Once approved, package artifacts and `release-checksums` contain the archive and `SHA256SUMS` inside GitHub's outer ZIP files.
 
 | Your machine | Archive name for 2.1.0 |
 | --- | --- |
@@ -258,6 +332,7 @@ video-toolkit
 ├── src/                    GUI/CLI entry point
 ├── crates/
 │   ├── common             FFmpeg process, formats, validation, errors
+│   ├── video_agent        typed observations, plans, approval, durable execution
 │   ├── clipper            timestamp-based extraction
 │   ├── gif_converter      palette generation and size optimization
 │   ├── gif_transparency   batch GIF processing

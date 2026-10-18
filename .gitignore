@@ -5,3 +5,5 @@ __pycache__/
 .idea/
 *.bak
 output_*/
+# Agent task state contains local paths, intent, sampled images and private run records.
+video-agent-*/

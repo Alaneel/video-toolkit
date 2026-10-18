@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="260" viewBox="0 0 1200 260" role="img" aria-labelledby="title desc">
+  <title id="title">Alan Wang — AI and systems engineering</title>
+  <desc id="desc">AI and agentic systems engineering, grounded in backend and distributed infrastructure. Typed tools, durable state, inspectable evidence.</desc>
+  <rect x="1" y="1" width="1198" height="258" rx="18" fill="#f7f9fc" stroke="#d7dfeb"/>
+  <path d="M44 43h28" stroke="#127e71" stroke-width="4" stroke-linecap="round"/>
+  <text x="88" y="49" font-family="Arial,Helvetica,sans-serif" font-size="14" letter-spacing="2.3" fill="#526078">ENGINEERING PORTFOLIO</text>
+  <text x="42" y="123" font-family="Arial,Helvetica,sans-serif" font-size="60" font-weight="700" letter-spacing="-1.7" fill="#172437">Alan Wang</text>
+  <text x="44" y="169" font-family="Arial,Helvetica,sans-serif" font-size="26" fill="#172437">AI / Agentic Systems + Backend / Distributed Infrastructure</text>
+  <text x="44" y="215" font-family="Arial,Helvetica,sans-serif" font-size="19" fill="#526078">Typed tools. Durable state. Evidence you can inspect.</text>
+  <path d="M1070 98v24h68M1094 76v46m22-70v70" fill="none" stroke="#127e71" stroke-width="5" stroke-linecap="round" opacity=".8"/>
+</svg>

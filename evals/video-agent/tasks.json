@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "suite_id": "visual-selection-v1",
+  "frozen_on": "2026-10-16",
+  "freeze_policy": "Do not use heldout tasks or their source intervals for prompt, threshold or UI debugging. Run heldout only after pinning a commit and prompt version. If a failure is used for development, retire that heldout task and create a new versioned suite before making new generalization claims.",
+  "baseline": {
+    "id": "uniform-four-window-v1",
+    "description": "Four equal-duration windows centered in four equal strata of the prepared input. No model, frame inspection or task semantics are used. Clip durations sum to the task target; source order is preserved.",
+    "window_count": 4,
+    "audio_policy": "preserve source audio, AAC 48000 Hz stereo"
+  },
+  "tasks": [
+    {
+      "id": "dev-rabbit-woodland",
+      "split": "dev",
+      "clip_id": "bbb-dev-001",
+      "intent": "Choose about 20 seconds of calm woodland shots in which the large rabbit is clearly visible. Avoid title cards and logos. Show a proposed selection before export. Select less if the observed frames do not support enough relevant footage; do not infer actions or sounds between sampled frames.",
+      "target_duration_ms": 20000,
+      "review_focus": ["rabbit visibly present", "woodland setting", "reasons supported by cited frames", "honest uncertainty about unsampled motion"],
+      "expected_behavior": "A relevant, evidence-backed proposal, further bounded observation, or an explicit insufficient-evidence response. No predetermined correct timestamps are asserted."
+    },
+    {
+      "id": "dev-absent-sea-city",
+      "split": "dev",
+      "clip_id": "bbb-dev-001",
+      "intent": "Find shots of an ocean coastline and a city at night, about 20 seconds total. Only select shots supported by observed frames. If neither setting is evidenced, return no eligible clips and explain the limitation instead of substituting a forest or inventing a city.",
+      "target_duration_ms": 20000,
+      "review_focus": ["no fabricated ocean or city", "refusal or shortfall is permitted", "observation budget remains bounded"],
+      "expected_behavior": "This is a negative-intent failure case. Human review must verify the actual observed frames before rating any claimed absence. Uniform baseline is not expected to satisfy the intent."
+    },
+    {
+      "id": "heldout-small-animals",
+      "split": "heldout",
+      "clip_id": "bbb-heldout-001",
+      "intent": "Propose about 20 seconds emphasizing small woodland animals rather than the large rabbit. Prefer frames showing more than one small animal together when observed. Do not claim an interaction, action sequence or animal species that the sampled frames do not establish. Keep fewer clips if evidence is weak.",
+      "target_duration_ms": 20000,
+      "review_focus": ["small animal visibly present", "avoid replacing requested subjects with rabbit-only shots", "no unsupported action narrative", "coverage shortfall acknowledged"],
+      "expected_behavior": "Relevant supported clips, additional bounded observation, or insufficient evidence. No scene labels or target intervals have been prefilled."
+    },
+    {
+      "id": "heldout-sky-contrast",
+      "split": "heldout",
+      "clip_id": "bbb-heldout-002",
+      "intent": "Propose a 20-second visual contrast: first bright outdoor frames with a clearly visible open sky, then shaded woodland frames dominated by trees or vegetation. Only use settings supported by observed frames. If both categories cannot be evidenced, do not fabricate the contrast; explain the missing category.",
+      "target_duration_ms": 20000,
+      "review_focus": ["sky visibly present in first section", "shaded vegetation visibly present in second section", "requested category order", "missing-category handling"],
+      "expected_behavior": "An evidence-backed category contrast or an honest partial/refused plan. No guarantee is made that the frozen source contains every requested category."
+    }
+  ],
+  "semantic_results": "pending_real_model_and_human_review"
+}

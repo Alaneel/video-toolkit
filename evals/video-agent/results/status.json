@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "suite_id": "visual-selection-v1",
+  "status": "real_model_development_in_progress",
+  "reason": "Three legacy-model proposals were rejected and retained. User-approved GPT-6 Luna completed two bounded observations and, after a retained citation rejection, produced a structurally validated 25-second draft. Author-directed editing/export and formal human semantic comparison remain pending.",
+  "real_model_calls_total": 7,
+  "real_model_runs": [
+    {
+      "task_id": "dev-rabbit-woodland",
+      "record": "dev-rabbit-woodland-20261018-v1.json",
+      "outcome": "proposal_rejected_by_deterministic_validation"
+    },
+    {
+      "task_id": "dev-rabbit-woodland",
+      "record": "dev-rabbit-woodland-20261018-v2.json",
+      "outcome": "proposal_rejected_by_deterministic_validation"
+    },
+    {
+      "task_id": "dev-rabbit-woodland",
+      "record": "dev-rabbit-woodland-20261018-v3.json",
+      "outcome": "proposal_rejected_by_deterministic_validation"
+    },
+    {
+      "task_id": "dev-rabbit-woodland",
+      "record": "dev-rabbit-woodland-20261018-luna.json",
+      "outcome": "validated_proposal_awaiting_human_review"
+    }
+  ],
+  "human_reviews": [],
+  "baseline_quality": "pending_human_review",
+  "heldout_state": "frozen_not_used_for_semantic_debugging",
+  "release_gates_remaining": [
+    "Record a human edit or rejection, re-approval, an interrupted export and stage/shard resume in the actual desktop UI.",
+    "Play and probe the final output, preserving audio policy evidence.",
+    "After pinning code and prompt version, run the heldout tasks without further tuning and collect blind human comparisons against the baseline."
+  ]
+}

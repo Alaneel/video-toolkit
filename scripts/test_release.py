@@ -5,8 +5,10 @@ import io
 import json
 import os
 from pathlib import Path
+import shutil
 import stat
 import struct
+import subprocess
 import tarfile
 import tempfile
 import unittest
@@ -55,9 +57,42 @@ class ReleaseTests(unittest.TestCase):
         (self.root / "Cargo.toml").write_text(f'[package]\nname = "video-toolkit"\nversion = "{VERSION}"\n')
         (self.root / "README.md").write_text("Video Toolkit documentation\n", encoding="utf-8")
         (self.root / "LICENSE").write_text("MIT\n", encoding="utf-8")
+        (self.root / "Cargo.lock").write_text("# Inert unit-test lock fixture; no third-party packages.\n")
+        self.license_fixture(LINUX)
         self.output = self.directory / "archives"
 
+    def license_fixture(self, target):
+        """Synthetic approved inventory; never a real dependency clearance."""
+        notices = ("VIDEO TOOLKIT / VIDEO AGENT — MECHANICALLY COLLECTED THIRD-PARTY NOTICES\n"
+                   f"Target inventory: {target}\n\nUNRESOLVED ITEMS (0)\n"
+                   "None detected by these mechanical checks; this is not proof of legal completeness.\n\n"
+                   "FIRST-PARTY WORKSPACE\n  Synthetic unit fixture only.\n").encode()
+        (self.root / "THIRD_PARTY_NOTICES.txt").write_bytes(notices)
+        inventory = {
+            "schema_version": 1, "target": target, "entries": [],
+            "unresolved_review": {"items": [], "status": "Inert unit-test fixture only"},
+            "cached_source_review": {"full_license_gaps_remaining": 0},
+            "public_distribution_review": {
+                "status": "approved", "target": target,
+                "notices_sha256": release.digest(notices),
+                "cargo_lock_sha256": release.digest((self.root / "Cargo.lock").read_bytes()),
+                "fixture": "Synthetic test input; not a real publication approval",
+            },
+        }
+        path = self.root / "third_party/licenses/manifest.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(inventory))
+        self.license_target = target
+
+    def change_license_inventory(self, change):
+        path = self.root / "third_party/licenses/manifest.json"
+        inventory = json.loads(path.read_bytes())
+        change(inventory)
+        path.write_text(json.dumps(inventory))
+
     def package(self, target=LINUX, commit=COMMIT, tag=None):
+        if target != self.license_target:
+            self.license_fixture(target)
         binary = self.directory / f"binary-{target}"
         binary.write_bytes(executable(target))
         return release.package(binary, target, self.output, commit, tag, root=self.root)
@@ -117,7 +152,7 @@ class ReleaseTests(unittest.TestCase):
         archive = self.package(WINDOWS)
         self.assertTrue(archive.name.endswith(".zip"))
         with zipfile.ZipFile(archive) as source:
-            self.assertEqual(len(source.infolist()), 5)
+            self.assertEqual(len(source.infolist()), 8)
             self.assertTrue(any(name.endswith("/video-toolkit.exe") for name in source.namelist()))
         self.verify(archive, WINDOWS)
 
@@ -135,6 +170,135 @@ class ReleaseTests(unittest.TestCase):
             self.package()
         self.assertEqual(archive.read_bytes(), original)
 
+    def test_public_packages_contain_exact_original_notice_review_and_lock_bytes(self):
+        archive = self.package()
+        contents, _ = release.archive_members(archive, LINUX)
+        prefix = f"video-toolkit-{VERSION}-{LINUX}/"
+        self.assertEqual(contents[prefix + "THIRD_PARTY_NOTICES.txt"],
+                         (self.root / "THIRD_PARTY_NOTICES.txt").read_bytes())
+        self.assertEqual(contents[prefix + "LICENSE-REVIEW.json"],
+                         (self.root / "third_party/licenses/manifest.json").read_bytes())
+        self.assertEqual(contents[prefix + "Cargo.lock"], (self.root / "Cargo.lock").read_bytes())
+
+    def test_recorded_license_gaps_block_before_archive_or_output_creation(self):
+        self.change_license_inventory(lambda inventory: inventory["unresolved_review"]["items"].extend(
+            {"crate": f"unresolved-{number}"} for number in range(6)))
+        with self.assertRaisesRegex(release.ReleaseError, "6 unresolved"):
+            self.package()
+        self.assertFalse(self.output.exists())
+
+    def test_notice_and_cached_gap_counts_cannot_be_hidden_by_an_empty_review_list(self):
+        for source in ("notices", "cached"):
+            with self.subTest(source=source):
+                self.license_fixture(LINUX)
+                if source == "notices":
+                    path = self.root / "THIRD_PARTY_NOTICES.txt"
+                    path.write_bytes(path.read_bytes().replace(b"ITEMS (0)", b"ITEMS (6)"))
+                else:
+                    self.change_license_inventory(lambda inventory: inventory["cached_source_review"].update(
+                        full_license_gaps_remaining=6))
+                with self.assertRaisesRegex(release.ReleaseError, "6 unresolved"):
+                    self.package()
+                self.assertFalse(self.output.exists())
+
+    def test_zero_mechanical_gaps_do_not_replace_explicit_publication_approval(self):
+        self.change_license_inventory(lambda inventory: inventory.pop("public_distribution_review"))
+        with self.assertRaisesRegex(release.ReleaseError, "no explicit approved review"):
+            self.package()
+        self.assertFalse(self.output.exists())
+
+    def test_zero_count_cannot_conceal_unresolved_notice_summary(self):
+        path = self.root / "THIRD_PARTY_NOTICES.txt"
+        notices = path.read_bytes().replace(
+            b"None detected by these mechanical checks; this is not proof of legal completeness.",
+            b"- A license is still missing despite the forged zero count.")
+        path.write_bytes(notices)
+        self.change_license_inventory(lambda inventory: inventory["public_distribution_review"].update(
+            notices_sha256=release.digest(notices)))
+        with self.assertRaisesRegex(release.ReleaseError, "still lists unresolved"):
+            self.package()
+        self.assertFalse(self.output.exists())
+
+    def test_missing_notice_or_inventory_fails_closed(self):
+        for name in ("THIRD_PARTY_NOTICES.txt", "third_party/licenses/manifest.json", "Cargo.lock"):
+            with self.subTest(name=name):
+                path = self.root / name
+                data = path.read_bytes()
+                path.unlink()
+                with self.assertRaisesRegex(release.ReleaseError, "regular file"):
+                    self.package()
+                path.write_bytes(data)
+                self.assertFalse(self.output.exists())
+
+    def test_stale_approval_cannot_follow_changed_notices_or_lock(self):
+        for name in ("THIRD_PARTY_NOTICES.txt", "Cargo.lock"):
+            with self.subTest(name=name):
+                self.license_fixture(LINUX)
+                path = self.root / name
+                data = path.read_bytes()
+                path.write_bytes(data + b"\nChanged fixture bytes\n")
+                with self.assertRaisesRegex(release.ReleaseError, "review is stale"):
+                    self.package()
+                path.write_bytes(data)
+                self.assertFalse(self.output.exists())
+
+    def test_target_specific_clearance_cannot_be_reused_for_other_platforms(self):
+        binary = self.directory / "arm64-binary"
+        binary.write_bytes(executable(ARM_MAC))
+        with self.assertRaisesRegex(release.ReleaseError, "does not cover"):
+            release.package(binary, ARM_MAC, self.output, COMMIT, root=self.root)
+        release.publication_check([LINUX], self.root)
+        with self.assertRaisesRegex(release.ReleaseError, "does not cover"):
+            release.publication_check(root=self.root)
+
+    def test_malformed_duplicate_or_incomplete_inventory_fails_closed(self):
+        path = self.root / "third_party/licenses/manifest.json"
+        for data in (b"[]", b"{}", b'{"schema_version":1,"schema_version":1}'):
+            with self.subTest(data=data):
+                path.write_bytes(data)
+                with self.assertRaises(release.ReleaseError):
+                    self.package()
+                self.assertFalse(self.output.exists())
+
+    def test_real_checkout_is_not_cleared_by_synthetic_unit_fixtures(self):
+        with self.assertRaisesRegex(release.ReleaseError, "6 unresolved"):
+            release.publication_check([ARM_MAC])
+
+    def test_rehashed_archive_cannot_remove_a_license_gap(self):
+        archive = self.package()
+        def alter(members):
+            for index, (member, data) in enumerate(members):
+                if member.name.endswith("/LICENSE-REVIEW.json"):
+                    inventory = json.loads(data)
+                    inventory["cached_source_review"]["full_license_gaps_remaining"] = 6
+                    data = json.dumps(inventory).encode()
+                    members[index] = member, data
+                    self.alter_manifest(members, lambda manifest: manifest["files"]["LICENSE-REVIEW.json"].update(
+                        sha256=release.digest(data), size=len(data)))
+                    return
+        self.mutate_tar(archive, alter)
+        with self.assertRaisesRegex(release.ReleaseError, "6 unresolved"):
+            self.verify(archive)
+
+    def test_checksums_refuse_rehashed_uncleared_packages(self):
+        for target in release.TARGETS:
+            archive = self.package(target)
+            if target == LINUX:
+                def alter(members):
+                    for index, (member, data) in enumerate(members):
+                        if member.name.endswith("/LICENSE-REVIEW.json"):
+                            inventory = json.loads(data)
+                            inventory.pop("public_distribution_review")
+                            data = json.dumps(inventory).encode()
+                            members[index] = member, data
+                            self.alter_manifest(members, lambda manifest: manifest["files"]["LICENSE-REVIEW.json"].update(
+                                sha256=release.digest(data), size=len(data)))
+                            return
+                self.mutate_tar(archive, alter)
+        with self.assertRaisesRegex(release.ReleaseError, "no explicit approved review"):
+            release.checksums(self.output, VERSION, COMMIT)
+        self.assertFalse((self.output / "SHA256SUMS").exists())
+
     def test_archives_are_deterministic_for_identical_inputs(self):
         for target in (LINUX, WINDOWS):
             with self.subTest(target=target):
@@ -144,6 +308,7 @@ class ReleaseTests(unittest.TestCase):
                 self.assertEqual(self.package(target).read_bytes(), original)
 
     def test_package_rejects_mismatched_architecture(self):
+        self.license_fixture(INTEL_MAC)
         binary = self.directory / "wrong binary"
         binary.write_bytes(executable(ARM_MAC))
         with self.assertRaisesRegex(release.ReleaseError, "does not match"):
@@ -416,6 +581,57 @@ class ReleaseTests(unittest.TestCase):
             self.assertEqual(output.getvalue(), "2.1.0\n")
             with contextlib.redirect_stderr(io.StringIO()):
                 self.assertEqual(release.main(["version", "--tag", "v99.0.0"]), 1)
+
+    def test_publication_command_has_no_approval_bypass_and_checks_requested_targets(self):
+        with mock.patch.object(release, "publication_check") as check:
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(release.main(["publication-check", "--target", ARM_MAC]), 0)
+            check.assert_called_once_with([ARM_MAC])
+        with mock.patch.object(release, "publication_check", side_effect=release.ReleaseError("unresolved")):
+            with contextlib.redirect_stderr(io.StringIO()):
+                self.assertEqual(release.main(["publication-check"]), 1)
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            release.main(["publication-check", "--skip-license-review"])
+
+    @unittest.skipUnless(shutil.which("bash"), "workflow branch simulation requires bash")
+    def test_workflow_gate_allows_source_checks_but_fails_tagged_distribution(self):
+        workflow = (release.ROOT / ".github/workflows/packages.yml").read_text()
+        start = workflow.index("          if python scripts/release.py publication-check; then\n")
+        stop = workflow.index("\n\n  build:", start)
+        gate_script = "\n".join(line[10:] for line in workflow[start:stop].splitlines())
+        cases = (
+            (False, "refs/heads/master", "", 0, "false"),
+            (False, "refs/pull/1/merge", "", 0, "false"),
+            (False, "refs/tags/v2.2.0-rc.1", "", 1, "false"),
+            (False, "refs/heads/master", "v2.2.0-rc.1", 1, "false"),
+            (True, "refs/heads/master", "", 0, "true"),
+            (True, "refs/tags/v2.2.0-rc.1", "v2.2.0-rc.1", 0, "true"),
+        )
+        for number, (allowed, ref, tag, exit_code, expected_output) in enumerate(cases):
+            with self.subTest(ref=ref, tag=tag, allowed=allowed):
+                output = self.directory / f"gate-{number}.out"
+                summary = self.directory / f"gate-{number}.summary"
+                env = {**os.environ, "GITHUB_OUTPUT": str(output), "GITHUB_STEP_SUMMARY": str(summary),
+                       "GITHUB_REF": ref, "RELEASE_TAG": tag}
+                # Inert shell stub exercises the checked-in workflow branches;
+                # it neither grants actual approval nor runs publication code.
+                script = f"python() {{ return {0 if allowed else 1}; }}\n" + gate_script
+                result = subprocess.run([shutil.which("bash"), "-e", "-o", "pipefail", "-c", script],
+                                        env=env, capture_output=True, text=True, timeout=10)
+                self.assertEqual(result.returncode, exit_code, result.stderr)
+                self.assertEqual(output.read_text(), f"allowed={expected_output}\n")
+                if not allowed:
+                    self.assertIn("No package or checksum artifacts will be uploaded", summary.read_text())
+
+    def test_workflow_artifact_paths_and_tag_publication_are_explicitly_gated(self):
+        workflow = (release.ROOT / ".github/workflows/packages.yml").read_text()
+        for name in ("Archive executable with installation notes and manifest",
+                     "Verify and run the extracted package", "Record package verification"):
+            self.assertIn(f"- name: {name}\n        if: needs.publication.outputs.allowed == 'true'", workflow)
+        self.assertIn("- uses: actions/upload-artifact@v7\n        if: needs.publication.outputs.allowed == 'true'", workflow)
+        self.assertIn("needs: [publication, build]\n    if: needs.publication.outputs.allowed == 'true'", workflow)
+        release_workflow = (release.ROOT / ".github/workflows/release.yml").read_text()
+        self.assertIn("python scripts/release.py publication-check", release_workflow)
 
 
 if __name__ == "__main__":

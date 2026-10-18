@@ -27,6 +27,7 @@ jobs:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           python scripts/release.py version --tag "$RELEASE_TAG"
+          python scripts/release.py publication-check
           git merge-base --is-ancestor "$GITHUB_SHA" origin/master
 
   quality:
@@ -92,6 +93,7 @@ jobs:
       - uses: softprops/action-gh-release@v3
         with:
           generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
           fail_on_unmatched_files: true
           overwrite_files: false
           body: |

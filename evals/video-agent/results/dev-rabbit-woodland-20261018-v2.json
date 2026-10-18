@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "kind": "sanitized_real_development_attempt_summary",
+  "task_id": "dev-rabbit-woodland",
+  "split": "dev",
+  "recorded_at": "2026-10-18T02:29:19.945555+00:00",
+  "code_commit": "9c331afa9e1f0c8661d4778cf6012813b2c03aa3",
+  "backend": "openai_responses",
+  "requested_model": "gpt-4.1-mini-2025-04-14",
+  "reported_model": "gpt-4.1-mini-2025-04-14",
+  "prompt_version": "video-agent-vision-v2",
+  "prepared_input_sha256": "6e084b652e9c43713e6501ea8abbe0cfcf19321429da86c61c76f75fa4965120",
+  "cloud_consent": true,
+  "submitted_sample_count": 12,
+  "model_calls_in_this_attempt": 1,
+  "provider_reported_input_tokens": 5823,
+  "provider_reported_output_tokens": 259,
+  "model_latency_ms": 4429,
+  "estimated_cost_usd": 0.0027436000000000006,
+  "provider_invoiced_cost_usd": null,
+  "outcome": "proposal_rejected_by_deterministic_validation",
+  "failure": {
+    "proposed_source_intervals_ms": [[3125, 15625], [21875, 46875]],
+    "maximum_clip_ms": 15000,
+    "error": "Model evidence must belong to the candidate source interval",
+    "other_visible_violations": ["The second proposed interval is 25000 ms, above the 15000 ms cap.", "Evidence at an exclusive end time is not inside the clip."]
+  },
+  "accepted_plan": false,
+  "export_produced": false,
+  "prior_failure_retained": true,
+  "private_capture_sha256": "88006b2b2a68657b129a6a3a52f2afbcec32a0e0977509c841f0a726b895d852",
+  "semantic_scores": null,
+  "human_review": "pending",
+  "limitations": [
+    "An explicit development retry on the same observed frames; not an independent heldout run.",
+    "The model's summary incorrectly described the 37500 ms proposed total as about 20 seconds; no relevance or faithfulness score is inferred.",
+    "The private capture includes both attempts. Its single operator-declared code commit identifies the capturing/current v2 candidate, not a retrospective attestation of call-1's v1 binary.",
+    "Runtime records are locally editable, not provider-signed evidence. No credentials or local runtime paths are included."
+  ]
+}

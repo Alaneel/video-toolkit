@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "kind": "sanitized_real_development_attempt_summary",
+  "task_id": "dev-rabbit-woodland",
+  "split": "dev",
+  "recorded_at": "2026-10-18T02:25:58.625665+00:00",
+  "code_commit": "03d105c2c889dc20bf09af087068ab369b911647",
+  "backend": "openai_responses",
+  "requested_model": "gpt-4.1-mini-2025-04-14",
+  "reported_model": "gpt-4.1-mini-2025-04-14",
+  "prompt_version": "video-agent-vision-v1",
+  "prepared_input_sha256": "6e084b652e9c43713e6501ea8abbe0cfcf19321429da86c61c76f75fa4965120",
+  "cloud_consent": true,
+  "submitted_sample_count": 12,
+  "model_calls": 1,
+  "provider_reported_input_tokens": 5412,
+  "provider_reported_output_tokens": 144,
+  "model_latency_ms": 4958,
+  "estimated_cost_usd": 0.0023952,
+  "provider_invoiced_cost_usd": null,
+  "outcome": "proposal_rejected_by_deterministic_validation",
+  "failure": {
+    "proposed_source_interval_ms": [28125, 46875],
+    "proposed_duration_ms": 18750,
+    "maximum_clip_ms": 15000,
+    "error": "Clip range violates source bounds or duration limits"
+  },
+  "accepted_plan": false,
+  "export_produced": false,
+  "private_capture_sha256": "8e39d4d3798c0e0bfba41726f537dad72470445d2f0f9a7831bedda40b499654",
+  "semantic_scores": null,
+  "human_review": "pending",
+  "limitations": [
+    "This is a real development failure, not a heldout score or successful end-to-end demo.",
+    "The runtime record is locally editable and not a provider-signed attestation.",
+    "Original private task, ledger and read-only capture are retained outside the repository; no credentials or local runtime paths are published here.",
+    "No inference about relevance or reason faithfulness is established by successful API authentication or rejection of an overlong range."
+  ]
+}

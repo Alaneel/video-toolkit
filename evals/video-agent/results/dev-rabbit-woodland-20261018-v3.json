@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "kind": "sanitized_real_development_attempt_summary",
+  "task_id": "dev-rabbit-woodland",
+  "split": "dev",
+  "recorded_at": "2026-10-18T02:32:40.165827+00:00",
+  "code_commit": "4f37cde3a2e2ec711ba9ca50bc73c9955bf24ee0",
+  "backend": "openai_responses",
+  "requested_model": "gpt-4.1-mini-2025-04-14",
+  "reported_model": "gpt-4.1-mini-2025-04-14",
+  "prompt_version": "video-agent-vision-v3",
+  "prepared_input_sha256": "6e084b652e9c43713e6501ea8abbe0cfcf19321429da86c61c76f75fa4965120",
+  "cloud_consent": true,
+  "submitted_sample_count": 12,
+  "model_calls_in_this_attempt": 1,
+  "provider_reported_input_tokens": 6900,
+  "provider_reported_output_tokens": 335,
+  "model_latency_ms": 5177,
+  "estimated_cost_usd": 0.003296,
+  "provider_invoiced_cost_usd": null,
+  "outcome": "proposal_rejected_by_deterministic_validation",
+  "failure": {
+    "proposed_source_intervals_ms": [[625, 5625], [6875, 11875], [13125, 15625]],
+    "error": "Model evidence must belong to the candidate source interval",
+    "end_exclusive_violation": "The third clip cited its 15625 ms exclusive end as evidence.",
+    "other_visible_violations": ["The model described a 2500 ms third interval as 5000 ms and the actual 12500 ms proposed total as 14375 ms."]
+  },
+  "accepted_plan": false,
+  "export_produced": false,
+  "prior_failures_retained": true,
+  "private_capture_sha256": "9bde27f067c5d49e75f1ea634007ef32fd6bf238f5f79c0870224986d40f10bc",
+  "semantic_scores": null,
+  "human_review": "pending",
+  "limitations": [
+    "Third development attempt on the same observed frames, not a heldout evaluation.",
+    "Legal time-window examples did not guarantee a valid proposal; local evidence validation remained authoritative.",
+    "The private capture retains all three attempts; this code commit identifies the current v3 candidate, not earlier binaries.",
+    "Locally editable runtime records are not provider-signed attestations. Original private task data remain outside the repository."
+  ]
+}

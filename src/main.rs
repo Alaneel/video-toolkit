@@ -27,6 +27,17 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Open the local Video Agent desktop (vision selection, human review, safe export)
+    Agent {
+        /// Resume a previously saved Video Agent task directory
+        #[clap(long)]
+        workspace: Option<PathBuf>,
+    },
+
+    /// Inspect and exercise persistent Video Agent tasks without the desktop
+    #[clap(subcommand)]
+    AgentTask(AgentTaskCommands),
+
     /// Extract specific time ranges from video files
     Clipper {
         /// Input video file path
@@ -177,6 +188,50 @@ enum Commands {
         #[clap(long)]
         operation: Option<String>,
     },
+}
+
+#[derive(Subcommand)]
+enum AgentTaskCommands {
+    /// Fingerprint local sources and create a private task; does not upload or call a model
+    Create {
+        #[clap(required = true, num_args = 1..)]
+        inputs: Vec<PathBuf>,
+        #[clap(long)]
+        workspace_root: PathBuf,
+        #[clap(long)]
+        intent: String,
+        #[clap(long, default_value = "30")]
+        target_seconds: u64,
+        /// Simultaneous local frame extractions; cloud requests and export stay sequential
+        #[clap(long, visible_alias = "max-concurrency", default_value = "1", value_parser = clap::value_parser!(u8).range(1..=4))]
+        frame_workers: u8,
+    },
+    /// Show current state, including exact plan digest; identifies changed inputs
+    Show { workspace: PathBuf },
+    /// Extract bounded timestamped JPEG samples, reusing completed samples
+    Sample { workspace: PathBuf },
+    /// Call the real OpenAI vision backend; requires credentials and explicit consent
+    Analyze {
+        workspace: PathBuf,
+        #[clap(long)]
+        allow_cloud: bool,
+    },
+    /// Create an explicitly manual draft for testing/review; NOT model selection
+    ManualDraft { workspace: PathBuf },
+    /// Save a human-edited plan JSON; always invalidates previous approval
+    Edit {
+        workspace: PathBuf,
+        #[clap(long)]
+        plan: PathBuf,
+    },
+    /// Confirm exactly the displayed plan digest, not a newer unseen version
+    Approve {
+        workspace: PathBuf,
+        #[clap(long)]
+        plan_digest: String,
+    },
+    /// Export the approved plan; reuses verified completed shards after interruption
+    Export { workspace: PathBuf },
 }
 
 #[derive(Subcommand)]
@@ -534,6 +589,15 @@ fn main() -> Result<(), eframe::Error> {
 
     // Otherwise, run the appropriate command-line tool
     match cli.command.unwrap() {
+        Commands::Agent { workspace } => {
+            return ui::run_video_agent(workspace);
+        }
+        Commands::AgentTask(command) => {
+            if let Err(error) = handle_agent_task(command) {
+                eprintln!("Video Agent: {error}");
+                std::process::exit(1);
+            }
+        }
         Commands::Clipper {
             input,
             ranges,
@@ -785,6 +849,75 @@ fn main() -> Result<(), eframe::Error> {
         }
     }
 
+    Ok(())
+}
+
+fn handle_agent_task(command: AgentTaskCommands) -> video_agent::Result<()> {
+    use video_agent::{CancelToken, Limits, OpenAiVision, VisionProvider, Workspace};
+    let cancel = CancelToken::default();
+    let task = match command {
+        AgentTaskCommands::Create {
+            inputs,
+            workspace_root,
+            intent,
+            target_seconds,
+            frame_workers,
+        } => {
+            let millis = target_seconds.checked_mul(1000).ok_or_else(|| {
+                video_agent::AgentError::Invalid("Target duration overflow".into())
+            })?;
+            let limits = Limits {
+                max_concurrency: usize::from(frame_workers),
+                ..Limits::default()
+            };
+            let workspace = Workspace::create(&workspace_root, &inputs, intent, millis, limits)?;
+            println!("Workspace: {}", workspace.task_dir().display());
+            workspace.load()?
+        }
+        AgentTaskCommands::Show { workspace } => Workspace::open(&workspace)?.load()?,
+        AgentTaskCommands::Sample { workspace } => Workspace::open(&workspace)?.sample(&cancel)?,
+        AgentTaskCommands::Analyze {
+            workspace,
+            allow_cloud,
+        } => {
+            let workspace = Workspace::open(&workspace)?;
+            let task = workspace.load()?;
+            let provider = OpenAiVision::from_env(&task.limits)?;
+            if !provider.ready() {
+                return Err(video_agent::AgentError::Invalid(
+                    "Real vision is not configured. Set a local API credential; no simulation or network call was substituted.".into()));
+            }
+            if allow_cloud {
+                workspace.set_consent(true)?;
+            }
+            workspace.analyze(&provider, &cancel)?
+        }
+        AgentTaskCommands::ManualDraft { workspace } => {
+            Workspace::open(&workspace)?.manual_draft()?
+        }
+        AgentTaskCommands::Edit { workspace, plan } => {
+            let meta = std::fs::symlink_metadata(&plan)?;
+            if !meta.is_file() || meta.len() > 65_536 {
+                return Err(video_agent::AgentError::Invalid(
+                    "Plan must be a bounded regular JSON file".into(),
+                ));
+            }
+            let plan = serde_json::from_reader(std::fs::File::open(plan)?)?;
+            Workspace::open(&workspace)?.save_plan(plan)?
+        }
+        AgentTaskCommands::Approve {
+            workspace,
+            plan_digest,
+        } => Workspace::open(&workspace)?.approve(&plan_digest)?,
+        AgentTaskCommands::Export { workspace } => Workspace::open(&workspace)?.export(&cancel)?,
+    };
+    if let Some(plan) = &task.plan {
+        println!(
+            "Plan digest: {}",
+            video_agent::workflow::plan_digest(&task, plan)?
+        );
+    }
+    println!("{}", serde_json::to_string_pretty(&task)?);
     Ok(())
 }
 
@@ -1557,5 +1690,49 @@ mod cli_tests {
     #[test]
     fn all_commands_have_consistent_argument_definitions() {
         Cli::command().debug_assert();
+    }
+
+    #[test]
+    fn frame_worker_limit_has_a_real_create_argument_and_bounded_alias() {
+        let arguments = || {
+            vec![
+                "video-toolkit",
+                "agent-task",
+                "create",
+                "local.mp4",
+                "--workspace-root",
+                "/unused-parser-fixture",
+                "--intent",
+                "Parser check only",
+            ]
+        };
+        for (flag, value) in [
+            ("--frame-workers", "1"),
+            ("--frame-workers", "4"),
+            ("--max-concurrency", "2"),
+        ] {
+            let mut args = arguments();
+            args.extend([flag, value]);
+            let parsed = Cli::try_parse_from(args).unwrap();
+            let Some(Commands::AgentTask(AgentTaskCommands::Create { frame_workers, .. })) =
+                parsed.command
+            else {
+                panic!("Expected task creation arguments");
+            };
+            assert_eq!(frame_workers, value.parse::<u8>().unwrap());
+        }
+        for value in ["0", "5", "-1", "unlimited"] {
+            let mut args = arguments();
+            args.extend(["--frame-workers", value]);
+            assert!(Cli::try_parse_from(args).is_err());
+        }
+        let parsed = Cli::try_parse_from(arguments()).unwrap();
+        assert!(matches!(
+            parsed.command,
+            Some(Commands::AgentTask(AgentTaskCommands::Create {
+                frame_workers: 1,
+                ..
+            }))
+        ));
     }
 }

@@ -1,9 +1,10 @@
 [package]
 name = "video-toolkit"
-version = "2.1.0"
+default-run = "video-toolkit"
+version = "2.2.0-rc.1"
 edition = "2021"
 authors = ["Alaneel"]
-description = "A local-first desktop and CLI toolkit for practical FFmpeg workflows"
+description = "A human-reviewed video agent and local-first FFmpeg desktop toolkit"
 license = "MIT"
 repository = "https://github.com/Alaneel/video-toolkit"
 readme = "README.md"
@@ -35,6 +36,7 @@ ui = { path = "crates/ui" }
 plugin_system = { path = "crates/plugin_system" }
 profile_system = { path = "crates/profile_system" }
 batch_processing = { path = "crates/batch_processing" }
+video_agent = { path = "crates/video_agent" }
 
 [workspace]
 members = [
@@ -48,4 +50,5 @@ members = [
     "crates/plugin_system",
     "crates/profile_system",
     "crates/batch_processing", "plugins/watermark_plugin",
+    "crates/video_agent",
 ]

@@ -21,8 +21,38 @@ concurrency:
   cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
 jobs:
+  publication:
+    name: Check public binary distribution permission
+    runs-on: ubuntu-22.04
+    outputs:
+      allowed: ${{ steps.gate.outputs.allowed }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - name: Keep source builds available without publishing uncleared binaries
+        id: gate
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        shell: bash
+        run: |
+          if python scripts/release.py publication-check; then
+            echo 'allowed=true' >> "$GITHUB_OUTPUT"
+            echo '### Public binary license gate passed for all requested targets' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'allowed=false' >> "$GITHUB_OUTPUT"
+            echo '### Binary uploads skipped: public distribution license review has not passed' >> "$GITHUB_STEP_SUMMARY"
+            echo 'Source compilation and tests remain available. No package or checksum artifacts will be uploaded. See the gate error for unresolved licenses or missing target-specific approval.' >> "$GITHUB_STEP_SUMMARY"
+            if [ -n "$RELEASE_TAG" ] || [[ "$GITHUB_REF" == refs/tags/* ]]; then
+              echo 'Tagged binary releases must pass the publication gate.' >&2
+              exit 1
+            fi
+          fi
+
   build:
-    name: Package (${{ matrix.target }})
+    name: Build / conditionally package (${{ matrix.target }})
+    needs: publication
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -103,6 +133,7 @@ jobs:
             throw 'Release executable unexpectedly depends on a separately installed C runtime'
           }
       - name: Archive executable with installation notes and manifest
+        if: needs.publication.outputs.allowed == 'true'
         run: |
           tag_args=()
           if [ -n "$RELEASE_TAG" ]; then tag_args=(--tag "$RELEASE_TAG"); fi
@@ -111,6 +142,7 @@ jobs:
             --target "$RUST_TARGET" --output-dir dist --commit "$GITHUB_SHA" \
             "${tag_args[@]}"
       - name: Verify and run the extracted package
+        if: needs.publication.outputs.allowed == 'true'
         env:
           VERSION: ${{ steps.version.outputs.version }}
           ARCHIVE_EXTENSION: ${{ matrix.extension }}
@@ -122,6 +154,7 @@ jobs:
             --expected-target "$RUST_TARGET" --expected-version "$VERSION" \
             --expected-commit "$GITHUB_SHA" "${smoke_args[@]}"
       - uses: actions/upload-artifact@v7
+        if: needs.publication.outputs.allowed == 'true'
         with:
           name: package-${{ matrix.target }}
           path: dist/*.${{ matrix.extension }}
@@ -130,6 +163,7 @@ jobs:
           retention-days: 14
           overwrite: true
       - name: Record package verification
+        if: needs.publication.outputs.allowed == 'true'
         env:
           VERSION: ${{ steps.version.outputs.version }}
           ARCHIVE_EXTENSION: ${{ matrix.extension }}
@@ -139,7 +173,8 @@ jobs:
 
   checksums:
     name: Verify package set and checksums
-    needs: build
+    needs: [publication, build]
+    if: needs.publication.outputs.allowed == 'true'
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v7

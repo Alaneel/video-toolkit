@@ -1,0 +1,644 @@
+{
+  "schema_version": 1,
+  "kind": "sanitized_real_development_run_summary",
+  "task_id": "dev-rabbit-woodland",
+  "split": "dev",
+  "recorded_date": "2026-10-18",
+  "code_commit": "42f1909a87016c9ceb1c8e530dd25dcb131b4fda",
+  "backend": "openai_responses",
+  "requested_model": "gpt-6-luna",
+  "cloud_consent": true,
+  "input": {
+    "clip_id": "bbb-dev-001",
+    "prepared_sha256": "6e084b652e9c43713e6501ea8abbe0cfcf19321429da86c61c76f75fa4965120",
+    "prepared_duration_ms": 75000,
+    "source_video_duration_ms": 75000,
+    "original_source_sha256": "738e2f999860553d056dd79c952f58f63cbb73892a57c72342ce9e5330d9d2d7"
+  },
+  "observations": [
+    {
+      "sample_id": "source-1-3125",
+      "source_id": "source-1",
+      "prepared_time_ms": 3125,
+      "original_time_ms": 33125,
+      "image_sha256": "043429d6370e1d1d1e9af02807f193e8da7590fba897f12215cb3066718bb52c"
+    },
+    {
+      "sample_id": "source-1-9375",
+      "source_id": "source-1",
+      "prepared_time_ms": 9375,
+      "original_time_ms": 39375,
+      "image_sha256": "e8bed307954729573ba21fb9ddf7b3d3fdf0fbf773c729e398e5a14e46786fb3"
+    },
+    {
+      "sample_id": "source-1-15625",
+      "source_id": "source-1",
+      "prepared_time_ms": 15625,
+      "original_time_ms": 45625,
+      "image_sha256": "df902af3b99d9b93f9fbbf87ed1df74e6087522c7cabbe179447b22e8365cfd8"
+    },
+    {
+      "sample_id": "source-1-21875",
+      "source_id": "source-1",
+      "prepared_time_ms": 21875,
+      "original_time_ms": 51875,
+      "image_sha256": "07507567123adfe0dc90bfa3eb1f8904ad2e4d6846d53600799549e248b98acc"
+    },
+    {
+      "sample_id": "source-1-28125",
+      "source_id": "source-1",
+      "prepared_time_ms": 28125,
+      "original_time_ms": 58125,
+      "image_sha256": "ab799bc2d9037e378ca01e4b334553130600d78f8d52258e0c4ce0611b46bcc1"
+    },
+    {
+      "sample_id": "source-1-34375",
+      "source_id": "source-1",
+      "prepared_time_ms": 34375,
+      "original_time_ms": 64375,
+      "image_sha256": "046b55e8935ab827314c65a8090b562728c0d8d91557a09c307164232625e9b9"
+    },
+    {
+      "sample_id": "source-1-40625",
+      "source_id": "source-1",
+      "prepared_time_ms": 40625,
+      "original_time_ms": 70625,
+      "image_sha256": "e32de7f3cd6332596a515e7e7bc7c67552c9ad815e5f5e0b9b8521fcc27e8a4c"
+    },
+    {
+      "sample_id": "source-1-46875",
+      "source_id": "source-1",
+      "prepared_time_ms": 46875,
+      "original_time_ms": 76875,
+      "image_sha256": "26dfe72e16c0672ec10c085bbd8530a318e61d6b873993cb871aff04cde53739"
+    },
+    {
+      "sample_id": "source-1-53125",
+      "source_id": "source-1",
+      "prepared_time_ms": 53125,
+      "original_time_ms": 83125,
+      "image_sha256": "b3bec259218213852c6b8dc01d4ceb2df31b70ea41c246816d80a3d19dab5d8f"
+    },
+    {
+      "sample_id": "source-1-59375",
+      "source_id": "source-1",
+      "prepared_time_ms": 59375,
+      "original_time_ms": 89375,
+      "image_sha256": "edd583116bf0d9a4918eba8cf27c709c36caeb894e7f9675ea5b3aaf8d02bd32"
+    },
+    {
+      "sample_id": "source-1-65625",
+      "source_id": "source-1",
+      "prepared_time_ms": 65625,
+      "original_time_ms": 95625,
+      "image_sha256": "93a4038169edce42ff8dbff3ac21ee1091dcde93309ea42755745a2a579406ee"
+    },
+    {
+      "sample_id": "source-1-71875",
+      "source_id": "source-1",
+      "prepared_time_ms": 71875,
+      "original_time_ms": 101875,
+      "image_sha256": "606219d0faa0c3a29ac520c6aae13531c84ad49d1240db8871e18ac67185f33e"
+    },
+    {
+      "sample_id": "source-1-50542",
+      "source_id": "source-1",
+      "prepared_time_ms": 50542,
+      "original_time_ms": 80542,
+      "image_sha256": "6fa91d2fabdb67bd70e53271b2c1976364ca0c033ee8960b077252cb7d8a179c"
+    },
+    {
+      "sample_id": "source-1-51583",
+      "source_id": "source-1",
+      "prepared_time_ms": 51583,
+      "original_time_ms": 81583,
+      "image_sha256": "e5f3f6017060a716ab319207dd6a44056f52760872140b8986dffdbd7434b272"
+    },
+    {
+      "sample_id": "source-1-52625",
+      "source_id": "source-1",
+      "prepared_time_ms": 52625,
+      "original_time_ms": 82625,
+      "image_sha256": "69f8483984d18b2cfef1cac4e85215a930a9bf53eafae81d751d3dfb9604bbdb"
+    },
+    {
+      "sample_id": "source-1-53667",
+      "source_id": "source-1",
+      "prepared_time_ms": 53667,
+      "original_time_ms": 83667,
+      "image_sha256": "db940aa62b31ecda0912a730af1c73d6c601c83e97979bcf14154a34ad7be39b"
+    },
+    {
+      "sample_id": "source-1-54708",
+      "source_id": "source-1",
+      "prepared_time_ms": 54708,
+      "original_time_ms": 84708,
+      "image_sha256": "20215e106108790f387db9210f83f98310a7bcd0a8b7e9f1be6aec99da976fab"
+    },
+    {
+      "sample_id": "source-1-55750",
+      "source_id": "source-1",
+      "prepared_time_ms": 55750,
+      "original_time_ms": 85750,
+      "image_sha256": "f29956cb73479decdca28eddf671c4715d73b54730466893ba18b6e853f0ba12"
+    },
+    {
+      "sample_id": "source-1-56792",
+      "source_id": "source-1",
+      "prepared_time_ms": 56792,
+      "original_time_ms": 86792,
+      "image_sha256": "732c2631de3abfd728bab995c5e6a2e17f4a671d5012cbce086c71f4959336fb"
+    },
+    {
+      "sample_id": "source-1-57833",
+      "source_id": "source-1",
+      "prepared_time_ms": 57833,
+      "original_time_ms": 87833,
+      "image_sha256": "fd43a7b850fac562178eb4253c9b97655669ceccd0e4f2344b245647f460322f"
+    },
+    {
+      "sample_id": "source-1-58875",
+      "source_id": "source-1",
+      "prepared_time_ms": 58875,
+      "original_time_ms": 88875,
+      "image_sha256": "deb1cc0017f9de603f11290e509aae874619cc45fe5731a393a3aa2e60a8800d"
+    },
+    {
+      "sample_id": "source-1-59917",
+      "source_id": "source-1",
+      "prepared_time_ms": 59917,
+      "original_time_ms": 89917,
+      "image_sha256": "0bc4647bd34a18f478bf444646d5483026363aef9f7b16b5d4143b8532512819"
+    },
+    {
+      "sample_id": "source-1-60958",
+      "source_id": "source-1",
+      "prepared_time_ms": 60958,
+      "original_time_ms": 90958,
+      "image_sha256": "3d70af3375ccc24675e7d9feea29c2da64cab6bf0dbf3432d1e419d5edc54b8f"
+    },
+    {
+      "sample_id": "source-1-62000",
+      "source_id": "source-1",
+      "prepared_time_ms": 62000,
+      "original_time_ms": 92000,
+      "image_sha256": "0976302e28ffcd6ca44b9cbfb20cce4827ab665bbfe420e170cf7ca920358760"
+    },
+    {
+      "sample_id": "source-1-48667",
+      "source_id": "source-1",
+      "prepared_time_ms": 48667,
+      "original_time_ms": 78667,
+      "image_sha256": "4672927366451c99a4aa5f502eda1503e17bb8223bf17598a50dfea8cdfcb5ca"
+    },
+    {
+      "sample_id": "source-1-50000",
+      "source_id": "source-1",
+      "prepared_time_ms": 50000,
+      "original_time_ms": 80000,
+      "image_sha256": "16631ff4b5e54fd8098626c890edb049c257918c83947c10a8445ef0a706c848"
+    },
+    {
+      "sample_id": "source-1-51333",
+      "source_id": "source-1",
+      "prepared_time_ms": 51333,
+      "original_time_ms": 81333,
+      "image_sha256": "b474b364aee1a04c84566637fdb23ba72535f97d64a5874c5be885ca9ae5b973"
+    },
+    {
+      "sample_id": "source-1-52667",
+      "source_id": "source-1",
+      "prepared_time_ms": 52667,
+      "original_time_ms": 82667,
+      "image_sha256": "cceb396238d2319bf94c41b48853f6cf21ef741b4b8189ea4f37b82763762f87"
+    },
+    {
+      "sample_id": "source-1-54000",
+      "source_id": "source-1",
+      "prepared_time_ms": 54000,
+      "original_time_ms": 84000,
+      "image_sha256": "ece054bda79f48e607cf880f8bd8607a19f65b2fa5c00056096233af0d8287fc"
+    },
+    {
+      "sample_id": "source-1-55333",
+      "source_id": "source-1",
+      "prepared_time_ms": 55333,
+      "original_time_ms": 85333,
+      "image_sha256": "39e0ce75c31869f6fe162b737040a20de00f16e1bf15f8aebbe8bd9f9c2e53a5"
+    },
+    {
+      "sample_id": "source-1-56667",
+      "source_id": "source-1",
+      "prepared_time_ms": 56667,
+      "original_time_ms": 86667,
+      "image_sha256": "6a0adf0fd13c741f9d1d1c74bbcd0790f782c647e687d41c7b55a1bc94f0c948"
+    },
+    {
+      "sample_id": "source-1-58000",
+      "source_id": "source-1",
+      "prepared_time_ms": 58000,
+      "original_time_ms": 88000,
+      "image_sha256": "ffbe1ce63da713d891045ca377c771bec919d353393248d0879df713ea601849"
+    },
+    {
+      "sample_id": "source-1-59333",
+      "source_id": "source-1",
+      "prepared_time_ms": 59333,
+      "original_time_ms": 89333,
+      "image_sha256": "4a840abee4f6580b5fe5f70279705a16e68a7dc45b7a34aead9a7cf73d469ed2"
+    },
+    {
+      "sample_id": "source-1-60667",
+      "source_id": "source-1",
+      "prepared_time_ms": 60667,
+      "original_time_ms": 90667,
+      "image_sha256": "c10f4f631c953f7347ddf25ddfa3a8ba08aa21e3395bf11ae181e016d42cfcdf"
+    },
+    {
+      "sample_id": "source-1-63333",
+      "source_id": "source-1",
+      "prepared_time_ms": 63333,
+      "original_time_ms": 93333,
+      "image_sha256": "ead600f96de2d25e9a3d1dc57980037cbc5e5846546fe4410a7b6fb00f2f9325"
+    }
+  ],
+  "model_calls": [
+    {
+      "call_id": "call-1",
+      "code_commit": "13063fe52e26dcf6c2f1e4db7f76f6cd2483a891",
+      "prompt_version": "video-agent-vision-v3",
+      "requested_model": "gpt-6-luna",
+      "reported_model": "gpt-6-luna",
+      "status": "observations_applied",
+      "sample_ids": [
+        "source-1-3125",
+        "source-1-9375",
+        "source-1-15625",
+        "source-1-21875",
+        "source-1-28125",
+        "source-1-34375",
+        "source-1-40625",
+        "source-1-46875",
+        "source-1-53125",
+        "source-1-59375",
+        "source-1-65625",
+        "source-1-71875"
+      ],
+      "input_tokens": 5343,
+      "output_tokens": 59,
+      "elapsed_ms": 2515,
+      "estimated_cost_usd": 0.000697375,
+      "decision": {
+        "tool": "observe_interval",
+        "source_id": "source-1",
+        "start_ms": 50000,
+        "end_ms": 62500,
+        "count": 12
+      }
+    },
+    {
+      "call_id": "call-2",
+      "code_commit": "d9e571e266223415f8fa0ada9bdc062c827d3d77",
+      "prompt_version": "video-agent-vision-v3",
+      "requested_model": "gpt-6-luna",
+      "reported_model": "gpt-6-luna",
+      "status": "observations_applied",
+      "sample_ids": [
+        "source-1-3125",
+        "source-1-9375",
+        "source-1-15625",
+        "source-1-21875",
+        "source-1-28125",
+        "source-1-34375",
+        "source-1-40625",
+        "source-1-46875",
+        "source-1-53125",
+        "source-1-59375",
+        "source-1-65625",
+        "source-1-71875",
+        "source-1-50542",
+        "source-1-51583",
+        "source-1-52625",
+        "source-1-53667",
+        "source-1-54708",
+        "source-1-55750",
+        "source-1-56792",
+        "source-1-57833",
+        "source-1-58875",
+        "source-1-59917",
+        "source-1-60958",
+        "source-1-62000"
+      ],
+      "input_tokens": 10033,
+      "output_tokens": 132,
+      "elapsed_ms": 3327,
+      "estimated_cost_usd": 0.001320125,
+      "decision": {
+        "tool": "observe_interval",
+        "source_id": "source-1",
+        "start_ms": 48000,
+        "end_ms": 64000,
+        "count": 12
+      }
+    },
+    {
+      "call_id": "call-3",
+      "code_commit": "42f1909a87016c9ceb1c8e530dd25dcb131b4fda",
+      "prompt_version": "video-agent-vision-v4",
+      "requested_model": "gpt-6-luna",
+      "reported_model": "gpt-6-luna",
+      "status": "rejected",
+      "sample_ids": [
+        "source-1-3125",
+        "source-1-15625",
+        "source-1-28125",
+        "source-1-40625",
+        "source-1-50000",
+        "source-1-51333",
+        "source-1-52625",
+        "source-1-53125",
+        "source-1-54708",
+        "source-1-55750",
+        "source-1-56792",
+        "source-1-58000",
+        "source-1-59375",
+        "source-1-60667",
+        "source-1-62000",
+        "source-1-71875"
+      ],
+      "input_tokens": 6993,
+      "output_tokens": 523,
+      "elapsed_ms": 6390,
+      "estimated_cost_usd": 0.001135625,
+      "decision": {
+        "tool": "propose_plan",
+        "clips": [
+          {
+            "source_id": "source-1",
+            "start_ms": 13125,
+            "end_ms": 18125,
+            "evidence_ids": [
+              "source-1-15625"
+            ]
+          },
+          {
+            "source_id": "source-1",
+            "start_ms": 25625,
+            "end_ms": 30625,
+            "evidence_ids": [
+              "source-1-28125"
+            ]
+          },
+          {
+            "source_id": "source-1",
+            "start_ms": 38125,
+            "end_ms": 43125,
+            "evidence_ids": [
+              "source-1-40625"
+            ]
+          },
+          {
+            "source_id": "source-1",
+            "start_ms": 50625,
+            "end_ms": 55625,
+            "evidence_ids": [
+              "source-1-51333",
+              "source-1-52625",
+              "source-1-53125",
+              "source-1-54708"
+            ]
+          },
+          {
+            "source_id": "source-1",
+            "start_ms": 59500,
+            "end_ms": 64500,
+            "evidence_ids": [
+              "source-1-59375",
+              "source-1-62000"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "call_id": "call-4",
+      "code_commit": "42f1909a87016c9ceb1c8e530dd25dcb131b4fda",
+      "prompt_version": "video-agent-vision-v4",
+      "requested_model": "gpt-6-luna",
+      "reported_model": "gpt-6-luna",
+      "status": "validated",
+      "sample_ids": [
+        "source-1-3125",
+        "source-1-15625",
+        "source-1-28125",
+        "source-1-40625",
+        "source-1-50000",
+        "source-1-51333",
+        "source-1-52625",
+        "source-1-53125",
+        "source-1-54708",
+        "source-1-55750",
+        "source-1-56792",
+        "source-1-58000",
+        "source-1-59375",
+        "source-1-60667",
+        "source-1-62000",
+        "source-1-71875"
+      ],
+      "input_tokens": 7635,
+      "output_tokens": 508,
+      "elapsed_ms": 5799,
+      "estimated_cost_usd": 0.001208375,
+      "decision": {
+        "tool": "propose_plan",
+        "clips": [
+          {
+            "source_id": "source-1",
+            "start_ms": 625,
+            "end_ms": 5625,
+            "evidence_ids": [
+              "source-1-3125"
+            ]
+          },
+          {
+            "source_id": "source-1",
+            "start_ms": 13125,
+            "end_ms": 18125,
+            "evidence_ids": [
+              "source-1-15625"
+            ]
+          },
+          {
+            "source_id": "source-1",
+            "start_ms": 38125,
+            "end_ms": 43125,
+            "evidence_ids": [
+              "source-1-40625"
+            ]
+          },
+          {
+            "source_id": "source-1",
+            "start_ms": 50625,
+            "end_ms": 55625,
+            "evidence_ids": [
+              "source-1-51333",
+              "source-1-52625",
+              "source-1-53125",
+              "source-1-54708"
+            ]
+          },
+          {
+            "source_id": "source-1",
+            "start_ms": 58167,
+            "end_ms": 63167,
+            "evidence_ids": [
+              "source-1-60667",
+              "source-1-62000"
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "usage": {
+    "accounted_frame_credits": 35,
+    "unique_sample_count": 35,
+    "local_model_attempts": 4,
+    "effective_accounted_elapsed_ms": 30557,
+    "conservative_elapsed_ms_included": 0,
+    "accounted_input_tokens": 30004,
+    "accounted_output_tokens": 1222,
+    "accounted_estimated_cost_usd": 0.004361500000000002,
+    "cost_estimation_rates": null,
+    "provider_invoiced_cost_usd": null
+  },
+  "unique_samples_submitted": 28,
+  "outcome": "validated_proposal_awaiting_human_review",
+  "initial_typed_proposal": {
+    "call_id": "call-3",
+    "status": "rejected",
+    "decision": {
+      "tool": "propose_plan",
+      "clips": [
+        {
+          "source_id": "source-1",
+          "start_ms": 13125,
+          "end_ms": 18125,
+          "evidence_ids": [
+            "source-1-15625"
+          ]
+        },
+        {
+          "source_id": "source-1",
+          "start_ms": 25625,
+          "end_ms": 30625,
+          "evidence_ids": [
+            "source-1-28125"
+          ]
+        },
+        {
+          "source_id": "source-1",
+          "start_ms": 38125,
+          "end_ms": 43125,
+          "evidence_ids": [
+            "source-1-40625"
+          ]
+        },
+        {
+          "source_id": "source-1",
+          "start_ms": 50625,
+          "end_ms": 55625,
+          "evidence_ids": [
+            "source-1-51333",
+            "source-1-52625",
+            "source-1-53125",
+            "source-1-54708"
+          ]
+        },
+        {
+          "source_id": "source-1",
+          "start_ms": 59500,
+          "end_ms": 64500,
+          "evidence_ids": [
+            "source-1-59375",
+            "source-1-62000"
+          ]
+        }
+      ]
+    }
+  },
+  "first_validated_proposal": {
+    "call_id": "call-4",
+    "decision": {
+      "tool": "propose_plan",
+      "clips": [
+        {
+          "source_id": "source-1",
+          "start_ms": 625,
+          "end_ms": 5625,
+          "evidence_ids": [
+            "source-1-3125"
+          ]
+        },
+        {
+          "source_id": "source-1",
+          "start_ms": 13125,
+          "end_ms": 18125,
+          "evidence_ids": [
+            "source-1-15625"
+          ]
+        },
+        {
+          "source_id": "source-1",
+          "start_ms": 38125,
+          "end_ms": 43125,
+          "evidence_ids": [
+            "source-1-40625"
+          ]
+        },
+        {
+          "source_id": "source-1",
+          "start_ms": 50625,
+          "end_ms": 55625,
+          "evidence_ids": [
+            "source-1-51333",
+            "source-1-52625",
+            "source-1-53125",
+            "source-1-54708"
+          ]
+        },
+        {
+          "source_id": "source-1",
+          "start_ms": 58167,
+          "end_ms": 63167,
+          "evidence_ids": [
+            "source-1-60667",
+            "source-1-62000"
+          ]
+        }
+      ]
+    },
+    "duration_ms": 25000
+  },
+  "accepted_plan": true,
+  "export_produced": false,
+  "semantic_scores": null,
+  "human_review": "awaiting_author_edit_decision",
+  "retained_failures": [
+    "The first two observation phases stopped before another request because conservative context reservations exceeded the original token budget. No automatic budget increase was applied.",
+    "The first typed proposal (call-3) cited 59375 ms before its 59500 ms clip start and was rejected; call-4 did not erase it.",
+    "The validated 25-second plan still included a 5-second burrow shot without the requested visible rabbit. This is a semantic limitation, not fixed by interval validation."
+  ],
+  "private_capture_sha256": {
+    "initial_observations": "440c96c92319d8e57c14945720cb02845886990c0dcf8e110cc327ae366c2fba",
+    "second_observations": "75b9b4b606703ea92ebe59feb614aff1f8c0e95ff60c1f3d7f65645135b0b1cb",
+    "validated_proposal": "caa8bcd4b9089c11ba4af7275ce204dad754a8c10485cda2bfb47627558f9d66"
+  },
+  "limitations": [
+    "Single public development excerpt and evolving development code; not a heldout result or independent human semantic score.",
+    "Per-call commits identify private development snapshots, not provider-signed attestations. Runtime JSON and IDs are locally editable.",
+    "This summary omits raw task paths, provider trace IDs and model free text; complete private captures are retained separately.",
+    "Saved observations are not all sent in each request; call-3 and call-4 each used 16 of 35 frames. No full-video or audio understanding is claimed.",
+    "No invoice amount, initial rejected-plan export, baseline preference or semantic rating is fabricated."
+  ]
+}

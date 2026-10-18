@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "status": "pending_real_model",
+  "task_id": "REPLACE_WITH_FROZEN_TASK_ID",
+  "suite_id": "visual-selection-v1",
+  "code_commit": null,
+  "prompt_version": null,
+  "provider": "OpenAI",
+  "requested_model": null,
+  "reported_model_version": null,
+  "run_started_at": null,
+  "input": {
+    "clip_id": null,
+    "prepared_sha256": null,
+    "original_source_sha256": "738e2f999860553d056dd79c952f58f63cbb73892a57c72342ce9e5330d9d2d7",
+    "preparation_record": null,
+    "cloud_consent_record": null
+  },
+  "observations": [],
+  "model_calls": [],
+  "tool_calls": [],
+  "artifacts": {
+    "original_task_record": null,
+    "proposed_plan_revision": null,
+    "human_change_record": null,
+    "approved_plan_digest": null,
+    "initial_model_candidate_export_sha256": null,
+    "human_edited_final_export_sha256": null,
+    "probe_record": null,
+    "baseline_sha256": null
+  },
+  "usage": {
+    "elapsed_ms": null,
+    "sample_count": null,
+    "model_call_count": null,
+    "input_tokens": null,
+    "output_tokens": null,
+    "estimated_cost_usd": null,
+    "cost_estimation_rates": null,
+    "provider_invoiced_cost_usd": null
+  },
+  "human_review": {
+    "status": "pending_human_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "prior_task_or_footage_exposure": null,
+    "blind_candidate_order": null,
+    "agent_relevance_0_to_4": null,
+    "baseline_relevance_0_to_4": null,
+    "agent_reason_faithfulness_0_to_4": null,
+    "agent_omissions": null,
+    "baseline_omissions": null,
+    "unsupported_claims": null,
+    "preferred_candidate": null,
+    "notes": null
+  },
+  "limitations": [],
+  "failure_case": null
+}

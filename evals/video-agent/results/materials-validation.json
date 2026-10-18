@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "kind": "dataset_and_nonsemantic_baseline_validation",
+  "validated_on": "2026-10-16",
+  "platform": "macOS Apple Silicon development environment",
+  "dataset_id": "video-agent-bbb-v1",
+  "source_archive_sha256": "7118242b6728d40c871479c5b3c0f0fb27d748089df15d7f1b469f297c74a2d6",
+  "source_member_sha256": "738e2f999860553d056dd79c952f58f63cbb73892a57c72342ce9e5330d9d2d7",
+  "fetch_verification": "Fresh fetch via the shipped materials.py succeeded with system curl HTTPS certificate verification enabled; archive and member fingerprints matched.",
+  "ffmpeg_version": "ffmpeg version 7.1.1 Copyright (c) 2000-2025 the FFmpeg developers",
+  "prepared_development_clip": {
+    "file": "bbb-dev-001.mp4",
+    "sha256": "6e084b652e9c43713e6501ea8abbe0cfcf19321429da86c61c76f75fa4965120",
+    "bytes": 7401911,
+    "duration_ms": 75000,
+    "video": "H.264 640x360 at 24 fps",
+    "audio": "AAC 48000 Hz stereo, re-encoded original source audio",
+    "full_decode": "passed",
+    "source_interval_ms": [30000, 105000],
+    "repeat_prepare": "Reused the hash-matched recorded input without replacing it"
+  },
+  "uniform_baseline": {
+    "file": "dev-rabbit-woodland-uniform.mp4",
+    "sha256": "2ef91bcabef66e1cc4e022118642eadd0cf3f0118c6fc33afd6b746b330ba8f4",
+    "bytes": 1949971,
+    "duration_ms": 20000,
+    "video": "H.264 640x360 at 24 fps",
+    "audio": "AAC 48000 Hz stereo, source audio retained",
+    "full_decode": "passed",
+    "repeat_export": "Rejected existing output rather than overwriting or creating a duplicate",
+    "model_used": false,
+    "semantic_quality": "pending_human_review"
+  },
+  "offline_harness_checks": {"passed": 9, "failed": 0},
+  "heldout": "Not prepared, viewed or sent to a semantic model during this material validation",
+  "engineering_failure_retained": {
+    "failure": "Initial Python urllib download failed because this standalone Python installation lacked a trusted CA bundle.",
+    "resolution": "Use the system curl trust store with HTTPS-only protocols, bounded retries/timeouts/size, and fixed SHA256 verification. TLS verification was not disabled."
+  },
+  "claims_not_established": [
+    "Real OpenAI visual selection",
+    "Human semantic evaluation or preference over baseline",
+    "Desktop interaction, playback, export or recovery correctness",
+    "A recorded three-minute product demonstration",
+    "Generalization beyond one animated film"
+  ],
+  "attribution": "(c) copyright 2008, Blender Foundation / www.bigbuckbunny.org",
+  "license_url": "https://creativecommons.org/licenses/by/3.0/"
+}

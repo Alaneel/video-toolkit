@@ -43,6 +43,9 @@ VERSION_RE = re.compile(
     r"(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?\Z"
 )
 COMMIT_RE = re.compile(r"[0-9a-f]{40}\Z")
+MAX_LICENSE_TEXT = 2 * 1024 * 1024
+LICENSE_PAYLOADS = {"THIRD_PARTY_NOTICES.txt", "LICENSE-REVIEW.json", "Cargo.lock"}
+MAX_ARCHIVE_MEMBERS = 6 + len(LICENSE_PAYLOADS)
 
 
 class ReleaseError(ValueError):
@@ -166,6 +169,9 @@ def install_text(version: str, target: str) -> bytes:
         "If you add this directory to PATH, video-toolkit is available elsewhere.\n\n"
         "Verify the archive against the release's SHA256SUMS before extracting.\n"
         "RELEASE.json records the source commit, target and packaged file hashes.\n"
+        "THIRD_PARTY_NOTICES.txt, LICENSE-REVIEW.json and Cargo.lock preserve the\n"
+        "target-specific notice inventory and explicit public distribution review.\n"
+        "Mechanical notice collection alone is not legal clearance.\n"
         "Source and documentation: https://github.com/Alaneel/video-toolkit\n"
     )
     return text.encode("utf-8")
@@ -177,12 +183,78 @@ def read_regular(path: Path) -> bytes:
     return path.read_bytes()
 
 
+def validate_publication_licenses(files: dict[str, bytes], target: str) -> None:
+    """Require explicit, current, target-specific review; never infer clearance.
+
+    This is a fail-closed distribution gate, not a legal opinion. A mechanically
+    generated notice inventory alone cannot approve public binary distribution.
+    The local-only Agent RC packer deliberately does not use this public gate.
+    """
+    target_info(target)
+    require(LICENSE_PAYLOADS <= files.keys(), "public binaries require notices, license review and Cargo.lock")
+    notices = files["THIRD_PARTY_NOTICES.txt"]
+    inventory_bytes = files["LICENSE-REVIEW.json"]
+    require(len(notices) <= MAX_LICENSE_TEXT and len(inventory_bytes) <= MAX_LICENSE_TEXT,
+            "license notice or review exceeds its size limit")
+    notice_text = notices.decode("utf-8")
+    require(notice_text.startswith("VIDEO TOOLKIT / VIDEO AGENT — MECHANICALLY COLLECTED THIRD-PARTY NOTICES\n"),
+            "missing recognized third-party notice inventory")
+    header = notice_text.split("\n\nFIRST-PARTY WORKSPACE\n", 1)[0]
+    counts = re.findall(r"^UNRESOLVED ITEMS \(([0-9]+)\)$", header, re.MULTILINE)
+    require(len(counts) == 1, "missing or ambiguous unresolved notice count")
+    inventory = json.loads(inventory_bytes, object_pairs_hook=json_object)
+    require(isinstance(inventory, dict) and type(inventory.get("schema_version")) is int
+            and inventory["schema_version"] == 1, "unsupported license inventory schema")
+    unresolved = inventory.get("unresolved_review")
+    cached = inventory.get("cached_source_review")
+    require(isinstance(unresolved, dict) and isinstance(unresolved.get("items"), list)
+            and isinstance(cached, dict) and type(cached.get("full_license_gaps_remaining")) is int,
+            "license review is missing an explicit unresolved-gap inventory")
+    gaps = max(int(counts[0]), len(unresolved["items"]), cached["full_license_gaps_remaining"])
+    require(gaps == 0, f"public binary distribution blocked: {gaps} unresolved original-license-text gaps")
+    require(cached["full_license_gaps_remaining"] >= 0, "invalid negative license-gap count")
+    summary = header.split("UNRESOLVED ITEMS (0)\n", 1)
+    require(len(summary) == 2 and summary[1].strip()
+            == "None detected by these mechanical checks; this is not proof of legal completeness.",
+            "zero-count notice summary is missing or still lists unresolved items")
+    entries = inventory.get("entries")
+    require(isinstance(entries, list) and all(isinstance(entry, dict) and not entry.get("unresolved")
+                                            for entry in entries),
+            "supplemental license inventory still contains unresolved or malformed entries")
+    recorded_targets = re.findall(r"^Target inventory: ([A-Za-z0-9_-]+)$", header, re.MULTILINE)
+    require(recorded_targets == [target] and inventory.get("target") == target,
+            f"license inventory does not cover {target}; target-specific review is required")
+    review = inventory.get("public_distribution_review")
+    require(isinstance(review, dict) and review.get("status") == "approved"
+            and review.get("target") == target,
+            f"public binary distribution blocked: no explicit approved review for {target}")
+    require(review.get("notices_sha256") == digest(notices)
+            and review.get("cargo_lock_sha256") == digest(files["Cargo.lock"]),
+            "public distribution review is stale: notices or Cargo.lock changed")
+
+
+def publication_payloads(root: Path, target: str) -> dict[str, bytes]:
+    files = {
+        "THIRD_PARTY_NOTICES.txt": read_regular(root / "THIRD_PARTY_NOTICES.txt"),
+        "LICENSE-REVIEW.json": read_regular(root / "third_party/licenses/manifest.json"),
+        "Cargo.lock": read_regular(root / "Cargo.lock"),
+    }
+    validate_publication_licenses(files, target)
+    return files
+
+
+def publication_check(targets: list[str] | None = None, root: Path = ROOT) -> None:
+    for target in targets or TARGETS:
+        publication_payloads(root, target)
+
+
 def package(binary: Path, target: str, output_dir: Path, commit: str,
             tag: str | None = None, root: Path = ROOT) -> Path:
     version = root_version(root)
     validate_identity(version, commit)
     validate_tag(tag, version)
     _, _, suffix, binary_name = target_info(target)
+    license_payloads = publication_payloads(root, target)
     binary_data = read_regular(binary)
     check_architecture(binary_data, target)
     payloads = {
@@ -190,6 +262,7 @@ def package(binary: Path, target: str, output_dir: Path, commit: str,
         "README.md": read_regular(root / "README.md"),
         "LICENSE": read_regular(root / "LICENSE"),
         "INSTALL.txt": install_text(version, target),
+        **license_payloads,
     }
     manifest = {
         "schema_version": 1,
@@ -253,7 +326,7 @@ def archive_members(path: Path, target: str) -> tuple[dict[str, bytes], dict[str
     total = 0
     if target_info(target)[2] == ".zip":
         with zipfile.ZipFile(path) as archive:
-            require(len(archive.infolist()) <= 6, "too many archive members")
+            require(len(archive.infolist()) <= MAX_ARCHIVE_MEMBERS, "too many archive members")
             for member in archive.infolist():
                 safe_name(member.filename)
                 require(not member.is_dir(), "unexpected directory member")
@@ -271,7 +344,7 @@ def archive_members(path: Path, target: str) -> tuple[dict[str, bytes], dict[str
             members = []
             for member in archive:
                 members.append(member)
-                require(len(members) <= 6, "too many archive members")
+                require(len(members) <= MAX_ARCHIVE_MEMBERS, "too many archive members")
                 safe_name(member.name)
                 require(member.isreg() and not member.issparse(), "archive contains a link or special file")
                 require(member.name not in data, "duplicate archive member")
@@ -307,7 +380,7 @@ def verify(path: Path, expected_target: str, expected_version: str,
     require(path.stat().st_size <= MAX_MEMBER_SIZE, "archive is too large")
     contents, modes = archive_members(path, expected_target)
     folder = f"video-toolkit-{expected_version}-{expected_target}"
-    names = {binary, "README.md", "LICENSE", "INSTALL.txt", "RELEASE.json"}
+    names = {binary, "README.md", "LICENSE", "INSTALL.txt", "RELEASE.json"} | LICENSE_PAYLOADS
     require(set(contents) == {f"{folder}/{name}" for name in names},
             "archive must contain exactly the expected files in one versioned folder")
     files = {name: contents[f"{folder}/{name}"] for name in names}
@@ -334,6 +407,7 @@ def verify(path: Path, expected_target: str, expected_version: str,
                 f"payload size mismatch: {name}")
         require(record["sha256"] == digest(files[name]), f"payload SHA256 mismatch: {name}")
     require(manifest["binary_sha256"] == digest(files[binary]), "binary SHA256 mismatch")
+    validate_publication_licenses(files, expected_target)
     check_architecture(files[binary], expected_target)
     if run_smoke or media_smoke:
         with tempfile.TemporaryDirectory(prefix="video-toolkit-release-") as temporary:
@@ -482,6 +556,9 @@ def main(argv: list[str] | None = None) -> int:
     commands = parser.add_subparsers(dest="command", required=True)
     version_command = commands.add_parser("version", help="print Cargo version and optionally validate its tag")
     version_command.add_argument("--tag")
+    publication = commands.add_parser("publication-check", help="require approved target-specific public binary license review")
+    publication.add_argument("--target", action="append", choices=TARGETS,
+                             help="target to review (repeatable; default: all release targets)")
     pack = commands.add_parser("package", help="create a verified native release archive")
     pack.add_argument("--binary", type=Path, required=True)
     pack.add_argument("--target", choices=TARGETS, required=True)
@@ -504,6 +581,9 @@ def main(argv: list[str] | None = None) -> int:
             version = root_version()
             validate_tag(args.tag, version)
             print(version)
+        elif args.command == "publication-check":
+            publication_check(args.target)
+            print("Public binary license publication gate passed for the requested targets.")
         elif args.command == "package":
             print(package(args.binary, args.target, args.output_dir, args.commit, args.tag))
         elif args.command == "verify":

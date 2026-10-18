@@ -13,6 +13,8 @@ common = { path = "../common" }
 batch_processing = { path = "../batch_processing" }
 profile_system = { path = "../profile_system" }
 plugin_system = { path = "../plugin_system" }
+video_agent = { path = "../video_agent" }
+image = { version = "0.24", default-features = false, features = ["jpeg"] }
 
 eframe = "0.24.0"
 egui = "0.24.0"

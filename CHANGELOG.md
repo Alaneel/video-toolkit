@@ -4,6 +4,19 @@ All notable changes to Video Toolkit are documented here. The project follows [S
 
 ## [Unreleased]
 
+### Local candidate: 2.2.0-rc.1 (not published)
+
+- Add a native Video Agent workflow for local inspection, actual-PTS samples, bounded OpenAI vision proposals, human editing, digest-bound approval and verified MP4 output.
+- Add private persisted tasks, source/output integrity checks, cancellation, deadlines, model-budget reservations and stage/shard recovery without silent overwrite.
+- Keep the original toolkit GUI and CLI; add `video-toolkit agent`, diagnostic `agent-task` commands and a dedicated `video-agent` app entry point.
+- Add real media/audio/low-FPS/VFR recovery tests, a frozen public-material evaluation protocol, truthful manual GUI evidence and a local Mac candidate packer.
+- Collect dependency and embedded-font notices, with six original-text gaps explicitly unresolved before public binary distribution.
+- Add genuine two-source manual desktop export/playback evidence, including silent-to-audio ordering; preserve an additional exact upstream copyright/reference header without treating it as complete license terms.
+- Reserve bounded execution steps durably, charge abandoned bounds once on reopening, keep exhausted tasks viewable without verification authority, and test real process-kill recovery. This is accounting/admission control, not an OS quota.
+- Add configurable 1–4 local frame workers to initial and follow-up sampling, with shared batch deadlines, single-writer publication, cancellation/draining, actual-PTS deduplication and real child-process overlap records. Cloud calls and ordered export remain sequential; no proportional speedup is claimed.
+- Add read-only frozen-task evidence capture and randomized pending A/B review material, separating private role mappings, initial proposals, human edits, unknown usage and failure records. No model request or semantic score is generated; local records remain unattested.
+- Real provider calls, model-driven semantic selection, human comparisons and the full AI demo remain unvalidated without local credentials. This candidate is not a completed AI-quality or license-compliance acceptance.
+
 ## [2.1.0] - 2026-10-14
 
 ### Added

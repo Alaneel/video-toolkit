@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "dataset_id": "video-agent-bbb-v1",
+  "frozen_on": "2026-10-16",
+  "source": {
+    "id": "big-buck-bunny-2008-640",
+    "title": "Big Buck Bunny",
+    "creator": "Blender Foundation",
+    "kind": "computer-animated short film, not live-action footage",
+    "url": "https://download.blender.org/peach/bigbuckbunny_movies/BigBuckBunny_640x360.m4v.zip",
+    "archive_name": "BigBuckBunny_640x360.m4v.zip",
+    "archive_bytes": 121284117,
+    "archive_sha256": "7118242b6728d40c871479c5b3c0f0fb27d748089df15d7f1b469f297c74a2d6",
+    "member": "BigBuckBunny_640x360.m4v",
+    "member_bytes": 121283919,
+    "member_sha256": "738e2f999860553d056dd79c952f58f63cbb73892a57c72342ce9e5330d9d2d7",
+    "license": "CC-BY-3.0",
+    "license_url": "https://creativecommons.org/licenses/by/3.0/",
+    "rights_statement": "https://peach.blender.org/about/",
+    "official_download_page": "https://peach.blender.org/download/",
+    "attribution": "(c) copyright 2008, Blender Foundation / www.bigbuckbunny.org",
+    "changes": "Excerpts are trimmed, padded to even dimensions and re-encoded. Baselines concatenate excerpts. No endorsement is implied.",
+    "observed_duration_ms": 596462,
+    "observed_streams": "H.264 640x359 at 24 fps; AAC 44100 Hz stereo"
+  },
+  "preparation": {
+    "recipe_version": "bbb-excerpt-v1",
+    "video": "H.264 libx264, CRF 20, yuv420p, 24 fps, pad to even width/height",
+    "audio": "Original source audio re-encoded as AAC, 48000 Hz stereo; no audio understanding is evaluated",
+    "note": "Source archive/member hashes are fixed. Derived bitstreams can differ between FFmpeg versions; every run records the actual tool version and derived hashes."
+  },
+  "clips": [
+    {"id": "bbb-dev-001", "split": "dev", "start_ms": 30000, "end_ms": 105000},
+    {"id": "bbb-heldout-001", "split": "heldout", "start_ms": 180000, "end_ms": 255000},
+    {"id": "bbb-heldout-002", "split": "heldout", "start_ms": 330000, "end_ms": 405000}
+  ]
+}
