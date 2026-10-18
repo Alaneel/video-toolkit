@@ -4,7 +4,7 @@ All notable changes to Video Toolkit are documented here. The project follows [S
 
 ## [Unreleased]
 
-### Local candidate: 2.2.0-rc.1 (not published)
+### Experimental source preview: 2.2.0-rc.1
 
 - Add a native Video Agent workflow for local inspection, actual-PTS samples, bounded OpenAI vision proposals, human editing, digest-bound approval and verified MP4 output.
 - Add private persisted tasks, source/output integrity checks, cancellation, deadlines, model-budget reservations and stage/shard recovery without silent overwrite.
@@ -15,7 +15,9 @@ All notable changes to Video Toolkit are documented here. The project follows [S
 - Reserve bounded execution steps durably, charge abandoned bounds once on reopening, keep exhausted tasks viewable without verification authority, and test real process-kill recovery. This is accounting/admission control, not an OS quota.
 - Add configurable 1–4 local frame workers to initial and follow-up sampling, with shared batch deadlines, single-writer publication, cancellation/draining, actual-PTS deduplication and real child-process overlap records. Cloud calls and ordered export remain sequential; no proportional speedup is claimed.
 - Add read-only frozen-task evidence capture and randomized pending A/B review material, separating private role mappings, initial proposals, human edits, unknown usage and failure records. No model request or semantic score is generated; local records remain unattested.
-- Real provider calls, model-driven semantic selection, human comparisons and the full AI demo remain unvalidated without local credentials. This candidate is not a completed AI-quality or license-compliance acceptance.
+- Migrate the user-approved default to GPT-6 Luna and retain seven genuine development calls: three legacy-model rejections, two Luna observation requests, a Luna citation rejection and a structurally validated 25-second draft. Human editing/export and semantic comparison remain pending.
+- Withdraw the first Agent source preview and correct three test-only Unix process-group signals with explicit operands, exact owned-group identity checks and cleanup before PID reaping. See [test-process safety](docs/test-process-safety.md); no affected test is skipped.
+- Publish source-only preview r2 with refreshed README/Profile presentation. Public Agent binaries remain blocked by unresolved dependency license texts; this is not a completed AI-quality or license-compliance acceptance.
 
 ## [2.1.0] - 2026-10-14
 

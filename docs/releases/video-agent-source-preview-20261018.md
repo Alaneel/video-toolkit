@@ -1,4 +1,6 @@
-# Video Agent — experimental source preview
+# Video Agent — experimental source preview r2
+
+**Safety correction:** this replaces the withdrawn first Agent preview. Do not run Unix crash tests from earlier Agent snapshots. r2 uses explicit process-group signal operands, checks the owned child's process-group identity and keeps its PID reserved until cleanup. The defect was confined to crash-test code, not the normal video-processing path. [Details](https://github.com/Alaneel/video-toolkit/blob/master/docs/test-process-safety.md). Existing Toolkit v2.1.0 releases do not contain these new Agent tests.
 
 A native Rust desktop workflow for timestamped observations, model-proposed clips, human editing and verified MP4 export. Built on the existing Video Toolkit media engine.
 

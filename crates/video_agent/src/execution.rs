@@ -552,8 +552,28 @@ mod tests {
         let live = Workspace::snapshot(workspace.task_dir()).unwrap();
         assert_eq!(live.usage.execution_reserved_ms, 3000);
         assert!(store::lock(workspace.task_dir()).is_err());
+        let worker_pid = worker.id();
+        assert!(worker_pid > 1);
+        assert_ne!(worker_pid, std::process::id());
+        let process_group_of = |pid: u32| {
+            let output = Command::new("ps")
+                .args(["-o", "pgid=", "-p", &pid.to_string()])
+                .output()
+                .unwrap();
+            assert!(
+                output.status.success(),
+                "Could not verify owned process group"
+            );
+            String::from_utf8(output.stdout)
+                .unwrap()
+                .trim()
+                .parse::<u32>()
+                .unwrap()
+        };
+        assert_eq!(process_group_of(worker_pid), worker_pid);
+        assert_ne!(process_group_of(std::process::id()), worker_pid);
         assert!(Command::new("/bin/kill")
-            .args(["-KILL", &format!("-{}", worker.id())])
+            .args(["-KILL", "--", &format!("-{worker_pid}")])
             .status()
             .unwrap()
             .success());

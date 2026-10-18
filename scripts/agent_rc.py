@@ -42,6 +42,7 @@ SOURCE_FILES = (
     "assets/video-agent/hero.svg",
     "docs/video-agent.md", "docs/video-agent-audit.zh-CN.md",
     "docs/video-agent-materials.md", "docs/video-agent-evidence.json",
+    "docs/test-process-safety.md",
     "docs/video-agent-review.zh-CN.md",
     "evals/video-agent/README.md", "evals/video-agent/dataset.json",
     "evals/video-agent/tasks.json", "evals/video-agent/result-template.json",

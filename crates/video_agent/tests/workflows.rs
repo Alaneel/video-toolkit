@@ -888,15 +888,37 @@ fn hard_kill_export_owner_then_independent_resume_reuses_verified_shard() {
         std::thread::sleep(Duration::from_millis(2));
     };
     assert!(store_lock_busy(workspace.task_dir()));
-    worker.kill().unwrap(); // SIGKILL the owner only: media may briefly be orphaned.
-    assert!(!worker.wait().unwrap().success());
+    // SIGKILL only the owner; media may briefly be orphaned. Keep its PID unreaped
+    // while checking and cleaning the owned process group.
+    worker.kill().unwrap();
+    let worker_pid = worker.id();
+    assert!(worker_pid > 1);
+    assert_ne!(worker_pid, std::process::id());
+    let process_group_of = |pid: u32| {
+        let output = Command::new("ps")
+            .args(["-o", "pgid=", "-p", &pid.to_string()])
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "Could not verify owned process group"
+        );
+        String::from_utf8(output.stdout)
+            .unwrap()
+            .trim()
+            .parse::<u32>()
+            .unwrap()
+    };
+    assert_eq!(process_group_of(worker_pid), worker_pid);
+    assert_ne!(process_group_of(std::process::id()), worker_pid);
     // The product's watchdog dies with its owner; this cleanup is test-only,
     // not evidence of an OS-enforced orphan-process runtime quota.
     let _ = Command::new("/bin/kill")
-        .args(["-KILL", &format!("-{}", worker.id())])
+        .args(["-KILL", "--", &format!("-{worker_pid}")])
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .status();
+    assert!(!worker.wait().unwrap().success());
     let stopped = Workspace::snapshot(workspace.task_dir()).unwrap();
     assert_ne!(stopped.status, TaskStatus::Completed);
     assert!(!stopped.export.as_ref().is_some_and(|e| e.verified));

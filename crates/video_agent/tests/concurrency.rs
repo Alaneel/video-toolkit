@@ -446,14 +446,35 @@ fn hard_kill_parallel_sampler_charges_one_batch_bound_and_resumes_unique_samples
         );
         std::thread::sleep(Duration::from_millis(2));
     }
-    worker.kill().unwrap(); // Only the owner is killed by this step.
-    assert!(!worker.wait().unwrap().success());
+    // Kill only the owner, keeping its PID unreaped during group verification.
+    worker.kill().unwrap();
+    let worker_pid = worker.id();
+    assert!(worker_pid > 1);
+    assert_ne!(worker_pid, std::process::id());
+    let process_group_of = |pid: u32| {
+        let output = Command::new("ps")
+            .args(["-o", "pgid=", "-p", &pid.to_string()])
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "Could not verify owned process group"
+        );
+        String::from_utf8(output.stdout)
+            .unwrap()
+            .trim()
+            .parse::<u32>()
+            .unwrap()
+    };
+    assert_eq!(process_group_of(worker_pid), worker_pid);
+    assert_ne!(process_group_of(std::process::id()), worker_pid);
     // Test-only orphan cleanup is not an application CPU/wall-time quota.
     let _ = Command::new("/bin/kill")
-        .args(["-KILL", &format!("-{}", worker.id())])
+        .args(["-KILL", "--", &format!("-{worker_pid}")])
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .status();
+    assert!(!worker.wait().unwrap().success());
     let stopped = Workspace::snapshot(workspace.task_dir()).unwrap();
     assert!(stopped.samples.len() >= 4 && stopped.samples.len() < 16);
     assert_eq!(stopped.usage.execution_reserved_ms, 10_000);

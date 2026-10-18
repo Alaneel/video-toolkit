@@ -8,7 +8,7 @@ A native Rust desktop workflow for timestamped observations, model-proposed clip
 
 [Try the Agent](#try-the-agent) · [How it works](#how-it-works) · [Evidence & limits](#evidence-not-hype) · [Toolkit downloads](https://github.com/Alaneel/video-toolkit/releases/tag/v2.1.0)
 
-**[Source preview](https://github.com/Alaneel/video-toolkit/releases/tag/agent-source-preview-20261018) · `2.2.0-rc.1`.** A real GPT-6 Luna draft has passed structural validation and awaits user-directed editing and export. Human semantic evaluation is pending; [public Agent binaries remain gated](docs/video-agent.md#dependency-notices).
+**[Source preview r2](https://github.com/Alaneel/video-toolkit/releases/tag/agent-source-preview-20261018-r2) · `2.2.0-rc.1`.** A real GPT-6 Luna draft has passed structural validation and awaits user-directed editing and export. Human semantic evaluation is pending; [public Agent binaries remain gated](docs/video-agent.md#dependency-notices).
 
 ![Real GPT-6 Luna proposal in Video Agent's native human-review interface](assets/video-agent/real-luna-review.jpg)
 
@@ -113,6 +113,8 @@ FFmpeg and ffprobe are separate runtime dependencies. GIF transparency can modif
 </details>
 
 ## Develop
+
+Use current master or preview **r2** for Unix crash tests. Earlier Agent previews were withdrawn because their test-only process-group signal could be misparsed on some Linux systems. [Testing safety correction](docs/test-process-safety.md).
 
 ```sh
 cargo fmt --all -- --check
