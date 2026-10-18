@@ -20,3 +20,7 @@ Two Linux CI attempts stopped reporting during this area and did not promptly re
 - Give Linux media validation a finite step deadline and emit fixed, path-free stage markers for the previously opaque splitter case.
 
 The fixed tests still intentionally kill their own private subprocesses. They require FFmpeg/ffprobe and permission to inspect those exact process identities. A denied identity check must stop before any group signal. That failure path has no unified subprocess-reaping guard and may leave a test child or media orphan temporarily; it is not a zero-orphan guarantee. These tests are workflow/recovery evidence, not human semantic evaluation or an OS-level resource-supervision guarantee.
+
+## Verification
+
+The corrected code at `5e5422909ae2cd557fe214796e1e8a1afc3dd3e8` passed [CI](https://github.com/Alaneel/video-toolkit/actions/runs/39093650920), including all 29 real-media tests on Linux and all three corrected crash/reopen cases. Ordinary tests passed on Linux, macOS and Windows; the three corrected crash cases were also run independently on macOS. The final r2 publication follow-up changes documentation only. Earlier stopped/cancelled runs are retained and are not counted as passes.

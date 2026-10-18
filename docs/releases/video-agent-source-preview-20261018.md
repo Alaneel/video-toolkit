@@ -18,6 +18,8 @@ On the public development excerpt, Luna made two follow-up observation requests 
 
 Native manual runs separately demonstrate editing, cancellation/reopening and actual playable exports. The first runtime-validated Agent target is macOS Apple Silicon. Other Agent platforms, a continuous real-model demonstration and heldout semantic comparisons are not established by this preview.
 
+The corrected source at `5e5422909ae2cd557fe214796e1e8a1afc3dd3e8` passed the [Linux/macOS/Windows CI checks](https://github.com/Alaneel/video-toolkit/actions/runs/39093650920), including all 29 real-media tests on Linux and the three corrected crash/recovery cases. [Four-target builds](https://github.com/Alaneel/video-toolkit/actions/runs/39093650950) also passed; the license gate correctly left zero binary artifacts. The final r2 follow-up adds documentation only, with the same tested Rust/script source. These checks are not semantic-quality evaluation or cross-platform desktop-runtime acceptance.
+
 ## Build locally
 
 Install Rust 1.87+, FFmpeg and ffprobe; ffplay enables interval playback. From this source checkout:
