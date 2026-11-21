@@ -1,32 +1,86 @@
+<div align="center">
+
+<img src="assets/readme/logo.svg" width="84" height="84" alt="Video Toolkit logo">
+
 # Video Toolkit
 
-Local-first video, audio, image, PDF, subtitle and document tools, plus direct-file and media-link downloads. The macOS desktop, CLI and MCP server share typed Rust workflow cores. The existing Video Agent and editing tools remain available in this repository.
+**Local-first media, PDF, subtitle and document tools — plus a Video Agent you stay in control of.**
 
-**Current source:** 13 media/image targets; 9 PDF operations; 8 timed subtitle formats with timing, FPS and text cleanup; text/Markdown/HTML/Word/RTF/ODT/EPUB/PDF document inputs to 6 targets; and URL downloads through curl or yt-dlp. Local conversion needs no account or network service. URL downloads connect only when requested. HEIC/HEIF photo input uses ImageMagick/libheif.
+[![CI](https://github.com/Alaneel/video-toolkit/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/Alaneel/video-toolkit/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-5b5bd6.svg)](LICENSE)
+[![Rust 1.87–1.99](https://img.shields.io/badge/rust-1.87%E2%80%931.99-111118.svg?logo=rust)](#quick-start)
+![macOS · Windows · Linux](https://img.shields.io/badge/platform-macOS%20%C2%B7%20Windows%20%C2%B7%20Linux-6e6e7a.svg)
+![Rust · egui · FFmpeg · MCP](https://img.shields.io/badge/built%20with-Rust%20%C2%B7%20egui%20%C2%B7%20FFmpeg%20%C2%B7%20MCP-6e6e7a.svg)
+
+[Features](#features) · [Quick start](#quick-start) · [Video Agent](#video-agent) · [Docs](docs/file-toolkit-architecture.md) · [Releases](https://github.com/Alaneel/video-toolkit/releases)
+
+</div>
+
+<p align="center">
+  <img src="assets/readme/convert.png" alt="The Convert page: tool search, quick-start presets, a file drop zone and a separate conversion queue" width="100%">
+</p>
+
+One native Rust app, one CLI and one MCP server, sharing the same typed workflow cores. Everything runs on your machine: no account, no upload, and every output is verified before it is marked ready.
+
+## Features
+
+| | | |
+| --- | --- | --- |
+| **🎞️ Media conversion**<br>13 video, audio and image targets, HEIC/HEIF input, folder import and a verified, cancellable queue. | **📄 PDF tools**<br>Merge, split, compress, rotate, watermark, metadata, images and text — 9 operations. | **💬 Subtitles**<br>8 timed formats with shifting, FPS conversion and tag cleanup. |
+| **📝 Documents**<br>Text, Markdown, HTML, Word, RTF, ODT, EPUB and PDF in; 6 targets out. | **⬇️ Downloads**<br>Direct files via curl, media links via yt-dlp — only when you ask. | **✂️ Editors**<br>Clip ranges, make GIFs, transparent GIF backgrounds, split and merge. |
+| **🤖 Video Agent**<br>Model-proposed rough cuts with human review and exact-plan approval. | **🧰 Automation**<br>Batches, reusable profiles, local plugins, a JSON CLI and an MCP server. | **🛡️ Safe by default**<br>Originals untouched, outputs decoded and checked, nothing overwritten. |
+
+<table>
+  <tr>
+    <td width="50%"><img src="assets/readme/tools.png" alt="File tools: the PDF studio with tool picker, drop zone, options and output"><br><sub><b>File tools</b> — PDF, subtitle, document and download studios with a shared queue.</sub></td>
+    <td width="50%"><img src="assets/readme/editors.png" alt="Editors gallery with media and document tool cards"><br><sub><b>Editors</b> — focused tools for cutting, looping and combining media.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="assets/readme/clipper.png" alt="Clip video form with source, time ranges and output sections"><br><sub><b>Clip video</b> — precise time ranges, format and codec options.</sub></td>
+    <td width="50%"><img src="assets/readme/agent-review.png" alt="Video Agent human-review step with the budget sidebar and clip editor"><br><sub><b>Video Agent</b> — review, trim and approve the exact cut before export.</sub></td>
+  </tr>
+</table>
+
+## Quick start
+
+Requires **Rust 1.87–1.99** (Rust 1.100 cannot yet compile the macOS windowing dependency; `rustup install 1.99.0` and `cargo +1.99.0 …` if needed), plus FFmpeg/ffprobe. ImageMagick 7 handles images.
 
 ```sh
-# macOS prerequisites: Rust 1.87+, FFmpeg/ffprobe, ImageMagick 7
-brew install ffmpeg imagemagick ghostscript
-./scripts/setup-file-workflows.sh                 # Private Python, PDF, Pandoc, yt-dlp runtime
-# Document → PDF also needs LibreOffice (PATH or VIDEO_TOOLKIT_SOFFICE).
-cargo build --locked
-
-./target/debug/video-toolkit                       # Convert files desktop
-./target/debug/video-toolkit doctor --json
-./target/debug/video-toolkit convert movie.mov --format mp4 --output movie.mp4
-./target/debug/video-toolkit convert one.wav two.wav --format flac --output-dir converted
-./target/debug/video-toolkit convert photo.png --format webp --output photo.webp --json
-./target/debug/video-toolkit workflows --json
-./target/debug/video-toolkit workflow pdf_merge first.pdf second.pdf --output-dir results
-./target/debug/video-toolkit workflow subtitle_convert captions.srt --output-dir results --options '{"format":"vtt"}'
-./target/debug/video-toolkit workflow document_convert notes.md --output-dir results --options '{"format":"docx"}'
-./target/debug/video-toolkit workflow download --output-dir results --options '{"url":"https://example.com/file.zip"}'
-./target/debug/video-toolkit mcp --root /absolute/path/to/media
+brew install ffmpeg imagemagick ghostscript   # macOS; see the full guide for Linux/Windows
+./scripts/setup-file-workflows.sh             # private Python runtime for PDF, Pandoc and yt-dlp
+cargo build --locked --release
+./target/release/video-toolkit                # open the desktop app
 ```
 
-The desktop has a light icon rail, searchable tools, file/URL tabs, a file/folder drop zone and a separate queue. PDF, Subtitles, Documents and Downloads each have a working parameter studio, background batch execution, per-job errors, cancellation and verified output links. Temporary files are cleaned on failure/cancellation; existing destinations are never overwritten. Media outputs are fully decoded, PDF page counts/structure are checked, and document containers are reopened before publication. A direct download preserves the downloaded bytes. Queues are currently sequential and in memory.
+Document → PDF also needs LibreOffice (on `PATH` or via `VIDEO_TOOLKIT_SOFFICE`).
 
-Document conversion preserves semantic text, headings, tables and supported local raster images, rather than original pagination or complex Word styling. Searchable PDF text can become Word/Markdown/HTML/EPUB through Documents; scanned PDFs need OCR elsewhere. Subtitle styles and animation become plain timed text. General natural-language file planning remains a future extension.
+<details>
+<summary><b>CLI and MCP examples</b></summary>
+
+```sh
+./target/release/video-toolkit                     # desktop app
+./target/release/video-toolkit doctor --json
+./target/release/video-toolkit convert movie.mov --format mp4 --output movie.mp4
+./target/release/video-toolkit convert one.wav two.wav --format flac --output-dir converted
+./target/release/video-toolkit convert photo.png --format webp --output photo.webp --json
+./target/release/video-toolkit workflows --json
+./target/release/video-toolkit workflow pdf_merge first.pdf second.pdf --output-dir results
+./target/release/video-toolkit workflow subtitle_convert captions.srt --output-dir results --options '{"format":"vtt"}'
+./target/release/video-toolkit workflow document_convert notes.md --output-dir results --options '{"format":"docx"}'
+./target/release/video-toolkit workflow download --output-dir results --options '{"url":"https://example.com/file.zip"}'
+./target/release/video-toolkit mcp --root /absolute/path/to/media
+```
+
+</details>
+
+<details>
+<summary><b>What the desktop does, and its limits</b></summary>
+
+The desktop groups Convert, File tools, Editors and the Video Agent in one sidebar, with a file/folder drop zone, searchable presets and a separate queue. PDF, Subtitles, Documents and Downloads each have a parameter studio, background batch execution, per-job errors, cancellation and verified output links. Temporary files are cleaned on failure or cancellation; existing destinations are never overwritten. Media outputs are fully decoded, PDF page counts/structure are checked, and document containers are reopened before publication. A direct download preserves the downloaded bytes. Queues are currently sequential and in memory.
+
+Document conversion preserves semantic text, headings, tables and supported local raster images, rather than original pagination or complex Word styling. Searchable PDF text can become Word/Markdown/HTML/EPUB; scanned PDFs need OCR elsewhere. Subtitle styles and animation become plain timed text. General natural-language file planning remains a future extension.
+
+</details>
 
 [Media conversion and MCP](docs/file-conversion.md) · [PDF/document workflows](docs/file-workflows.md) · [Subtitle workflows](docs/subtitle-workflows.md) · [URL downloads](docs/url-downloads.md) · [Architecture](docs/file-toolkit-architecture.md) · [Feature comparison](docs/feature-comparison.md)
 
@@ -50,7 +104,7 @@ A native Rust desktop workflow for timestamped observations, model-proposed clip
 
 ## Try the Agent
 
-From this candidate checkout, with **Rust 1.87+**, FFmpeg and ffprobe installed; ffplay enables interval playback:
+From this candidate checkout, with **Rust 1.87–1.99**, FFmpeg and ffprobe installed; ffplay enables interval playback:
 
 ```sh
 cargo build --locked --release
@@ -60,6 +114,10 @@ cargo build --locked --release
 Choose local footage, describe the desired cut and generate a storyboard. The **Manual workflow — no AI** path lets you explore editing and export without credentials. For model proposals, configure a private local API key and explicitly consent to sharing the sampled frames. Never put a key in this repository or a task file.
 
 [Setup, credentials and platform requirements](docs/video-agent.md#run-the-desktop-application) · [Cloud-data boundary](docs/video-agent.md#use-the-native-workflow)
+
+![The Video Agent's observed-frames step: sampled evidence frames, the cloud-consent boundary and the budget sidebar](assets/readme/agent-observe.jpg)
+
+<sub>Current interface with a local manual draft and zero model calls. Footage: (c) copyright 2008, Blender Foundation / www.bigbuckbunny.org, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).</sub>
 
 The first runtime-validated Agent target is **macOS Apple Silicon**. The legacy Toolkit's release matrix does not establish Agent support on other platforms. The default vision model is **GPT-6 Luna**; the [provider guide](docs/video-agent.md#configure-the-one-real-provider) documents its local estimates and the deprecated legacy-model option.
 
@@ -154,7 +212,7 @@ The existing desktop app and CLI remain available: clip recordings, replace audi
 ```
 
 <details>
-<summary>See the existing Toolkit interface and processing crates</summary>
+<summary>See the Toolkit interface and processing crates</summary>
 
 ![Video Toolkit desktop interface](assets/video-toolkit-ui.png)
 

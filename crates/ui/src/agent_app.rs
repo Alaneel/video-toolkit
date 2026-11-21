@@ -122,7 +122,7 @@ impl VideoAgentApp {
         };
         app.refresh_provider();
         if let Some(path) = workspace {
-            app.resume_path = path.display().to_string();
+            app.resume_path = theme::display_path(&path);
             app.open_workspace(path);
         }
         app
@@ -209,7 +209,7 @@ impl VideoAgentApp {
             self.smart_upload_consent = false;
             self.smart_report = None;
         }
-        self.resume_path = path.display().to_string();
+        self.resume_path = theme::display_path(&path);
         self.task_dir = Some(path);
         self.intent = task.intent.clone();
         self.target_seconds = task.target_duration_ms / 1000;
@@ -744,14 +744,14 @@ impl VideoAgentApp {
                     ui.horizontal(|ui| {
                         if ui.add(theme::secondary_button("Browse…")).clicked() {
                             if let Some(path) = rfd::FileDialog::new().set_title("Choose saved Video Agent task").pick_folder() {
-                                self.resume_path = path.display().to_string();
+                                self.resume_path = theme::display_path(&path);
                             }
                         }
                         if ui.add_enabled(!self.resume_path.trim().is_empty(), theme::primary_button("Open task")).clicked() {
                             if self.dirty {
                                 self.error = Some("Save or discard your unsaved plan edits before opening another task.".into());
                             } else {
-                                self.open_workspace(PathBuf::from(self.resume_path.trim()));
+                                self.open_workspace(theme::expand_home(self.resume_path.trim()));
                             }
                         }
                     });

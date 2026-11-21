@@ -1,6 +1,6 @@
 # Local file conversion
 
-This unreleased extension lives inside the existing Video Toolkit Rust workspace. Start the desktop with `cargo run --locked`, or use its `convert`, `doctor` and `mcp` commands. macOS Apple Silicon is the local validation target. Rust 1.87+, FFmpeg/ffprobe and ImageMagick **7** (`magick`) are required for the corresponding conversion types. No dependencies are bundled or downloaded by the app. `doctor --json` reports executable discovery, not a guarantee that every codec is installed.
+This unreleased extension lives inside the existing Video Toolkit Rust workspace. Start the desktop with `cargo run --locked`, or use its `convert`, `doctor` and `mcp` commands. macOS Apple Silicon is the local validation target. Rust 1.87–1.99 (Rust 1.100 cannot yet compile the macOS `objc2` 0.3 beta used by eframe 0.24; CI pins 1.99.0), FFmpeg/ffprobe and ImageMagick **7** (`magick`) are required for the corresponding conversion types. No dependencies are bundled or downloaded by the app. `doctor --json` reports executable discovery, not a guarantee that every codec is installed.
 
 ## Desktop
 

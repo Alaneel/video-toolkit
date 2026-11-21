@@ -1,20 +1,39 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="300" viewBox="0 0 1280 300" role="img" aria-labelledby="title desc">
   <title id="title">Video Agent — a cut you control</title>
   <desc id="desc">A bounded workflow from timestamped observations and model proposals through human review and exact-plan approval to verified media.</desc>
-  <rect x="1" y="1" width="1278" height="298" rx="20" fill="#131821" stroke="#304152"/>
-  <path d="M48 43h28" stroke="#64d0b8" stroke-width="4" stroke-linecap="round"/>
-  <text x="92" y="49" font-family="Arial,Helvetica,sans-serif" font-size="15" letter-spacing="2.5" fill="#a5b3c6">LOCAL FOOTAGE. BOUNDED INTELLIGENCE.</text>
-  <text x="46" y="119" font-family="Arial,Helvetica,sans-serif" font-size="58" font-weight="700" letter-spacing="-1.5" fill="#edf4fb">Video Agent</text>
-  <text x="48" y="164" font-family="Arial,Helvetica,sans-serif" font-size="27" fill="#a5b3c6">From sampled frames to a cut you control.</text>
-  <g fill="#1b2633" stroke="#3a5365">
-    <rect x="48" y="207" width="208" height="48" rx="10"/><rect x="292" y="207" width="208" height="48" rx="10"/>
-    <rect x="536" y="207" width="208" height="48" rx="10"/><rect x="780" y="207" width="208" height="48" rx="10"/>
-    <rect x="1024" y="207" width="208" height="48" rx="10"/>
+  <rect x="1" y="1" width="1278" height="298" rx="20" fill="#f5f5f7" stroke="#e6e6eb" stroke-width="2"/>
+  <rect x="46" y="34" width="34" height="34" rx="10" fill="#efeffd"/>
+  <path d="M63 40 l3.4 8.6 8.6 3.4 -8.6 3.4 -3.4 8.6 -3.4 -8.6 -8.6 -3.4 8.6 -3.4z" fill="none" stroke="#5b5bd6" stroke-width="2.2" stroke-linejoin="round"/>
+  <text x="94" y="57" font-family="'DM Sans',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="14" font-weight="600" letter-spacing="2" fill="#6e6e7a">LOCAL FOOTAGE · BOUNDED INTELLIGENCE</text>
+  <text x="46" y="130" font-family="'DM Sans',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="56" font-weight="700" letter-spacing="-1.5" fill="#111118">Video Agent</text>
+  <text x="48" y="172" font-family="'DM Sans',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="24" fill="#3f3f4a">From sampled frames to a cut you control.</text>
+  <text x="1232" y="57" text-anchor="end" font-family="'DM Sans',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="14" font-weight="600" letter-spacing="1.5" fill="#5b5bd6">RUST · NATIVE DESKTOP · FFMPEG</text>
+  <path d="M256 238h36m208 0h36m208 0h36m208 0h36" stroke="#c9cbf5" stroke-width="2"/>
+  <g font-family="'DM Sans',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="15" font-weight="600">
+    <g>
+      <rect x="48" y="214" width="208" height="48" rx="12" fill="#ffffff" stroke="#e6e6eb"/>
+      <circle cx="74" cy="238" r="11" fill="#efeffd"/><text x="74" y="243" text-anchor="middle" font-size="12" fill="#5b5bd6">1</text>
+      <text x="94" y="243" fill="#111118">Observe</text>
+    </g>
+    <g>
+      <rect x="292" y="214" width="208" height="48" rx="12" fill="#ffffff" stroke="#e6e6eb"/>
+      <circle cx="318" cy="238" r="11" fill="#efeffd"/><text x="318" y="243" text-anchor="middle" font-size="12" fill="#5b5bd6">2</text>
+      <text x="338" y="243" fill="#111118">Propose</text>
+    </g>
+    <g>
+      <rect x="536" y="214" width="208" height="48" rx="12" fill="#ffffff" stroke="#e6e6eb"/>
+      <circle cx="562" cy="238" r="11" fill="#efeffd"/><text x="562" y="243" text-anchor="middle" font-size="12" fill="#5b5bd6">3</text>
+      <text x="582" y="243" fill="#111118">Human review</text>
+    </g>
+    <g>
+      <rect x="780" y="214" width="208" height="48" rx="12" fill="#ffffff" stroke="#e6e6eb"/>
+      <circle cx="806" cy="238" r="11" fill="#efeffd"/><text x="806" y="243" text-anchor="middle" font-size="12" fill="#5b5bd6">4</text>
+      <text x="826" y="243" fill="#111118">Approve exact plan</text>
+    </g>
+    <g>
+      <rect x="1024" y="214" width="208" height="48" rx="12" fill="#5b5bd6"/>
+      <circle cx="1050" cy="238" r="11" fill="#ffffff"/><text x="1050" y="243" text-anchor="middle" font-size="12" fill="#5b5bd6">5</text>
+      <text x="1070" y="243" fill="#ffffff">Verified MP4</text>
+    </g>
   </g>
-  <path d="M264 231h20m224 0h20m224 0h20m224 0h20" stroke="#64d0b8" stroke-width="2"/>
-  <g font-family="Arial,Helvetica,sans-serif" font-size="15" letter-spacing="2" text-anchor="middle" fill="#edf4fb">
-    <text x="152" y="237">OBSERVE</text><text x="396" y="237">PROPOSE</text><text x="640" y="237">REVIEW</text>
-    <text x="884" y="237">APPROVE</text><text x="1128" y="237">VERIFY</text>
-  </g>
-  <text x="1230" y="120" text-anchor="end" font-family="Arial,Helvetica,sans-serif" font-size="16" letter-spacing="1" fill="#64d0b8">RUST / NATIVE DESKTOP / FFMPEG</text>
 </svg>
