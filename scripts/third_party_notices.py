@@ -364,11 +364,22 @@ def verify_release_source_match(package: dict, locked_checksum: str, entry: dict
     return proof, licenses
 
 
-def verify_current_gap_views(manifest: dict, completed: set[tuple[str, str]]) -> int:
+def verify_current_gap_views(manifest: dict, completed: set[tuple[str, str]],
+                             shipped: set[tuple[str, str]] | None = None) -> int:
+    """Check current gaps against preserved history.
+
+    A historical gap is accounted for when its text was recovered (`completed`)
+    or when that exact crate version is no longer in the shipped dependency
+    closure (`shipped`). Retired gaps keep their history but need no re-proof.
+    """
     historical = manifest.get("historical_unresolved_review")
     if historical is None:
         return len(manifest.get("unresolved_review", {}).get("items", []))
     original = {(item["crate"], item["version"]) for item in historical["items"]}
+    retired = original - shipped if shipped is not None else set()
+    if completed & retired:
+        raise NoticeError("A gap cannot be both completed and retired")
+    completed = completed | retired
     remaining = original - completed
     current = {(item["crate"], item["version"]) for item in manifest["unresolved_review"]["items"]}
     cached = manifest["cached_source_review"]
@@ -729,7 +740,8 @@ def collect(target: str) -> tuple[bytes, dict]:
         inventory.append("\n".join(lines))
 
     if manifest:
-        verify_current_gap_views(manifest, completed_release_matches)
+        shipped = {(package["name"], package["version"]) for package in packages}
+        verify_current_gap_views(manifest, completed_release_matches, shipped)
 
     version = command(["rustc", "--version"]).decode("utf-8").strip()
     sysroot = Path(command(["rustc", "--print", "sysroot"]).decode("utf-8").strip())

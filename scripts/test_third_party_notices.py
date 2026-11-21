@@ -44,10 +44,14 @@ class SourceHeaderNoticeTests(unittest.TestCase):
         self.assertEqual(notices.original_comment_header(
             original + b"\n//! program docs must not be copied\nfn code_must_not_be_copied() {}\n"), original)
         locked = tomllib.loads((notices.ROOT / "Cargo.lock").read_text("utf-8"))
-        package = next(package for package in locked["package"]
-                       if package["name"] == descriptor["crate"]
-                       and package["version"] == descriptor["version"])
-        self.assertEqual(descriptor["package_sha256"], package["checksum"])
+        package = next((package for package in locked["package"]
+                        if package["name"] == descriptor["crate"]
+                        and package["version"] == descriptor["version"]), None)
+        # The reviewed crate may be retired from the dependency graph; its
+        # historical header record is kept, so only cross-check a locked copy.
+        if package is not None:
+            self.assertEqual(descriptor["package_sha256"], package["checksum"])
+        checksum = descriptor["package_sha256"]
         source_review = next(item for item in review["items"]
                              if item["crate"] == descriptor["crate"])
         source = next(source for source in source_review["source_files"]
@@ -61,7 +65,7 @@ class SourceHeaderNoticeTests(unittest.TestCase):
             dict(descriptor, resolves_full_license_gap=True),
         ):
             with self.assertRaisesRegex(notices.NoticeError, "must not masquerade"):
-                notices.verify_source_notice(Path("."), package["checksum"], invalid)
+                notices.verify_source_notice(Path("."), checksum, invalid)
 
 
 class WorkspaceFontNoticeTests(unittest.TestCase):
@@ -179,8 +183,11 @@ class OfficialReleaseSourceMatchTests(unittest.TestCase):
         cls.metadata = json.loads(notices.command([
             "cargo", "metadata", "--format-version", "1", "--locked", "--offline",
             "--filter-platform", "aarch64-apple-darwin"]))
-        cls.actual_package = next(package for package in notices.dependency_closure(cls.metadata)
-                                  if (package["name"], package["version"]) == notices.RELEASE_MATCH_KEY)
+        cls.actual_package = next((package for package in notices.dependency_closure(cls.metadata)
+                                   if (package["name"], package["version"]) == notices.RELEASE_MATCH_KEY), None)
+        if cls.actual_package is None:
+            raise unittest.SkipTest("system-configuration-sys 0.5.0 is no longer shipped; its historical "
+                                    "source match is preserved but not re-verified (see RetiredGapTests)")
         base = Path(cls.actual_package["manifest_path"]).parent
         cls.archive_bytes = (base.parent.parent.parent / "cache" / base.parent.name
                              / "system-configuration-sys-0.5.0.crate").read_bytes()
@@ -428,6 +435,43 @@ class OfficialReleaseSourceMatchTests(unittest.TestCase):
         self.assertIn(b"UNRESOLVED ITEMS (5)", output)
         self.assertIn(b"official_release_source_match", output)
         self.assertIn(b"NOT the packaged VCS commit; unsigned", output)
+
+
+class RetiredGapTests(unittest.TestCase):
+    """A historical gap for a crate no longer shipped is retired, not unresolved."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.manifest = json.loads((notices.SUPPLEMENT_ROOT / "manifest.json").read_text("utf-8"))
+        locked = tomllib.loads((notices.ROOT / "Cargo.lock").read_text("utf-8"))
+        cls.locked = {(package["name"], package["version"]) for package in locked["package"]}
+        cls.historical = {(item["crate"], item["version"])
+                          for item in cls.manifest["historical_unresolved_review"]["items"]}
+
+    def test_retired_release_match_accounts_for_its_historical_gap(self):
+        self.assertNotIn(notices.RELEASE_MATCH_KEY, self.locked)
+        shipped = self.locked | (self.historical - {notices.RELEASE_MATCH_KEY})
+        manifest = copy.deepcopy(self.manifest)
+        self.assertEqual(notices.verify_current_gap_views(manifest, set(), shipped), 5)
+        # History is untouched.
+        self.assertEqual(manifest, self.manifest)
+
+    def test_completed_and_retired_together_is_rejected(self):
+        shipped = self.historical - {notices.RELEASE_MATCH_KEY}
+        with self.assertRaisesRegex(notices.NoticeError, "both completed and retired"):
+            notices.verify_current_gap_views(copy.deepcopy(self.manifest), {notices.RELEASE_MATCH_KEY}, shipped)
+
+    def test_shipped_gap_cannot_be_silently_dropped(self):
+        # If the crate were shipped again, its gap needs the verified completion.
+        with self.assertRaisesRegex(notices.NoticeError, "preserved history"):
+            notices.verify_current_gap_views(copy.deepcopy(self.manifest), set(), set(self.historical))
+
+    @unittest.skipUnless(os.name == "posix", "Collection reads sources with POSIX no-follow access")
+    def test_collect_reports_five_gaps_without_retired_crates(self):
+        output, summary = notices.collect("aarch64-apple-darwin")
+        self.assertEqual(summary["unresolved"], 5)
+        self.assertIn(b"UNRESOLVED ITEMS (5)", output)
+        self.assertNotIn(b"CRATE system-configuration", output)
 
 
 if __name__ == "__main__":
