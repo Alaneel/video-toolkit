@@ -133,7 +133,7 @@ impl PluginsTab {
                                     theme::SUNKEN
                                 })
                                 .stroke(egui::Stroke::new(
-                                    1.0,
+                                    1.0_f32,
                                     if is_selected {
                                         theme::ACCENT_LINE
                                     } else {

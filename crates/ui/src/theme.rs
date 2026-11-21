@@ -212,11 +212,11 @@ pub fn configure(ctx: &egui::Context) {
     v.warn_fg_color = WARNING;
     v.error_fg_color = DANGER;
     v.selection.bg_fill = Color32::from_rgb(224, 224, 250);
-    v.selection.stroke = Stroke::new(1.0, ACCENT);
-    v.text_cursor = Stroke::new(1.5, ACCENT);
+    v.selection.stroke = Stroke::new(1.0_f32, ACCENT);
+    v.text_cursor = Stroke::new(1.5_f32, ACCENT);
     v.window_rounding = RADIUS_LG.into();
     v.menu_rounding = RADIUS.into();
-    v.window_stroke = Stroke::new(1.0, LINE);
+    v.window_stroke = Stroke::new(1.0_f32, LINE);
     v.window_shadow = egui::epaint::Shadow {
         extrusion: 18.0,
         color: Color32::from_black_alpha(22),
@@ -232,35 +232,35 @@ pub fn configure(ctx: &egui::Context) {
     let w = &mut v.widgets;
     w.noninteractive.bg_fill = SURFACE;
     w.noninteractive.weak_bg_fill = SURFACE;
-    w.noninteractive.bg_stroke = Stroke::new(1.0, LINE);
-    w.noninteractive.fg_stroke = Stroke::new(1.0, TEXT);
+    w.noninteractive.bg_stroke = Stroke::new(1.0_f32, LINE);
+    w.noninteractive.fg_stroke = Stroke::new(1.0_f32, TEXT);
     w.noninteractive.rounding = RADIUS.into();
 
     w.inactive.bg_fill = SUNKEN;
     w.inactive.weak_bg_fill = SURFACE;
-    w.inactive.bg_stroke = Stroke::new(1.0, LINE_STRONG);
-    w.inactive.fg_stroke = Stroke::new(1.0, TEXT_2);
+    w.inactive.bg_stroke = Stroke::new(1.0_f32, LINE_STRONG);
+    w.inactive.fg_stroke = Stroke::new(1.0_f32, TEXT_2);
     w.inactive.rounding = RADIUS.into();
     w.inactive.expansion = 0.0;
 
     w.hovered.bg_fill = HOVER;
     w.hovered.weak_bg_fill = SUNKEN;
-    w.hovered.bg_stroke = Stroke::new(1.0, Color32::from_rgb(190, 190, 202));
-    w.hovered.fg_stroke = Stroke::new(1.5, TEXT);
+    w.hovered.bg_stroke = Stroke::new(1.0_f32, Color32::from_rgb(190, 190, 202));
+    w.hovered.fg_stroke = Stroke::new(1.5_f32, TEXT);
     w.hovered.rounding = RADIUS.into();
     w.hovered.expansion = 0.0;
 
     w.active.bg_fill = HOVER;
     w.active.weak_bg_fill = HOVER;
-    w.active.bg_stroke = Stroke::new(1.0, ACCENT);
-    w.active.fg_stroke = Stroke::new(1.5, TEXT);
+    w.active.bg_stroke = Stroke::new(1.0_f32, ACCENT);
+    w.active.fg_stroke = Stroke::new(1.5_f32, TEXT);
     w.active.rounding = RADIUS.into();
     w.active.expansion = 0.0;
 
     w.open.bg_fill = SURFACE;
     w.open.weak_bg_fill = SUNKEN;
-    w.open.bg_stroke = Stroke::new(1.0, ACCENT_LINE);
-    w.open.fg_stroke = Stroke::new(1.0, TEXT);
+    w.open.bg_stroke = Stroke::new(1.0_f32, ACCENT_LINE);
+    w.open.fg_stroke = Stroke::new(1.0_f32, TEXT);
     w.open.rounding = RADIUS.into();
 
     ctx.set_style(style);
@@ -285,7 +285,7 @@ pub fn primary_button(text: impl Into<String>) -> egui::Button<'static> {
 pub fn secondary_button(text: impl Into<String>) -> egui::Button<'static> {
     egui::Button::new(RichText::new(text.into()).font(semibold(13.5)).color(TEXT))
         .fill(SURFACE)
-        .stroke(Stroke::new(1.0, LINE_STRONG))
+        .stroke(Stroke::new(1.0_f32, LINE_STRONG))
         .rounding(RADIUS)
         .min_size(vec2(0.0, CONTROL_HEIGHT))
 }
@@ -298,7 +298,7 @@ pub fn small_button(text: impl Into<String>) -> egui::Button<'static> {
             .color(TEXT_2),
     )
     .fill(SURFACE)
-    .stroke(Stroke::new(1.0, LINE))
+    .stroke(Stroke::new(1.0_f32, LINE))
     .rounding(RADIUS_SM)
     .min_size(vec2(0.0, 26.0))
 }
@@ -319,7 +319,7 @@ pub fn danger_button(text: impl Into<String>) -> egui::Button<'static> {
             .color(DANGER),
     )
     .fill(SURFACE)
-    .stroke(Stroke::new(1.0, Color32::from_rgb(252, 202, 202)))
+    .stroke(Stroke::new(1.0_f32, Color32::from_rgb(252, 202, 202)))
     .rounding(RADIUS)
     .min_size(vec2(0.0, CONTROL_HEIGHT))
 }
@@ -354,7 +354,7 @@ pub fn segmented(ui: &mut Ui, selected: usize, labels: &[&str]) -> Option<usize>
                     )
                     .fill(if on { SURFACE } else { Color32::TRANSPARENT })
                     .stroke(if on {
-                        Stroke::new(1.0, LINE)
+                        Stroke::new(1.0_f32, LINE)
                     } else {
                         Stroke::NONE
                     })
@@ -387,7 +387,7 @@ pub fn chip(ui: &mut Ui, text: &str, selected: bool, dot: Option<Color32>) -> Re
         (SURFACE, LINE, TEXT_2)
     };
     let painter = ui.painter();
-    painter.rect(rect, 14.0, fill, Stroke::new(1.0, stroke));
+    painter.rect(rect, 14.0, fill, Stroke::new(1.0_f32, stroke));
     let mut x = rect.left() + 11.0;
     if let Some(dot) = dot {
         painter.circle_filled(pos2(x + 3.5, rect.center().y), 3.5, dot);
@@ -467,7 +467,7 @@ pub fn hint(ui: &mut Ui, text: &str) {
 pub fn card() -> Frame {
     Frame::none()
         .fill(SURFACE)
-        .stroke(Stroke::new(1.0, LINE))
+        .stroke(Stroke::new(1.0_f32, LINE))
         .rounding(RADIUS_LG)
         .inner_margin(Margin::same(20.0))
 }
@@ -476,7 +476,7 @@ pub fn card() -> Frame {
 pub fn well() -> Frame {
     Frame::none()
         .fill(SUNKEN)
-        .stroke(Stroke::new(1.0, LINE))
+        .stroke(Stroke::new(1.0_f32, LINE))
         .rounding(RADIUS)
         .inner_margin(Margin::same(14.0))
 }
@@ -532,7 +532,7 @@ pub fn page_header(ui: &mut Ui, trail: Option<&str>, title: &str, description: &
                         response.rect.left_bottom() + vec2(0.0, 1.0),
                         response.rect.right_bottom() + vec2(0.0, 1.0),
                     ],
-                    Stroke::new(1.0, MUTED),
+                    Stroke::new(1.0_f32, MUTED),
                 );
             }
             back = response.clicked();
@@ -622,7 +622,7 @@ pub fn empty_state(ui: &mut Ui, kind: Icon, title: &str, body: &str) {
     ui.vertical_centered(|ui| {
         let (rect, _) = ui.allocate_exact_size(vec2(52.0, 52.0), Sense::hover());
         ui.painter()
-            .rect(rect, 14.0, SUNKEN, Stroke::new(1.0, LINE));
+            .rect(rect, 14.0, SUNKEN, Stroke::new(1.0_f32, LINE));
         paint_icon(ui.painter(), rect.shrink(15.0), kind, FAINT);
         ui.add_space(4.0);
         ui.label(RichText::new(title).font(semibold(14.0)).color(TEXT));

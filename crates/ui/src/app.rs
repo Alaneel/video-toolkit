@@ -288,7 +288,7 @@ impl VideoToolKitApp {
         };
         let response = egui::Frame::none()
             .fill(SURFACE)
-            .stroke(Stroke::new(1.0, LINE))
+            .stroke(Stroke::new(1.0_f32, LINE))
             .rounding(theme::RADIUS + 2.0)
             .inner_margin(egui::Margin::symmetric(12.0, 9.0))
             .show(ui, |ui| {
@@ -683,7 +683,7 @@ impl eframe::App for VideoToolKitApp {
                 egui::Frame::none()
                     .fill(BG)
                     .inner_margin(egui::Margin::symmetric(14.0, 18.0))
-                    .stroke(Stroke::new(1.0, LINE)),
+                    .stroke(Stroke::new(1.0_f32, LINE)),
             )
             .show(ctx, |ui| self.sidebar(ui));
         egui::TopBottomPanel::bottom("status")
@@ -691,7 +691,7 @@ impl eframe::App for VideoToolKitApp {
             .frame(
                 egui::Frame::none()
                     .fill(SURFACE)
-                    .stroke(Stroke::new(1.0, LINE))
+                    .stroke(Stroke::new(1.0_f32, LINE))
                     .inner_margin(egui::Margin::symmetric(20.0, 7.0)),
             )
             .show(ctx, |ui| self.status_bar(ui));
@@ -727,7 +727,7 @@ fn nav_item(ui: &mut egui::Ui, symbol: Icon, label: &str, selected: bool) -> boo
     let painter = ui.painter();
     if selected {
         theme::paint_shadow(painter, rect, theme::RADIUS);
-        painter.rect(rect, theme::RADIUS, SURFACE, Stroke::new(1.0, LINE));
+        painter.rect(rect, theme::RADIUS, SURFACE, Stroke::new(1.0_f32, LINE));
     } else if response.hovered() {
         painter.rect_filled(rect, theme::RADIUS, HOVER);
     }
@@ -774,7 +774,7 @@ fn tool_card(
     let frame = egui::Frame::none()
         .fill(SURFACE)
         .stroke(Stroke::new(
-            1.0,
+            1.0_f32,
             if hovered > 0.0 {
                 theme::LINE_STRONG
             } else {

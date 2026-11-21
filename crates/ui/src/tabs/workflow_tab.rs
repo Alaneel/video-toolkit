@@ -674,7 +674,7 @@ impl WorkflowTab {
                 rect.shrink(0.5),
                 theme::RADIUS_LG,
                 egui::Stroke::new(
-                    1.2,
+                    1.2_f32,
                     if hovered {
                         theme::ACCENT
                     } else {
@@ -687,7 +687,7 @@ impl WorkflowTab {
                 egui::vec2(40.0, 40.0),
             );
             theme::paint_shadow(painter, tile, 11.0);
-            painter.rect(tile, 11.0, SURFACE, egui::Stroke::new(1.0, LINE));
+            painter.rect(tile, 11.0, SURFACE, egui::Stroke::new(1.0_f32, LINE));
             theme::paint_icon(
                 painter,
                 tile.shrink(11.0),
@@ -1211,7 +1211,7 @@ impl WorkflowTab {
     fn queue_ui(&mut self, ui: &mut Ui, height: f32) {
         egui::Frame::none()
             .fill(theme::SUNKEN)
-            .stroke(egui::Stroke::new(1.0, LINE))
+            .stroke(egui::Stroke::new(1.0_f32, LINE))
             .rounding(theme::RADIUS_LG)
             .inner_margin(18.0)
             .show(ui, |ui| {

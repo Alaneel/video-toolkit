@@ -396,7 +396,7 @@ impl ConvertTab {
         let search = egui::Frame::none()
             .fill(SURFACE)
             .stroke(egui::Stroke::new(
-                1.0,
+                1.0_f32,
                 if focused { ACCENT } else { LINE_STRONG },
             ))
             .rounding(theme::RADIUS_LG)
@@ -451,7 +451,7 @@ impl ConvertTab {
                     egui::pos2(rect.center().x, rect.top() + 7.0),
                     egui::pos2(rect.center().x, rect.bottom() - 7.0),
                 ],
-                egui::Stroke::new(1.0, LINE),
+                egui::Stroke::new(1.0_f32, LINE),
             );
             for studio in [Studio::Pdf, Studio::Subtitles, Studio::Documents] {
                 if theme::chip(ui, studio.title(), false, Some(studio.color()))
@@ -558,7 +558,7 @@ impl ConvertTab {
             painter,
             rect.shrink(0.5),
             theme::RADIUS_LG,
-            egui::Stroke::new(1.2, if hovered { ACCENT } else { LINE_STRONG }),
+            egui::Stroke::new(1.2_f32, if hovered { ACCENT } else { LINE_STRONG }),
         );
         draw_drop_art(painter, egui::pos2(rect.center().x, rect.top() + 54.0));
         painter.text(
@@ -938,7 +938,7 @@ impl ConvertTab {
         let mut open_error = None;
         egui::Frame::none()
             .fill(SUNKEN)
-            .stroke(egui::Stroke::new(1.0, LINE))
+            .stroke(egui::Stroke::new(1.0_f32, LINE))
             .rounding(theme::RADIUS_LG)
             .inner_margin(18.0)
             .show(ui, |ui| {
@@ -1146,11 +1146,11 @@ fn quick_card(
         .data(|data| data.get_temp::<bool>(id))
         .unwrap_or(false);
     let (fill, stroke) = if selected {
-        (SURFACE, egui::Stroke::new(1.5, ACCENT))
+        (SURFACE, egui::Stroke::new(1.5_f32, ACCENT))
     } else if hovered {
-        (SUNKEN, egui::Stroke::new(1.0, LINE_STRONG))
+        (SUNKEN, egui::Stroke::new(1.0_f32, LINE_STRONG))
     } else {
-        (SURFACE, egui::Stroke::new(1.0, LINE))
+        (SURFACE, egui::Stroke::new(1.0_f32, LINE))
     };
     let response = egui::Frame::none()
         .fill(fill)
@@ -1261,7 +1261,7 @@ fn draw_drop_art(painter: &egui::Painter, center: egui::Pos2) {
         let tile =
             egui::Rect::from_center_size(center + egui::vec2(offset, lift), egui::vec2(40.0, 40.0));
         theme::paint_shadow(painter, tile, 11.0);
-        painter.rect(tile, 11.0, SURFACE, egui::Stroke::new(1.0, LINE));
+        painter.rect(tile, 11.0, SURFACE, egui::Stroke::new(1.0_f32, LINE));
         theme::paint_icon(painter, tile.shrink(11.0), kind, color);
     }
 }

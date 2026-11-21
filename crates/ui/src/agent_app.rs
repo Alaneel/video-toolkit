@@ -528,7 +528,7 @@ impl VideoAgentApp {
             .frame(
                 egui::Frame::none()
                     .fill(theme::SURFACE)
-                    .stroke(egui::Stroke::new(1.0, theme::LINE))
+                    .stroke(egui::Stroke::new(1.0_f32, theme::LINE))
                     .inner_margin(egui::Margin {
                         left: 20.0,
                         right: 20.0,
@@ -603,7 +603,7 @@ impl VideoAgentApp {
                         egui::pos2(rect.right() - 4.0, rect.center().y),
                     ],
                     egui::Stroke::new(
-                        1.0,
+                        1.0_f32,
                         if index <= current {
                             theme::ACCENT_LINE
                         } else {
@@ -642,7 +642,7 @@ impl VideoAgentApp {
             } else {
                 (theme::SURFACE, theme::LINE, theme::FAINT)
             };
-            painter.circle(center, 10.0, fill, egui::Stroke::new(1.0, stroke));
+            painter.circle(center, 10.0, fill, egui::Stroke::new(1.0_f32, stroke));
             painter.text(
                 center,
                 egui::Align2::CENTER_CENTER,
@@ -682,7 +682,7 @@ impl VideoAgentApp {
             .frame(
                 egui::Frame::none()
                     .fill(theme::BG)
-                    .stroke(egui::Stroke::new(1.0, theme::LINE))
+                    .stroke(egui::Stroke::new(1.0_f32, theme::LINE))
                     .inner_margin(egui::Margin::symmetric(16.0, 0.0)),
             )
             .show(ctx, |ui| {
@@ -1657,7 +1657,7 @@ impl eframe::App for VideoAgentApp {
             .frame(
                 egui::Frame::none()
                     .fill(theme::SURFACE)
-                    .stroke(egui::Stroke::new(1.0, theme::LINE))
+                    .stroke(egui::Stroke::new(1.0_f32, theme::LINE))
                     .inner_margin(egui::Margin::symmetric(20.0, 6.0)),
             )
             .show(ctx, |ui| {
@@ -1688,7 +1688,7 @@ impl eframe::App for VideoAgentApp {
               egui::Frame::none().inner_margin(egui::Margin { left: 36.0, right: 36.0, top: 28.0, bottom: 28.0 }).show(ui, |ui| {
                theme::constrained(ui, 1080.0, |ui| {
                 if let Some(error) = self.error.clone() {
-                    egui::Frame::none().fill(theme::DANGER_SOFT).stroke(egui::Stroke::new(1.0, egui::Color32::from_rgb(252, 202, 202))).rounding(theme::RADIUS).inner_margin(12.0).show(ui, |ui| {
+                    egui::Frame::none().fill(theme::DANGER_SOFT).stroke(egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(252, 202, 202))).rounding(theme::RADIUS).inner_margin(12.0).show(ui, |ui| {
                         ui.set_width(ui.available_width());
                         ui.horizontal_wrapped(|ui| {
                             ui.label(RichText::new(error).color(ERROR));
