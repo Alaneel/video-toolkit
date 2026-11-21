@@ -90,6 +90,32 @@ Offline tests use deliberately inert temporary files and synthetic production-sh
 python3 -m unittest discover -s evals/video-agent -p 'test_*.py' -v
 ```
 
+## Separate review of the published human-edited final output
+
+The existing 20-second rabbit demonstration can be handed to a human without
+pretending it is the untouched model proposal. On a POSIX host (macOS/Linux), use
+an existing, non-symlink parent and a destination that does not yet exist:
+
+```sh
+python3 evals/video-agent/final_review.py \
+  --output-dir /private/tmp/video-agent-final-output-review
+```
+
+This offline helper pins the public video, frozen development intent, attribution
+and published edit record by exact size/SHA256. It creates only the byte-identical
+video, original attribution, instructions and an all-null review form. It reads no
+private task and runs no model or media tool. Its explicit kind is
+`human_edited_final_output_review`: **not initial-proposal A/B, not blind, not
+heldout and not benchmark acceptance**. Historical probe/recipe fields are copied
+as historical records, not rerun validation.
+
+The human may assess final-output relevance and irrelevant output intervals.
+Source omissions, reason faithfulness and baseline preference must remain null:
+the complete input, original observations/reasons and baseline are not in this
+package. Keep the original blank form and return a separately saved completed
+copy. The helper neither generates/imports scores nor updates `results/status.json`;
+this review does not replace the frozen initial-proposal comparison below.
+
 ## Human comparison rubric
 
 Randomize candidate names and order before review. The reviewer first watches both exports without model explanations. Rate relevance from 0 (no requested content) to 4 (nearly all selected content clearly matches the intent), noting approximate irrelevant seconds. Then review the actual input and list missed relevant intervals; report omissions as timestamped observations, not an unsupported recall percentage. Finally expose the model's cited samples and rate reason faithfulness from 0 (fabricated/contradicted) to 4 (all material claims supported by the observed frames and uncertainty stated). Treat inferred audio, unseen actions and uncited event continuity as unsupported claims.

@@ -30,6 +30,7 @@ import tarfile
 import tempfile
 
 import release
+import third_party_notices as font_notices
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -39,6 +40,7 @@ APP_BINARY = f"{APP}/MacOS/video-agent"
 EXECUTABLES = {APP_BINARY, "bin/video-agent", "bin/video-toolkit"}
 SOURCE_FILES = (
     "README.md", "LICENSE", "CHANGELOG.md", "THIRD_PARTY_NOTICES.txt",
+    "assets/fonts/OFL.txt", "assets/fonts/README.md",
     "assets/video-agent/hero.svg", "assets/video-agent/ATTRIBUTION.md",
     "docs/video-agent.md", "docs/video-agent-audit.zh-CN.md",
     "docs/video-agent-materials.md", "docs/video-agent-evidence.json",
@@ -72,6 +74,7 @@ JPEG_SIGNATURE = b"\xff\xd8\xff"
 MAX_MEMBER = 128 * 1024 * 1024
 MAX_TOTAL = 512 * 1024 * 1024
 MAX_TEXT = 2 * 1024 * 1024
+MAX_NOTICE_BYTES = 8 * 1024 * 1024
 MAX_SCREENSHOT = 16 * 1024 * 1024
 SECRET_RE = re.compile(rb"\bsk-[A-Za-z0-9_-]{20,}\b")
 NOTICES = {
@@ -145,6 +148,10 @@ def verify_source_payload(root: Path, commit: str, payload: dict[str, bytes]) ->
     require(cursor == len(result.stdout), "Unexpected extra committed Git blob data")
 
 
+def text_limit(name: str) -> int:
+    return MAX_NOTICE_BYTES if name == "THIRD_PARTY_NOTICES.txt" else MAX_TEXT
+
+
 def public_file(root: Path, name: str) -> bytes:
     """Fixed allowlist plus no symlink ancestors; never recursively collect a tree."""
     require(name in set(SOURCE_FILES) | set(SCREENSHOTS), "File is outside the public allowlist")
@@ -154,7 +161,7 @@ def public_file(root: Path, name: str) -> bytes:
         root = root / part
         require(not root.is_symlink(), f"Symlinked public source is forbidden: {name}")
     data = release.read_regular(path)
-    limit = MAX_SCREENSHOT if name in SCREENSHOTS else MAX_TEXT
+    limit = MAX_SCREENSHOT if name in SCREENSHOTS else text_limit(name)
     require(len(data) <= limit, f"Public file exceeds its size limit: {name}")
     if name in SCREENSHOTS:
         require(screenshot_matches(name, data), f"Screenshot must match its PNG/JPEG filename: {name}")
@@ -201,8 +208,10 @@ separate estimates, known failures and actual validation status.
 4. Install ffmpeg, ffprobe and ffplay separately. They are not bundled. They must
    be discoverable by the launched app; Finder may not inherit shell PATH or API
    environment variables. Official guidance: https://ffmpeg.org/download.html
-   THIRD_PARTY_NOTICES.txt includes mechanically collected dependency and default
-   font notices. This collection is not a completed legal/license-compliance audit;
+   THIRD_PARTY_NOTICES.txt includes mechanically collected dependency and font
+   notices. The embedded DM Sans copyright/license and source record are also
+   supplied in assets/fonts/OFL.txt and assets/fonts/README.md. This collection
+   is not a completed legal/license-compliance audit;
    unresolved audit status must not be presented as verified compliance.
 5. Configure credentials locally, preferably the private config described in the
    Agent guide. Never put credentials, private footage or runtime task directories
@@ -236,8 +245,15 @@ def package(binary_agent: Path, binary_toolkit: Path, output_dir: Path,
     for data in (agent, toolkit):
         require(len(data) <= MAX_MEMBER, "Native binary exceeds the candidate size limit")
         release.check_architecture(data, TARGET)
+    # The font is already embedded in Toolkit. Bind its source bytes without
+    # publishing another font binary; ship the exact original license separately.
+    try:
+        fonts = font_notices.workspace_font_records(root)
+    except (font_notices.NoticeError, OSError) as error:
+        raise RcError("Embedded workspace font provenance is unavailable or changed") from error
     payload = {name: public_file(root, name) for name in (*SOURCE_FILES, *SCREENSHOTS)}
-    verify_source_payload(root, commit, {"Cargo.toml": release.read_regular(root / "Cargo.toml"), **payload})
+    verify_source_payload(root, commit, {"Cargo.toml": release.read_regular(root / "Cargo.toml"),
+                                        **{font["asset"]: font["asset_bytes"] for font in fonts}, **payload})
     verify_source(root, commit)
     payload.update({APP_BINARY: agent, "bin/video-agent": agent, "bin/video-toolkit": toolkit,
                     f"{APP}/Info.plist": plist(version), f"{APP}/PkgInfo": b"APPL????",
@@ -354,12 +370,16 @@ def _verify_members(path: Path, contents: dict[str, bytes], modes: dict[str, int
         elif name in SCREENSHOTS:
             require(len(data) <= MAX_SCREENSHOT and screenshot_matches(name, data), "Invalid screenshot payload")
         else:
-            require(len(data) <= MAX_TEXT and not SECRET_RE.search(data), "Oversized or potentially secret text payload")
+            require(len(data) <= text_limit(name) and not SECRET_RE.search(data), "Oversized or potentially secret text payload")
     require(modes[manifest_path] == 0o644, "Incorrect manifest permissions")
     require(contents[f"{folder}/{APP_BINARY}"] == contents[f"{folder}/bin/video-agent"], "App and portable Agent must be identical")
     require(contents[f"{folder}/{APP}/Info.plist"] == plist(version), "Unexpected application bundle metadata")
     require(contents[f"{folder}/{APP}/PkgInfo"] == b"APPL????", "Invalid application bundle type")
     require(contents[f"{folder}/INSTALL.txt"] == installation(version), "Candidate installation/limitations text mismatch")
+    for font in font_notices.WORKSPACE_FONTS:
+        for field in ("license", "source_record"):
+            require(release.digest(contents[f"{folder}/{font[field]}"]) == font[f"{field}_sha256"],
+                    "Embedded font license/source record must retain its reviewed original bytes")
     return manifest
 
 

@@ -1,3 +1,4 @@
+use crate::theme::{self, Icon};
 use anyhow::{bail, Context, Result};
 use batch_processing::{default_profile_parameters, ProfileBatchConfig};
 use eframe::egui::{self, ComboBox, Ui};
@@ -149,10 +150,8 @@ impl ProfilesTab {
     }
 
     pub fn ui(&mut self, ui: &mut Ui) {
-        ui.heading("Profile Management");
-
         if let Some(error) = &self.initialization_error {
-            ui.colored_label(egui::Color32::LIGHT_RED, error);
+            ui.colored_label(theme::DANGER, error);
             ui.label(
                 "Profile actions are unavailable. Check the profile directory and restart the app.",
             );
@@ -162,8 +161,7 @@ impl ProfilesTab {
         // Profile type selection
         let previous_type = self.selected_profile_type.clone();
         ui.add_enabled_ui(self.edit_mode == EditMode::None, |ui| {
-            ui.horizontal(|ui| {
-                ui.label("Profile Type:");
+            theme::field(ui, "Profile type", |ui| {
                 ComboBox::from_id_source("profile_type")
                     .selected_text(self.selected_profile_type.display_name())
                     .show_ui(ui, |ui| {
@@ -215,22 +213,23 @@ impl ProfilesTab {
             self.selected_profile_name.clear();
         }
 
-        ui.separator();
-
-        // Main profile actions
-        match self.edit_mode {
-            EditMode::None => self.show_profile_list(ui),
-            EditMode::Create => self.show_create_profile(ui),
-            EditMode::Edit => self.show_edit_profile(ui),
-            EditMode::Delete => self.show_delete_profile(ui),
-            EditMode::Import => self.show_import_profile(ui),
-            EditMode::Export => self.show_export_profile(ui),
-        }
+        ui.add_space(6.0);
+        theme::card().show(ui, |ui| {
+            ui.set_width(ui.available_width());
+            match self.edit_mode {
+                EditMode::None => self.show_profile_list(ui),
+                EditMode::Create => self.show_create_profile(ui),
+                EditMode::Edit => self.show_edit_profile(ui),
+                EditMode::Delete => self.show_delete_profile(ui),
+                EditMode::Import => self.show_import_profile(ui),
+                EditMode::Export => self.show_export_profile(ui),
+            }
+        });
     }
 
     fn show_profile_list(&mut self, ui: &mut Ui) {
         // Refresh profile list button
-        if ui.button("Refresh Profile List").clicked() {
+        if ui.add(theme::small_button("Refresh")).clicked() {
             match self
                 .manager()
                 .and_then(|manager| Ok(manager.list_all_profiles()?))
@@ -255,7 +254,15 @@ impl ProfilesTab {
 
         // Profile selection
         if profiles.is_empty() {
-            ui.label("No profiles available for this type.");
+            theme::well().show(ui, |ui| {
+                ui.set_width(ui.available_width());
+                theme::empty_state(
+                    ui,
+                    Icon::Folder,
+                    "No saved profiles",
+                    "Create one to reuse these settings in a batch.",
+                );
+            });
         } else {
             ui.label("Select a profile:");
 
@@ -326,7 +333,7 @@ impl ProfilesTab {
 
         // Action buttons
         ui.horizontal(|ui| {
-            if ui.button("Create New").clicked() {
+            if ui.add(theme::primary_button("New profile")).clicked() {
                 self.edit_mode = EditMode::Create;
                 self.profile_name = String::new();
                 self.profile_description = String::new();
@@ -336,13 +343,13 @@ impl ProfilesTab {
             }
 
             if !self.selected_profile_name.is_empty() {
-                if ui.button("Edit").clicked() {
+                if ui.add(theme::secondary_button("Edit")).clicked() {
                     // Load profile for editing
                     self.edit_mode = EditMode::Edit;
                     self.load_profile_for_editing();
                 }
 
-                if ui.button("Delete").clicked() {
+                if ui.add(theme::danger_button("Delete")).clicked() {
                     self.edit_mode = EditMode::Delete;
                 }
             }
@@ -352,12 +359,14 @@ impl ProfilesTab {
 
         // Import/Export buttons
         ui.horizontal(|ui| {
-            if ui.button("Import Profile").clicked() {
+            if ui.add(theme::secondary_button("Import…")).clicked() {
                 self.edit_mode = EditMode::Import;
                 self.import_path = String::new();
             }
 
-            if !self.selected_profile_name.is_empty() && ui.button("Export Profile").clicked() {
+            if !self.selected_profile_name.is_empty()
+                && ui.add(theme::secondary_button("Export…")).clicked()
+            {
                 self.edit_mode = EditMode::Export;
                 self.export_path = String::new();
             }
@@ -372,11 +381,11 @@ impl ProfilesTab {
         ui.separator();
 
         ui.horizontal(|ui| {
-            if ui.button("Create").clicked() {
+            if ui.add(theme::primary_button("Create")).clicked() {
                 self.create_profile();
             }
 
-            if ui.button("Cancel").clicked() {
+            if ui.add(theme::ghost_button("Cancel")).clicked() {
                 self.edit_mode = EditMode::None;
             }
         });
@@ -390,11 +399,11 @@ impl ProfilesTab {
         ui.separator();
 
         ui.horizontal(|ui| {
-            if ui.button("Save Changes").clicked() {
+            if ui.add(theme::primary_button("Save changes")).clicked() {
                 self.update_profile();
             }
 
-            if ui.button("Cancel").clicked() {
+            if ui.add(theme::ghost_button("Cancel")).clicked() {
                 self.edit_mode = EditMode::None;
             }
         });
@@ -412,11 +421,11 @@ impl ProfilesTab {
         ui.separator();
 
         ui.horizontal(|ui| {
-            if ui.button("Yes, Delete").clicked() {
+            if ui.add(theme::danger_button("Delete profile")).clicked() {
                 self.delete_profile();
             }
 
-            if ui.button("Cancel").clicked() {
+            if ui.add(theme::ghost_button("Cancel")).clicked() {
                 self.edit_mode = EditMode::None;
             }
         });
@@ -427,7 +436,7 @@ impl ProfilesTab {
 
         ui.horizontal(|ui| {
             ui.label("Profile File:");
-            ui.text_edit_singleline(&mut self.import_path);
+            crate::theme::text_input(ui, &mut self.import_path);
             if ui.button("Browse").clicked() {
                 if let Some(path) = rfd::FileDialog::new()
                     .add_filter("JSON Files", &["json"])
@@ -441,11 +450,11 @@ impl ProfilesTab {
         ui.separator();
 
         ui.horizontal(|ui| {
-            if ui.button("Import").clicked() {
+            if ui.add(theme::primary_button("Import")).clicked() {
                 self.import_profile();
             }
 
-            if ui.button("Cancel").clicked() {
+            if ui.add(theme::ghost_button("Cancel")).clicked() {
                 self.edit_mode = EditMode::None;
             }
         });
@@ -458,7 +467,7 @@ impl ProfilesTab {
 
         ui.horizontal(|ui| {
             ui.label("Save to:");
-            ui.text_edit_singleline(&mut self.export_path);
+            crate::theme::text_input(ui, &mut self.export_path);
             if ui.button("Browse").clicked() {
                 if let Some(path) = rfd::FileDialog::new()
                     .add_filter("JSON Files", &["json"])
@@ -477,11 +486,11 @@ impl ProfilesTab {
         ui.separator();
 
         ui.horizontal(|ui| {
-            if ui.button("Export").clicked() {
+            if ui.add(theme::primary_button("Export")).clicked() {
                 self.export_profile();
             }
 
-            if ui.button("Cancel").clicked() {
+            if ui.add(theme::ghost_button("Cancel")).clicked() {
                 self.edit_mode = EditMode::None;
             }
         });
@@ -490,12 +499,12 @@ impl ProfilesTab {
     fn profile_edit_form(&mut self, ui: &mut Ui) {
         ui.horizontal(|ui| {
             ui.label("Name:");
-            ui.text_edit_singleline(&mut self.profile_name);
+            crate::theme::text_input(ui, &mut self.profile_name);
         });
 
         ui.horizontal(|ui| {
             ui.label("Description:");
-            ui.text_edit_singleline(&mut self.profile_description);
+            crate::theme::text_input(ui, &mut self.profile_description);
         });
 
         ui.separator();
@@ -530,7 +539,7 @@ impl ProfilesTab {
         }
 
         // Add parameter button
-        if ui.button("Add Parameter").clicked() {
+        if ui.add(theme::secondary_button("+ Add parameter")).clicked() {
             self.profile_parameters.push((String::new(), String::new()));
         }
     }

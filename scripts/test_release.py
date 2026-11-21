@@ -180,6 +180,68 @@ class ReleaseTests(unittest.TestCase):
                          (self.root / "third_party/licenses/manifest.json").read_bytes())
         self.assertEqual(contents[prefix + "Cargo.lock"], (self.root / "Cargo.lock").read_bytes())
 
+    def test_large_notice_original_bytes_survive_tar_zip_package_and_verification(self):
+        for target in (LINUX, WINDOWS):
+            with self.subTest(target=target):
+                self.license_fixture(target)
+                path = self.root / "THIRD_PARTY_NOTICES.txt"
+                notice = path.read_bytes() + b"\nINERT LARGE NOTICE BYTE FIXTURE\n" + b"x" * (2 * 1024 * 1024) + b"\nEND ORIGINAL BYTES\n"
+                self.assertGreater(len(notice), release.MAX_LICENSE_TEXT)
+                self.assertLess(len(notice), release.MAX_NOTICE_BYTES)
+                path.write_bytes(notice)
+                self.change_license_inventory(lambda inventory: inventory["public_distribution_review"].update(
+                    notices_sha256=release.digest(notice)))
+                archive = self.package(target)
+                self.verify(archive, target)
+                contents, _ = release.archive_members(archive, target)
+                name = f"video-toolkit-{VERSION}-{target}/THIRD_PARTY_NOTICES.txt"
+                self.assertEqual(contents[name], notice)
+
+    def test_notice_capacity_does_not_widen_the_two_mib_review_limit(self):
+        self.assertEqual(release.MAX_LICENSE_TEXT, 2 * 1024 * 1024)
+        path = self.root / "THIRD_PARTY_NOTICES.txt"
+        original = path.read_bytes()
+        for size, accepted in ((release.MAX_NOTICE_BYTES, True), (release.MAX_NOTICE_BYTES + 1, False)):
+            with self.subTest(size=size):
+                notice = original + b"x" * (size - len(original))
+                path.write_bytes(notice)
+                self.change_license_inventory(lambda inventory: inventory["public_distribution_review"].update(
+                    notices_sha256=release.digest(notice)))
+                if accepted:
+                    release.publication_check([LINUX], self.root)
+                else:
+                    with self.assertRaisesRegex(release.ReleaseError, "exceeds its size limit"):
+                        self.package()
+                    self.assertFalse(self.output.exists())
+        self.license_fixture(LINUX)
+        review = self.root / "third_party/licenses/manifest.json"
+        review.write_bytes(review.read_bytes() + b" " * release.MAX_LICENSE_TEXT)
+        with self.assertRaisesRegex(release.ReleaseError, "exceeds its size limit"):
+            self.package()
+        self.assertFalse(self.output.exists())
+
+    def test_rehashed_archive_notice_still_cannot_exceed_the_notice_capacity(self):
+        archive = self.package()
+        replacement = b"x" * (release.MAX_NOTICE_BYTES + 1)
+        def replace(members):
+            updated = {}
+            for index, (member, data) in enumerate(members):
+                name = member.name.rsplit("/", 1)[-1]
+                if name == "THIRD_PARTY_NOTICES.txt":
+                    data = replacement
+                elif name == "LICENSE-REVIEW.json":
+                    review = json.loads(data)
+                    review["public_distribution_review"]["notices_sha256"] = release.digest(replacement)
+                    data = json.dumps(review).encode()
+                else:
+                    continue
+                members[index] = member, data
+                updated[name] = {"sha256": release.digest(data), "size": len(data)}
+            self.alter_manifest(members, lambda manifest: manifest["files"].update(updated))
+        self.mutate_tar(archive, replace)
+        with self.assertRaisesRegex(release.ReleaseError, "exceeds its size limit"):
+            self.verify(archive)
+
     def test_recorded_license_gaps_block_before_archive_or_output_creation(self):
         self.change_license_inventory(lambda inventory: inventory["unresolved_review"]["items"].extend(
             {"crate": f"unresolved-{number}"} for number in range(6)))
@@ -261,7 +323,7 @@ class ReleaseTests(unittest.TestCase):
                 self.assertFalse(self.output.exists())
 
     def test_real_checkout_is_not_cleared_by_synthetic_unit_fixtures(self):
-        with self.assertRaisesRegex(release.ReleaseError, "6 unresolved"):
+        with self.assertRaisesRegex(release.ReleaseError, "5 unresolved"):
             release.publication_check([ARM_MAC])
 
     def test_rehashed_archive_cannot_remove_a_license_gap(self):

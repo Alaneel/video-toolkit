@@ -44,6 +44,7 @@ VERSION_RE = re.compile(
 )
 COMMIT_RE = re.compile(r"[0-9a-f]{40}\Z")
 MAX_LICENSE_TEXT = 2 * 1024 * 1024
+MAX_NOTICE_BYTES = 8 * 1024 * 1024
 LICENSE_PAYLOADS = {"THIRD_PARTY_NOTICES.txt", "LICENSE-REVIEW.json", "Cargo.lock"}
 MAX_ARCHIVE_MEMBERS = 6 + len(LICENSE_PAYLOADS)
 
@@ -194,7 +195,7 @@ def validate_publication_licenses(files: dict[str, bytes], target: str) -> None:
     require(LICENSE_PAYLOADS <= files.keys(), "public binaries require notices, license review and Cargo.lock")
     notices = files["THIRD_PARTY_NOTICES.txt"]
     inventory_bytes = files["LICENSE-REVIEW.json"]
-    require(len(notices) <= MAX_LICENSE_TEXT and len(inventory_bytes) <= MAX_LICENSE_TEXT,
+    require(len(notices) <= MAX_NOTICE_BYTES and len(inventory_bytes) <= MAX_LICENSE_TEXT,
             "license notice or review exceeds its size limit")
     notice_text = notices.decode("utf-8")
     require(notice_text.startswith("VIDEO TOOLKIT / VIDEO AGENT — MECHANICALLY COLLECTED THIRD-PARTY NOTICES\n"),

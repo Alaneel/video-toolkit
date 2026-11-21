@@ -14,6 +14,10 @@ use profile_system::{Profile, ProfileManager, ProfileType};
 use splitter::split_video_with_format;
 use ui::VideoToolKitApp;
 
+mod conversion_cli;
+mod file_mcp;
+mod workflow_cli;
+
 #[derive(Parser)]
 #[clap(author, version, about = "Video processing utilities")]
 struct Cli {
@@ -27,6 +31,31 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Convert local video, audio or raster images; one or several queued inputs
+    Convert(conversion_cli::ConvertArgs),
+
+    /// Run a PDF, subtitle, document or explicit URL download tool
+    Workflow(workflow_cli::WorkflowArgs),
+
+    /// List shared workflow tools, formats and option schemas
+    Workflows {
+        #[clap(long)]
+        json: bool,
+    },
+
+    /// Inspect dependencies and formats for local file conversion
+    Doctor {
+        #[clap(long)]
+        json: bool,
+    },
+
+    /// Serve local conversion tools over MCP stdio within explicitly allowed folders
+    Mcp {
+        /// Existing folder the client may read/write (repeat to allow several)
+        #[clap(long = "root", required = true)]
+        roots: Vec<PathBuf>,
+    },
+
     /// Open the local Video Agent desktop (vision selection, human review, safe export)
     Agent {
         /// Resume a previously saved Video Agent task directory
@@ -621,6 +650,22 @@ fn main() -> Result<(), eframe::Error> {
                 print_agent_json_error("parse", "Invalid", "Invalid Agent command arguments.");
                 std::process::exit(2);
             }
+            if !matches!(
+                error.kind(),
+                clap::error::ErrorKind::DisplayHelp | clap::error::ErrorKind::DisplayVersion
+            ) && command_json_requested(&arguments, "workflow")
+            {
+                workflow_cli::parse_error(&error.to_string());
+                std::process::exit(2);
+            }
+            if !matches!(
+                error.kind(),
+                clap::error::ErrorKind::DisplayHelp | clap::error::ErrorKind::DisplayVersion
+            ) && command_json_requested(&arguments, "convert")
+            {
+                conversion_cli::parse_error(&error.to_string());
+                std::process::exit(2);
+            }
             error.exit();
         }
     };
@@ -636,19 +681,15 @@ fn main() -> Result<(), eframe::Error> {
     if cli.command.is_none() {
         let options = NativeOptions {
             viewport: egui::ViewportBuilder::default()
-                .with_inner_size([1080.0, 720.0])
-                .with_min_inner_size([860.0, 600.0]),
+                .with_inner_size([1280.0, 860.0])
+                .with_min_inner_size([1100.0, 740.0]),
             ..Default::default()
         };
         return eframe::run_native(
             "Video Toolkit",
             options,
             Box::new(move |cc| {
-                let mut visuals = egui::Visuals::dark();
-                visuals.widgets.active.bg_fill = egui::Color32::from_rgb(38, 125, 190);
-                visuals.widgets.hovered.bg_fill = egui::Color32::from_rgb(45, 68, 86);
-                visuals.selection.bg_fill = egui::Color32::from_rgb(29, 104, 156);
-                cc.egui_ctx.set_visuals(visuals);
+                ui::theme::configure(&cc.egui_ctx);
                 Box::new(VideoToolKitApp::with_profiles_directory(
                     cli.profiles_dir.as_deref(),
                 ))
@@ -658,6 +699,26 @@ fn main() -> Result<(), eframe::Error> {
 
     // Otherwise, run the appropriate command-line tool
     match cli.command.unwrap() {
+        Commands::Convert(options) => {
+            let code = conversion_cli::run(options);
+            if code != 0 {
+                std::process::exit(code);
+            }
+        }
+        Commands::Doctor { json } => conversion_cli::doctor(json),
+        Commands::Workflow(options) => {
+            let code = workflow_cli::run(options);
+            if code != 0 {
+                std::process::exit(code);
+            }
+        }
+        Commands::Workflows { json } => workflow_cli::list(json),
+        Commands::Mcp { roots } => {
+            if let Err(error) = file_mcp::serve(roots) {
+                eprintln!("MCP: {error:#}");
+                std::process::exit(1);
+            }
+        }
         Commands::Agent { workspace } => {
             return ui::run_video_agent(workspace);
         }
@@ -964,6 +1025,10 @@ impl AgentTaskCommands {
 }
 
 fn agent_json_requested(arguments: &[std::ffi::OsString]) -> bool {
+    command_json_requested(arguments, "agent-task")
+}
+
+fn command_json_requested(arguments: &[std::ffi::OsString], command: &str) -> bool {
     let mut index = 1;
     while let Some(argument) = arguments.get(index) {
         if argument == "--profiles-dir" {
@@ -977,7 +1042,7 @@ fn agent_json_requested(arguments: &[std::ffi::OsString]) -> bool {
             index += 1;
             continue;
         }
-        return argument == "agent-task"
+        return argument == command
             && arguments[index + 1..]
                 .iter()
                 .take_while(|value| *value != "--")

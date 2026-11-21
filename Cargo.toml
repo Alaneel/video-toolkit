@@ -5,7 +5,7 @@ version = "2.2.0-rc.1"
 edition = "2021"
 rust-version = "1.87"
 authors = ["Alaneel"]
-description = "A human-reviewed video agent and local-first FFmpeg desktop toolkit"
+description = "Local-first video, audio and image conversion with a desktop GUI, CLI, MCP and human-reviewed video agent"
 license = "MIT"
 repository = "https://github.com/Alaneel/video-toolkit"
 readme = "README.md"
@@ -38,6 +38,8 @@ plugin_system = { path = "crates/plugin_system" }
 profile_system = { path = "crates/profile_system" }
 batch_processing = { path = "crates/batch_processing" }
 video_agent = { path = "crates/video_agent" }
+file_conversion = { path = "crates/file_conversion" }
+file_workflows = { path = "crates/file_workflows" }
 
 [workspace]
 members = [
@@ -52,4 +54,9 @@ members = [
     "crates/profile_system",
     "crates/batch_processing", "plugins/watermark_plugin",
     "crates/video_agent",
+    "crates/file_conversion",
+    "crates/file_workflows",
 ]
+
+[dev-dependencies]
+tempfile = "3"

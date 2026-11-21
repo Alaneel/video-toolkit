@@ -1,3 +1,4 @@
+use crate::theme::{self, Icon, Tone};
 use eframe::egui::{self, Grid, ScrollArea, Ui};
 use std::collections::HashMap;
 use std::path::Path;
@@ -53,114 +54,152 @@ impl PluginsTab {
     }
 
     pub fn ui(&mut self, ui: &mut Ui) {
-        ui.heading("Plugin Management");
-
-        ui.horizontal(|ui| {
-            // Left panel: Plugin list and actions
-            let list_size = egui::vec2(300.0, 400.0);
-            ui.allocate_ui(list_size, |ui| {
-                egui::ScrollArea::both()
-                    .id_source("plugins_list_scroll")
-                    .show(ui, |ui| {
-                        self.plugin_list_ui(ui);
-                    });
-            });
-
-            ui.separator();
-
-            // Right panel: Plugin details and execution
-            let details_size = egui::vec2(400.0, 400.0);
-            ui.allocate_ui(details_size, |ui| {
-                egui::ScrollArea::both()
-                    .id_source("plugins_details_scroll")
-                    .show(ui, |ui| {
+        let total = ui.available_width().min(1100.0);
+        let left = (total * 0.42).clamp(320.0, 440.0);
+        let right = (total - left - 16.0).max(320.0);
+        ui.horizontal_top(|ui| {
+            ui.spacing_mut().item_spacing.x = 16.0;
+            ui.allocate_ui_with_layout(
+                egui::vec2(left, 0.0),
+                egui::Layout::top_down(egui::Align::Min),
+                |ui| {
+                    ui.set_width(left);
+                    self.plugin_list_ui(ui);
+                },
+            );
+            ui.allocate_ui_with_layout(
+                egui::vec2(right, 0.0),
+                egui::Layout::top_down(egui::Align::Min),
+                |ui| {
+                    ui.set_width(right);
+                    theme::card().show(ui, |ui| {
+                        ui.set_width(ui.available_width());
+                        ui.set_min_height(320.0);
                         self.plugin_details_ui(ui);
                     });
-            });
+                },
+            );
         });
     }
 
     fn plugin_list_ui(&mut self, ui: &mut Ui) {
-        // Plugin directory
-        ui.horizontal(|ui| {
-            ui.label("Plugin Directory:");
-            ui.text_edit_singleline(&mut self.plugin_directory);
-            if ui.button("Browse").clicked() {
-                if let Some(path) = rfd::FileDialog::new().pick_folder() {
-                    self.plugin_directory = path.to_string_lossy().to_string();
-                }
-            }
-        });
-
-        // Plugin discovery and refresh actions
-        ui.horizontal(|ui| {
-            if ui.button("Discover Plugins").clicked() {
-                self.discover_plugins();
-            }
-
-            if ui.button("Refresh List").clicked() {
-                self.refresh_plugin_list();
-            }
-        });
-
-        ui.separator();
-
-        // Plugin list
-        ScrollArea::vertical().show(ui, |ui| {
-            if self.plugin_list.is_empty() {
-                ui.label(
-                    "No plugins loaded. Use 'Discover Plugins' or 'Load Plugin' to find plugins.",
-                );
-            } else {
-                ui.heading("Installed Plugins");
-
-                // Store clicked index for processing after the loop
-                let mut clicked_idx = None;
-                let current_selected = self.selected_plugin_index;
-
-                for (i, plugin) in self.plugin_list.iter().enumerate() {
-                    let is_selected = current_selected == Some(i);
-                    let selection_ui = ui.selectable_label(
-                        is_selected,
-                        format!("{} v{}", plugin.name, plugin.version),
+        theme::section(
+            ui,
+            "Library",
+            Some("Plugins found in your plugin folder."),
+            |ui| {
+                ui.horizontal(|ui| {
+                    theme::icon(ui, Icon::Folder, 16.0, theme::MUTED);
+                    let width = (ui.available_width() - 90.0).max(80.0);
+                    ui.add(
+                        egui::TextEdit::singleline(&mut self.plugin_directory)
+                            .margin(egui::vec2(10.0, 7.0))
+                            .desired_width(width),
                     );
-
-                    if selection_ui.clicked() {
-                        clicked_idx = Some(i);
+                    if ui.add(theme::secondary_button("Browse")).clicked() {
+                        if let Some(path) = rfd::FileDialog::new().pick_folder() {
+                            self.plugin_directory = path.to_string_lossy().to_string();
+                        }
+                    }
+                });
+                ui.horizontal(|ui| {
+                    if ui.add(theme::primary_button("Discover")).clicked() {
+                        self.discover_plugins();
+                    }
+                    if ui.add(theme::secondary_button("Refresh")).clicked() {
+                        self.refresh_plugin_list();
+                    }
+                });
+                ui.separator();
+                if self.plugin_list.is_empty() {
+                    ui.add_space(12.0);
+                    theme::empty_state(
+                        ui,
+                        Icon::Grid,
+                        "No plugins loaded",
+                        "Discover a folder or load a single plugin file.",
+                    );
+                    ui.add_space(12.0);
+                } else {
+                    let mut clicked_idx = None;
+                    let current_selected = self.selected_plugin_index;
+                    ScrollArea::vertical().max_height(260.0).show(ui, |ui| {
+                        for (i, plugin) in self.plugin_list.iter().enumerate() {
+                            let is_selected = current_selected == Some(i);
+                            let response = egui::Frame::none()
+                                .fill(if is_selected {
+                                    theme::ACCENT_SOFT
+                                } else {
+                                    theme::SUNKEN
+                                })
+                                .stroke(egui::Stroke::new(
+                                    1.0,
+                                    if is_selected {
+                                        theme::ACCENT_LINE
+                                    } else {
+                                        theme::LINE
+                                    },
+                                ))
+                                .rounding(theme::RADIUS)
+                                .inner_margin(egui::Margin::symmetric(10.0, 8.0))
+                                .show(ui, |ui| {
+                                    ui.set_width(ui.available_width());
+                                    ui.horizontal(|ui| {
+                                        theme::icon_tile(ui, Icon::Grid, theme::HUE_DOWNLOAD, 26.0);
+                                        ui.label(
+                                            egui::RichText::new(&plugin.name)
+                                                .font(theme::semibold(13.0))
+                                                .color(theme::TEXT),
+                                        );
+                                        theme::badge(
+                                            ui,
+                                            &format!("v{}", plugin.version),
+                                            Tone::Neutral,
+                                        );
+                                    });
+                                })
+                                .response
+                                .interact(egui::Sense::click())
+                                .on_hover_cursor(egui::CursorIcon::PointingHand);
+                            if response.clicked() {
+                                clicked_idx = Some(i);
+                            }
+                        }
+                    });
+                    if let Some(idx) = clicked_idx {
+                        if current_selected == Some(idx) {
+                            self.selected_plugin_index = None;
+                        } else {
+                            self.selected_plugin_index = Some(idx);
+                            self.update_execution_parameters();
+                        }
                     }
                 }
+            },
+        );
 
-                // Handle selection changes after the loop
-                if let Some(idx) = clicked_idx {
-                    if current_selected == Some(idx) {
-                        self.selected_plugin_index = None;
-                    } else {
-                        self.selected_plugin_index = Some(idx);
-                        self.update_execution_parameters();
+        theme::section(ui, "Load a single plugin", None, |ui| {
+            ui.horizontal(|ui| {
+                let width = (ui.available_width() - 90.0).max(80.0);
+                ui.add(
+                    egui::TextEdit::singleline(&mut self.plugin_path)
+                        .margin(egui::vec2(10.0, 7.0))
+                        .hint_text(egui::RichText::new("Plugin file").color(theme::FAINT))
+                        .desired_width(width),
+                );
+                if ui.add(theme::secondary_button("Browse")).clicked() {
+                    if let Some(path) = rfd::FileDialog::new()
+                        .add_filter("Plugin Files", self.get_platform_plugin_extension())
+                        .pick_file()
+                    {
+                        self.plugin_path = path.to_string_lossy().to_string();
                     }
                 }
+            });
+            if ui.add(theme::secondary_button("Load plugin")).clicked() {
+                self.load_plugin();
             }
         });
-
-        ui.separator();
-
-        // Load individual plugin
-        ui.horizontal(|ui| {
-            ui.label("Plugin File:");
-            ui.text_edit_singleline(&mut self.plugin_path);
-            if ui.button("Browse").clicked() {
-                if let Some(path) = rfd::FileDialog::new()
-                    .add_filter("Plugin Files", self.get_platform_plugin_extension())
-                    .pick_file()
-                {
-                    self.plugin_path = path.to_string_lossy().to_string();
-                }
-            }
-        });
-
-        if ui.button("Load Plugin").clicked() {
-            self.load_plugin();
-        }
     }
 
     fn plugin_details_ui(&mut self, ui: &mut Ui) {
@@ -169,11 +208,26 @@ impl PluginsTab {
             if index < self.plugin_list.len() {
                 let plugin = &self.plugin_list[index];
 
-                ui.heading("Plugin Details");
-                ui.label(format!("Name: {} v{}", plugin.name, plugin.version));
-                ui.label(format!("Author: {}", plugin.author));
-                ui.label(format!("Description: {}", plugin.description));
-                ui.label(format!("API Version: {}", plugin.api_version));
+                ui.horizontal(|ui| {
+                    theme::icon_tile(ui, Icon::Grid, theme::HUE_DOWNLOAD, 40.0);
+                    ui.vertical(|ui| {
+                        ui.spacing_mut().item_spacing.y = 0.0;
+                        ui.label(
+                            egui::RichText::new(&plugin.name)
+                                .font(theme::bold(18.0))
+                                .color(theme::TEXT),
+                        );
+                        ui.label(
+                            egui::RichText::new(format!(
+                                "v{} · by {} · API {}",
+                                plugin.version, plugin.author, plugin.api_version
+                            ))
+                            .size(12.5)
+                            .color(theme::MUTED),
+                        );
+                    });
+                });
+                theme::hint(ui, &plugin.description);
 
                 ui.separator();
 
@@ -198,7 +252,7 @@ impl PluginsTab {
 
                                 // Update parameter value
                                 let (_, value) = &mut self.execution_parameters[i];
-                                ui.text_edit_singleline(value);
+                                crate::theme::text_input(ui, value);
 
                                 // Parameter description
                                 ui.label(&info.description);
@@ -209,7 +263,7 @@ impl PluginsTab {
                         ui.separator();
 
                         // Execute plugin button
-                        if ui.button("Execute Plugin").clicked() {
+                        if ui.add(theme::primary_button("Run plugin")).clicked() {
                             self.execute_plugin();
                         }
                     } else {
@@ -218,7 +272,7 @@ impl PluginsTab {
                         ui.separator();
 
                         // Execute plugin button (no parameters)
-                        if ui.button("Execute Plugin").clicked() {
+                        if ui.add(theme::primary_button("Run plugin")).clicked() {
                             self.execute_plugin();
                         }
                     }
@@ -227,8 +281,13 @@ impl PluginsTab {
                 }
             }
         } else {
-            ui.heading("Plugin Details");
-            ui.label("Select a plugin from the list to view details.");
+            ui.add_space(90.0);
+            theme::empty_state(
+                ui,
+                Icon::Grid,
+                "No plugin selected",
+                "Pick a plugin from the library to see its parameters and run it.",
+            );
         }
     }
 

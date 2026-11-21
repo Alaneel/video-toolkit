@@ -1,0 +1,397 @@
+{
+  "bundle_bytes": 231669034,
+  "records": [
+    {
+      "evidence_id": "ev_0360fc16d8ba702fbb96ac16defa5af85db4b9f9d721d69c0020117aee402165",
+      "operation": "analyze_javascript_application",
+      "provider": {
+        "id": "rea-javascript-application",
+        "name": "REA JavaScript application analyzer",
+        "version": "1"
+      },
+      "subject": {
+        "architecture": null,
+        "digest": {
+          "sha256": "d424d510e353b41de2bea71882d92da0170aa935213c1936e081383fd046524a"
+        },
+        "format": "asar",
+        "local_path": "/Applications/9xconvert.app/Contents/Resources/app.asar",
+        "name": "app.asar"
+      },
+      "authority": "shipped-artifact",
+      "confidence": "derived",
+      "parameters": {
+        "format": "asar",
+        "integrity_policy": "record-and-continue"
+      },
+      "limitation_count": 9461,
+      "limitation_samples": [
+        "Artifact integrity metadata contradicts observed bytes at node_modules/@img/sharp-darwin-arm64/lib/sharp-darwin-arm64.node; the observed bytes are untrusted.",
+        "Artifact integrity metadata contradicts observed bytes at node_modules/@img/sharp-darwin-x64/lib/sharp-darwin-x64.node; the observed bytes are untrusted.",
+        "Artifact integrity metadata contradicts observed bytes at node_modules/@img/sharp-libvips-darwin-arm64/lib/libvips-cpp.8.17.3.dylib; the observed bytes are untrusted.",
+        "Artifact integrity metadata contradicts observed bytes at node_modules/@img/sharp-libvips-darwin-x64/lib/libvips-cpp.8.17.3.dylib; the observed bytes are untrusted.",
+        "Artifact integrity metadata contradicts observed bytes at node_modules/@napi-rs/canvas-darwin-arm64/skia.darwin-arm64.node; the observed bytes are untrusted.",
+        "Artifact integrity metadata contradicts observed bytes at node_modules/@napi-rs/canvas-darwin-x64/skia.darwin-x64.node; the observed bytes are untrusted.",
+        "Artifact integrity metadata contradicts observed bytes at node_modules/better-sqlite3/build/Release/better_sqlite3.node; the observed bytes are untrusted.",
+        "CommonJS and ESM binding relationships were recovered from inert syntax and resolved only within the inventoried artifact container."
+      ],
+      "statistics": {
+        "findings": 21247,
+        "invalid_utf8_files": 0,
+        "modules": 6,
+        "nested_asar_containers": 0,
+        "parse_failures": 17,
+        "parsed_javascript_files": 4874,
+        "relevant_files": 5328,
+        "text_bytes_read": 86552587,
+        "visited_ast_nodes": 12816356
+      },
+      "summary": {
+        "browser_windows": 6,
+        "context_bridge_apis": 1,
+        "explicit_web_preferences": 22,
+        "exposed_api_members": 0,
+        "ipc": {
+          "ambiguous_renderer_transmissions": 0,
+          "dynamic_channel_operations": 6,
+          "literal_channels": 124,
+          "main_handlers": 8,
+          "operations": 135,
+          "paired_renderer_transmissions": 5,
+          "renderer_listeners": 5,
+          "renderer_transmissions": 122,
+          "unpaired_literal_renderer_transmissions": 117
+        },
+        "native_addon_bindings": 0,
+        "preload_entrypoints": 0,
+        "resolved_native_addon_bindings": 0,
+        "resolved_utility_entrypoints": 0,
+        "sender_validation_observations": 1,
+        "utility_processes": 1
+      },
+      "integrity_contradictions": {
+        "count": 7,
+        "first": [
+          {
+            "contradiction_id": "ic_f8c02e5dcb6137904fc389b1d0ddd7ac3ed2c87fb1fc6149b2f2a54711bc3372",
+            "declared_sha256": "05dba5ee40609b0ac94e14e591c515b3d9bd813ff5939625ff9a4bb78eb7c628",
+            "entry_kind": "file",
+            "logical_path": "node_modules/@img/sharp-darwin-arm64/lib/sharp-darwin-arm64.node",
+            "observed_sha256": "75dcfb15fc2b64333757c182f517b798475f8a87d88545fed649276c91566ba4",
+            "occurrence_id": "occ_273e81fd97d33a23b2771ce4d1b69bd422ec7388659c144027e7567306bb3809",
+            "parent_artifact_id": "art_eed7391d434fe9719f5f7a4a11c46a9a22fa4fb25823d18af13ef036bc8cc9b3",
+            "trust": "observed-untrusted",
+            "unpacked": true
+          },
+          {
+            "contradiction_id": "ic_bf82e739165716df91e3be94e34a401c1d0edb3bdc12099e3ff8c21811a030dd",
+            "declared_sha256": "ca26a565500628eaf30e8ca8ee0b03633c5d6c471b74d02e12a9dec8de35dc67",
+            "entry_kind": "file",
+            "logical_path": "node_modules/@img/sharp-darwin-x64/lib/sharp-darwin-x64.node",
+            "observed_sha256": "a646828c86486cc054c34257e924b7b4295da144a806064277f85cc0779bd1c1",
+            "occurrence_id": "occ_7688f4b0793560d0dfc916adf18e44dc39c4d14647e72b3f57f2dd36187b1802",
+            "parent_artifact_id": "art_2b8f3d4d419a594bb1891bb311583de71a9217321588681bc0eaca89b4c60436",
+            "trust": "observed-untrusted",
+            "unpacked": true
+          },
+          {
+            "contradiction_id": "ic_1681ae7e0678481b31123837c23b17d7b1cf042b13def887829a38949e0d610c",
+            "declared_sha256": "ad39fe2d407fca7532326eb819af010725a1df9187ef26a6d4aba629b71f173d",
+            "entry_kind": "file",
+            "logical_path": "node_modules/@img/sharp-libvips-darwin-arm64/lib/libvips-cpp.8.17.3.dylib",
+            "observed_sha256": "103604426d11febba0107e9d432ef9348394ddd57e14f3bb7c625479a50eaccf",
+            "occurrence_id": "occ_ae64b8d808b456bcdc1e554cf6830d399a08522f61cebf9cf38a6cc3b4dd7f66",
+            "parent_artifact_id": "art_82f0d5a7ed535b693dd50d2e9b7cf3a53239acb64039d7ad972b2757269bf581",
+            "trust": "observed-untrusted",
+            "unpacked": true
+          }
+        ]
+      },
+      "graph_coverage": {
+        "limits": [
+          {
+            "name": "javascript_analysis_parent_result_budget_bytes",
+            "unit": "bytes",
+            "value": 1896161240
+          },
+          {
+            "name": "javascript_analysis_semantic_result_budget_bytes",
+            "unit": "bytes",
+            "value": 0
+          },
+          {
+            "name": "javascript_analysis_worker_heap_limit_bytes",
+            "unit": "bytes",
+            "value": 1098907648
+          },
+          {
+            "name": "javascript_analysis_worker_timeout_ms",
+            "unit": "milliseconds",
+            "value": 30000
+          }
+        ],
+        "omitted_count": null,
+        "status": "partial",
+        "truncated": false
+      },
+      "graph_node_count": 20879,
+      "graph_edge_count": 21677
+    },
+    {
+      "evidence_id": "ev_8d481c27c817d7fe2c96e5a142da6f06c8d2377a89e0543f9cb5fbe53b2195fe",
+      "operation": "inspect_analysis_view",
+      "provider": {
+        "id": "rea-analysis-view",
+        "name": "REA analysis view projection",
+        "version": "1"
+      },
+      "subject": {
+        "architecture": null,
+        "digest": {
+          "sha256": "d424d510e353b41de2bea71882d92da0170aa935213c1936e081383fd046524a"
+        },
+        "format": "asar",
+        "local_path": "/Applications/9xconvert.app/Contents/Resources/app.asar",
+        "name": "app.asar"
+      },
+      "authority": "shipped-artifact",
+      "confidence": "derived",
+      "parameters": {
+        "parent_evidence_id": "ev_0360fc16d8ba702fbb96ac16defa5af85db4b9f9d721d69c0020117aee402165",
+        "view": {
+          "kind": "summary"
+        }
+      },
+      "limitation_count": 9472,
+      "limitation_samples": [
+        "Artifact integrity metadata contradicts observed bytes at node_modules/@img/sharp-darwin-arm64/lib/sharp-darwin-arm64.node; the observed bytes are untrusted.",
+        "Artifact integrity metadata contradicts observed bytes at node_modules/@img/sharp-darwin-x64/lib/sharp-darwin-x64.node; the observed bytes are untrusted.",
+        "Artifact integrity metadata contradicts observed bytes at node_modules/@img/sharp-libvips-darwin-arm64/lib/libvips-cpp.8.17.3.dylib; the observed bytes are untrusted.",
+        "Artifact integrity metadata contradicts observed bytes at node_modules/@img/sharp-libvips-darwin-x64/lib/libvips-cpp.8.17.3.dylib; the observed bytes are untrusted.",
+        "Artifact integrity metadata contradicts observed bytes at node_modules/@napi-rs/canvas-darwin-arm64/skia.darwin-arm64.node; the observed bytes are untrusted.",
+        "Artifact integrity metadata contradicts observed bytes at node_modules/@napi-rs/canvas-darwin-x64/skia.darwin-x64.node; the observed bytes are untrusted.",
+        "Artifact integrity metadata contradicts observed bytes at node_modules/better-sqlite3/build/Release/better_sqlite3.node; the observed bytes are untrusted.",
+        "Boundary extraction covers unshadowed JSON/global coercions plus parse and validation method candidates."
+      ],
+      "coverage": {
+        "examined": 5137,
+        "exhausted": true,
+        "next_offset": null,
+        "status": "complete-within-view",
+        "total": 20879
+      },
+      "summary": {
+        "coverage": {
+          "application": {
+            "limits": {
+              "count": 4,
+              "first": [
+                {
+                  "name": "javascript_analysis_parent_result_budget_bytes",
+                  "unit": "bytes",
+                  "value": 1896161240
+                },
+                {
+                  "name": "javascript_analysis_semantic_result_budget_bytes",
+                  "unit": "bytes",
+                  "value": 0
+                },
+                {
+                  "name": "javascript_analysis_worker_heap_limit_bytes",
+                  "unit": "bytes",
+                  "value": 1098907648
+                }
+              ]
+            },
+            "omitted_count": null,
+            "status": "partial",
+            "truncated": false
+          },
+          "application_unknowns": 9461,
+          "semantic": {
+            "families": {
+              "count": 12,
+              "first": [
+                {
+                  "family": "boundary",
+                  "omitted_relations": null,
+                  "retained_relations": 23,
+                  "status": "partial",
+                  "unknown_count": 4722
+                },
+                {
+                  "family": "call-flow",
+                  "omitted_relations": null,
+                  "retained_relations": 1708,
+                  "status": "partial",
+                  "unknown_count": 6048
+                },
+                {
+                  "family": "child-process",
+                  "omitted_relations": null,
+                  "retained_relations": 2,
+                  "status": "partial",
+                  "unknown_count": 4723
+                }
+              ]
+            },
+            "limits": {
+              "count": 4,
+              "first": [
+                {
+                  "name": "javascript_analysis_parent_result_budget_bytes",
+                  "unit": "bytes",
+                  "value": 1896161240
+                },
+                {
+                  "name": "javascript_analysis_semantic_result_budget_bytes",
+                  "unit": "bytes",
+                  "value": 0
+                },
+                {
+                  "name": "javascript_analysis_worker_heap_limit_bytes",
+                  "unit": "bytes",
+                  "value": 1098907648
+                }
+              ]
+            },
+            "omitted_nodes": null,
+            "omitted_relations": null,
+            "status": "partial",
+            "truncated": true
+          },
+          "semantic_unknowns": 63568
+        },
+        "electron": {
+          "browser_windows": 6,
+          "context_bridge_apis": 1,
+          "explicit_web_preferences": 22,
+          "exposed_api_members": 0,
+          "ipc": {
+            "ambiguous_renderer_transmissions": 0,
+            "dynamic_channel_operations": 6,
+            "literal_channels": 124,
+            "main_handlers": 8,
+            "operations": 135,
+            "paired_renderer_transmissions": 5,
+            "renderer_listeners": 5,
+            "renderer_transmissions": 122,
+            "unpaired_literal_renderer_transmissions": 117
+          },
+          "native_addon_bindings": 0,
+          "preload_entrypoints": 0,
+          "resolved_native_addon_bindings": 0,
+          "resolved_utility_entrypoints": 0,
+          "sender_validation_observations": 1,
+          "utility_processes": 1
+        },
+        "format": "asar",
+        "input_path": "/Applications/9xconvert.app/Contents/Resources/app.asar",
+        "limitation_count": 9461,
+        "root_artifact_sha256": "d424d510e353b41de2bea71882d92da0170aa935213c1936e081383fd046524a",
+        "statistics": {
+          "findings": 21247,
+          "invalid_utf8_files": 0,
+          "modules": 6,
+          "nested_asar_containers": 0,
+          "parse_failures": 17,
+          "parsed_javascript_files": 4874,
+          "relevant_files": 5328,
+          "text_bytes_read": 86552587,
+          "visited_ast_nodes": 12816356
+        }
+      },
+      "parent_evidence_id": "ev_0360fc16d8ba702fbb96ac16defa5af85db4b9f9d721d69c0020117aee402165",
+      "parent_operation": "analyze_javascript_application",
+      "artifact": {
+        "path": "/Applications/9xconvert.app/Contents/Resources/app.asar",
+        "sha256": "d424d510e353b41de2bea71882d92da0170aa935213c1936e081383fd046524a"
+      },
+      "view": {
+        "kind": "summary"
+      }
+    },
+    {
+      "evidence_id": "ev_ff6eab91a76f7aeac6746358cdc95787d744c83c2a4a6e20c372eaa8f3fe713c",
+      "operation": "inspect_analysis_view",
+      "provider": {
+        "id": "rea-analysis-view",
+        "name": "REA analysis view projection",
+        "version": "1"
+      },
+      "subject": {
+        "architecture": null,
+        "digest": {
+          "sha256": "d424d510e353b41de2bea71882d92da0170aa935213c1936e081383fd046524a"
+        },
+        "format": "asar",
+        "local_path": "/Applications/9xconvert.app/Contents/Resources/app.asar",
+        "name": "app.asar"
+      },
+      "authority": "shipped-artifact",
+      "confidence": "derived",
+      "parameters": {
+        "parent_evidence_id": "ev_0360fc16d8ba702fbb96ac16defa5af85db4b9f9d721d69c0020117aee402165",
+        "view": {
+          "collection": "modules",
+          "kind": "page",
+          "limit": 8,
+          "offset": 0
+        }
+      },
+      "limitation_count": 9472,
+      "limitation_samples": [
+        "Artifact integrity metadata contradicts observed bytes at node_modules/@img/sharp-darwin-arm64/lib/sharp-darwin-arm64.node; the observed bytes are untrusted.",
+        "Artifact integrity metadata contradicts observed bytes at node_modules/@img/sharp-darwin-x64/lib/sharp-darwin-x64.node; the observed bytes are untrusted.",
+        "Artifact integrity metadata contradicts observed bytes at node_modules/@img/sharp-libvips-darwin-arm64/lib/libvips-cpp.8.17.3.dylib; the observed bytes are untrusted.",
+        "Artifact integrity metadata contradicts observed bytes at node_modules/@img/sharp-libvips-darwin-x64/lib/libvips-cpp.8.17.3.dylib; the observed bytes are untrusted.",
+        "Artifact integrity metadata contradicts observed bytes at node_modules/@napi-rs/canvas-darwin-arm64/skia.darwin-arm64.node; the observed bytes are untrusted.",
+        "Artifact integrity metadata contradicts observed bytes at node_modules/@napi-rs/canvas-darwin-x64/skia.darwin-x64.node; the observed bytes are untrusted.",
+        "Artifact integrity metadata contradicts observed bytes at node_modules/better-sqlite3/build/Release/better_sqlite3.node; the observed bytes are untrusted.",
+        "Boundary extraction covers unshadowed JSON/global coercions plus parse and validation method candidates."
+      ],
+      "coverage": {
+        "examined": 8,
+        "exhausted": false,
+        "next_offset": 8,
+        "status": "page",
+        "total": 5137
+      },
+      "parent_evidence_id": "ev_0360fc16d8ba702fbb96ac16defa5af85db4b9f9d721d69c0020117aee402165",
+      "parent_operation": "analyze_javascript_application",
+      "artifact": {
+        "path": "/Applications/9xconvert.app/Contents/Resources/app.asar",
+        "sha256": "d424d510e353b41de2bea71882d92da0170aa935213c1936e081383fd046524a"
+      },
+      "view": {
+        "collection": "modules",
+        "kind": "page",
+        "limit": 8,
+        "offset": 0
+      },
+      "items": {
+        "count": 8,
+        "first": [
+          {
+            "kind": "javascript-asset",
+            "node_id": "jag_node_00013db1f00f9a0f25c8fc048e120ffe5e1f3ee8f426ba934f56a2913cc3de97",
+            "path": "node_modules/iconv-lite/encodings/sbcs-codec.js"
+          },
+          {
+            "kind": "javascript-asset",
+            "node_id": "jag_node_00026c8efa3011c388db4531b1f4046ffbf2557a7d207f29d27543212940df2b",
+            "path": "node_modules/ow/dist/predicates/set.js"
+          },
+          {
+            "kind": "javascript-asset",
+            "node_id": "jag_node_000590952943502f05e1938dd8f65d85a6348c12c3f68449c7eae2b2ded0350b",
+            "path": "node_modules/pdf-lib/es/core/acroform/PDFAcroField.js"
+          }
+        ]
+      }
+    }
+  ],
+  "kind": "selected-fields-from-official-export",
+  "source_bundle": "9xconvert-research/rea-ui-evidence-bundle.json",
+  "selection_note": "Selected metadata only; full Evidence records remain in the source bundle. Long strings and arrays are explicitly abbreviated."
+}

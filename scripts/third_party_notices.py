@@ -3,19 +3,25 @@
 
 Normal generation uses the locked, offline, platform-filtered Cargo graph and
 never traverses the Cargo cache. License texts are read only from each resolved
-package's own directory and a few named font directories. The explicit
+package's own directory, a few named font directories, and explicitly hash-bound
+workspace font assets. The explicit
 --fetch-upstream option reads only pinned official license texts, not code.
 Identical texts appear once by SHA256 to keep release archives small.
+The single fixed official-release/source-equivalence proof additionally checks
+the exact local archive and installed author/Cargo files; it requires POSIX
+no-follow file access and does not authorize binary publication.
 """
 from __future__ import annotations
 
 import argparse
 import concurrent.futures
 import hashlib
+import io
 import json
 import os
 from pathlib import Path
 import re
+import stat
 import subprocess
 import sys
 import tempfile
@@ -24,12 +30,42 @@ import tomllib
 from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
-MAX_NOTICE_BYTES = 2 * 1024 * 1024
+MAX_NOTICE_BYTES = 8 * 1024 * 1024
 MAX_INPUT_BYTES = 8 * 1024 * 1024
 PREFIXES = ("license", "licence", "copying", "notice", "copyright")
 FONT_CRATES = {"epaint", "epaint_default_fonts", "egui", "eframe"}
 FONT_DIRS = ("fonts", "src/fonts", "assets/fonts")
 SUPPLEMENT_ROOT = ROOT / "third_party/licenses"
+RELEASE_MATCH_KEY = ("system-configuration-sys", "0.5.0")
+RELEASE_MATCH_PROOF = {
+    "path": "provenance/system-configuration-sys-0.5.0-d464f4f.json",
+    "sha256": "dd864e9fb9a3732e0bda906387c7119bd25ebad20373639ccb6a3616ef1471cf",
+}
+WORKSPACE_FONTS = ({
+    "name": "DM Sans",
+    "asset": "assets/fonts/DM-Sans.ttf",
+    "asset_sha256": "8cd08d97e89c24d0aa92edd2f0f4c8ee6195eee9b7c9f154865a58b02f0c1c0d",
+    "license": "assets/fonts/OFL.txt",
+    "license_sha256": "9af36190332437f5ecd09974de43c1f7c77a310a996cdd8ceb25628b458840e1",
+    "source_record": "assets/fonts/README.md",
+    "source_record_sha256": "0284fbc839c5b44100bf04a085adebd8a4cc4fc9e1aa374f58e8cc941bfe15f6",
+}, {
+    "name": "DM Sans SemiBold (derived static instance)",
+    "asset": "assets/fonts/DM-Sans-SemiBold.ttf",
+    "asset_sha256": "10b569ed19b058b0d7fd5cbeaec1224a745cba85d2e3cf9cb2b9c44430c420ec",
+    "license": "assets/fonts/OFL.txt",
+    "license_sha256": "9af36190332437f5ecd09974de43c1f7c77a310a996cdd8ceb25628b458840e1",
+    "source_record": "assets/fonts/README.md",
+    "source_record_sha256": "0284fbc839c5b44100bf04a085adebd8a4cc4fc9e1aa374f58e8cc941bfe15f6",
+}, {
+    "name": "DM Sans Bold (derived static instance)",
+    "asset": "assets/fonts/DM-Sans-Bold.ttf",
+    "asset_sha256": "9b73b14c419afcf87569069635a797558a78a425bdf8c235458720a4c4fe73cb",
+    "license": "assets/fonts/OFL.txt",
+    "license_sha256": "9af36190332437f5ecd09974de43c1f7c77a310a996cdd8ceb25628b458840e1",
+    "source_record": "assets/fonts/README.md",
+    "source_record_sha256": "0284fbc839c5b44100bf04a085adebd8a4cc4fc9e1aa374f58e8cc941bfe15f6",
+})
 
 
 class NoticeError(Exception):
@@ -78,6 +114,33 @@ def matching_files(directory: Path) -> list[Path]:
     return sorted((path for path in directory.iterdir()
                    if path.name.lower().startswith(PREFIXES) and path.is_file()),
                   key=lambda path: path.name)
+
+
+def workspace_font_records(root: Path) -> list[dict]:
+    """Bind the embedded asset, original license bytes and recorded source.
+
+    These hashes identify the checked-in bytes, not a signed upstream attestation.
+    No font binary is added to the notice text or copied into an archive here.
+    """
+    root = root.resolve(strict=True)
+    records = []
+    for descriptor in WORKSPACE_FONTS:
+        record = dict(descriptor)
+        for field in ("asset", "license", "source_record"):
+            path = root
+            for part in Path(descriptor[field]).parts:
+                path /= part
+                if path.is_symlink():
+                    raise NoticeError("Workspace font files must not use symlinks")
+            relative_file(path, root)
+            if not path.is_file() or path.stat().st_size > MAX_INPUT_BYTES:
+                raise NoticeError("Workspace font file is missing, nonregular or oversized")
+            content = path.read_bytes() if field == "asset" else read_notice(path, root)
+            if len(content) > MAX_INPUT_BYTES or hashlib.sha256(content).hexdigest() != descriptor[f"{field}_sha256"]:
+                raise NoticeError("Workspace font asset, license or source-record SHA256 changed")
+            record[f"{field}_bytes"] = content
+        records.append(record)
+    return records
 
 
 def dependency_closure(metadata: dict) -> list[dict]:
@@ -150,6 +213,187 @@ def original_comment_header(source: bytes) -> bytes:
     return notice
 
 
+def git_blob_sha(content: bytes) -> str:
+    return hashlib.sha1(b"blob " + str(len(content)).encode("ascii") + b"\0" + content).hexdigest()
+
+
+def bounded_regular_bytes(path: Path, base: Path) -> bytes:
+    """Read a named local proof/source/archive, never links or special files."""
+    if os.name != "posix" or not hasattr(os, "O_NOFOLLOW") or not hasattr(os, "O_NONBLOCK"):
+        raise NoticeError("Official release-source verification requires POSIX no-follow file access")
+    relative_file(path, base)
+    current = Path(path.absolute().anchor)
+    for part in path.absolute().parts[1:]:
+        current /= part
+        if current.is_symlink():
+            raise NoticeError("Release-source proof files must not use symlinks")
+    descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    with os.fdopen(descriptor, "rb") as stream:
+        before = os.fstat(stream.fileno())
+        if not stat.S_ISREG(before.st_mode) or before.st_size > MAX_INPUT_BYTES:
+            raise NoticeError("Release-source proof input is nonregular or oversized")
+        content = stream.read(MAX_INPUT_BYTES + 1)
+        after = os.fstat(stream.fileno())
+    identity = lambda info: (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+    if identity(before) != identity(after) or len(content) != before.st_size:
+        raise NoticeError("Release-source proof input changed while read")
+    return content
+
+
+def release_source_proof(entry: dict) -> dict:
+    """One reviewed exception, not a general path/commit/license substitution API."""
+    if (entry.get("crate"), entry.get("version")) != RELEASE_MATCH_KEY or entry.get("provenance") != "official_release_source_match":
+        raise NoticeError("Unsupported official release-source match")
+    if entry.get("source_match_proof") != RELEASE_MATCH_PROOF:
+        raise NoticeError("Official release-source proof path or SHA256 changed")
+    content = bounded_regular_bytes(SUPPLEMENT_ROOT / RELEASE_MATCH_PROOF["path"], SUPPLEMENT_ROOT)
+    if hashlib.sha256(content).hexdigest() != RELEASE_MATCH_PROOF["sha256"]:
+        raise NoticeError("Pinned official release-source proof SHA256 changed")
+    proof = json.loads(content)
+    snapshot = proof["official_tree_snapshot"]
+    tree = {item["path"]: item for item in snapshot["tree"]}
+    if (snapshot["sha"] != proof["official_tree_sha"] or snapshot["truncated"] is not False
+            or len(tree) != len(snapshot["tree"])):
+        raise NoticeError("Official release tree snapshot is incomplete or ambiguous")
+    author_paths = {item["upstream_path"] for item in proof["author_files"]}
+    tree_author_paths = {path for path, item in tree.items()
+                         if path.startswith(proof["upstream_directory"] + "/") and item["type"] == "blob"}
+    if author_paths != tree_author_paths:
+        raise NoticeError("Official release tree author-file set does not match the proof")
+    for item in proof["author_files"] + proof["license_files"]:
+        original = tree.get(item.get("upstream_path", item.get("source_path")))
+        if (not original or original["type"] != "blob" or original["mode"] != "100644"
+                or original["size"] != item["size"] or original["sha"] != item["git_blob_sha"]):
+            raise NoticeError("Official release file does not match its original Git tree entry")
+    if any(entry.get(field) != proof.get(field) for field in ("crate", "version", "repository", "spdx", "packaged_commit_status")):
+        raise NoticeError("Official release-source entry metadata changed")
+    if entry.get("commit") != proof["packaged_vcs_commit"] or entry.get("files") != proof["license_files"] or entry.get("unresolved"):
+        raise NoticeError("Official release-source entry changed its packaged commit or license binding")
+    return proof
+
+
+def release_archive_members(content: bytes, proof: dict) -> dict[str, bytes]:
+    """The pinned crate has exactly nine author files and two Cargo-generated files."""
+    expected = {item["archive_path"]: item for item in proof["author_files"]}
+    generated = set(proof["excluded_packaging_generated_files"])
+    prefix = f"{proof['crate']}-{proof['version']}/"
+    contents = {}
+    try:
+        with tarfile.open(fileobj=io.BytesIO(content), mode="r:gz") as bundle:
+            members = bundle.getmembers()
+            if len(members) != len(expected) + len(generated):
+                raise NoticeError("Official release archive member set changed")
+            for member in members:
+                if not member.name.startswith(prefix):
+                    raise NoticeError("Official release archive member escapes its package")
+                relative = member.name[len(prefix):]
+                if (relative not in expected.keys() | generated or relative in contents
+                        or not member.isfile() or member.size > MAX_INPUT_BYTES):
+                    raise NoticeError("Official release archive has extra, duplicate or unsafe members")
+                stream = bundle.extractfile(member)
+                if stream is None:
+                    raise NoticeError("Official release archive member is unreadable")
+                data = stream.read(MAX_INPUT_BYTES + 1)
+                if len(data) != member.size:
+                    raise NoticeError("Official release archive member size changed")
+                contents[relative] = data
+    except tarfile.TarError as error:
+        raise NoticeError("Official release archive is invalid") from error
+    if contents.keys() != expected.keys() | generated:
+        raise NoticeError("Official release archive author-file set changed")
+    for relative, item in expected.items():
+        data = contents[relative]
+        if (len(data) != item["size"] or hashlib.sha256(data).hexdigest() != item["sha256"]
+                or git_blob_sha(data) != item["git_blob_sha"]):
+            raise NoticeError("Official release archive author-file fingerprint changed")
+    for name in ("Cargo.toml.orig", "Cargo.toml"):
+        package = tomllib.loads(contents[name].decode("utf-8"))["package"]
+        if any(package.get(field) != proof[expected_field] for field, expected_field in
+               (("name", "crate"), ("version", "version"), ("repository", "repository"),
+                ("license", "spdx"), ("authors", "authors"))):
+            raise NoticeError("Official release original or generated Cargo metadata changed")
+    vcs = json.loads(contents[".cargo_vcs_info.json"])
+    if vcs != {"git": {"sha1": proof["packaged_vcs_commit"]}, "path_in_vcs": proof["packaged_vcs_path"]}:
+        raise NoticeError("Official release packaged VCS metadata changed")
+    return contents
+
+
+def verify_release_source_match(package: dict, locked_checksum: str, entry: dict) -> tuple[dict, list[tuple[dict, bytes]]]:
+    proof = release_source_proof(entry)
+    if any(package.get(field) != proof[expected] for field, expected in
+           (("name", "crate"), ("version", "version"), ("repository", "repository"),
+            ("license", "spdx"), ("authors", "authors"))):
+        raise NoticeError("Resolved release-source package identity changed")
+    base = Path(package["manifest_path"]).parent
+    if base.name != "system-configuration-sys-0.5.0" or base.parent.parent.name != "src":
+        raise NoticeError("Official release match requires the resolved registry package directory")
+    archive = base.parent.parent.parent / "cache" / base.parent.name / "system-configuration-sys-0.5.0.crate"
+    content = bounded_regular_bytes(archive, archive.parent)
+    if locked_checksum != proof["package_sha256"] or hashlib.sha256(content).hexdigest() != locked_checksum:
+        raise NoticeError("Official release cached archive does not match the pinned Cargo.lock checksum")
+    archived_files = release_archive_members(content, proof)
+    root_names = {name.split("/", 1)[0] for name in archived_files}
+    marker_names = set(proof["excluded_installed_cargo_markers"])
+    children = {child.name: child for child in base.iterdir()}
+    if not root_names <= children.keys() or children.keys() - root_names - marker_names:
+        raise NoticeError("Installed release package file set changed")
+    source_dir = base / "src"
+    if source_dir.is_symlink() or not source_dir.is_dir():
+        raise NoticeError("Installed release source directory is unsafe")
+    source_names = {name[len("src/"):] for name in archived_files if name.startswith("src/")}
+    if {child.name for child in source_dir.iterdir()} != source_names:
+        raise NoticeError("Installed release author-file set changed")
+    for name in children.keys() & marker_names:
+        bounded_regular_bytes(base / name, base)
+    for relative, data in archived_files.items():
+        if bounded_regular_bytes(base / relative, base) != data:
+            raise NoticeError("Installed release author or Cargo packaging file differs from the locked archive")
+    installed_vcs = json.loads(bounded_regular_bytes(base / ".cargo_vcs_info.json", base))
+    if installed_vcs != {"git": {"sha1": proof["packaged_vcs_commit"]}, "path_in_vcs": proof["packaged_vcs_path"]}:
+        raise NoticeError("Installed release packaged VCS metadata changed")
+    licenses = []
+    for item in proof["license_files"]:
+        expected_url = f"https://raw.githubusercontent.com/mullvad/system-configuration-rs/{proof['pinned_official_commit']}/{item['source_path']}"
+        if item["source_url"] != expected_url or item["path"] != f"texts/{item['sha256']}.txt":
+            raise NoticeError("Official release license URL or text path changed")
+        data = bounded_regular_bytes(SUPPLEMENT_ROOT / item["path"], SUPPLEMENT_ROOT)
+        if (len(data) != item["size"] or hashlib.sha256(data).hexdigest() != item["sha256"]
+                or git_blob_sha(data) != item["git_blob_sha"]):
+            raise NoticeError("Official release full license text fingerprint changed")
+        licenses.append((item, data))
+    return proof, licenses
+
+
+def verify_current_gap_views(manifest: dict, completed: set[tuple[str, str]]) -> int:
+    historical = manifest.get("historical_unresolved_review")
+    if historical is None:
+        return len(manifest.get("unresolved_review", {}).get("items", []))
+    original = {(item["crate"], item["version"]) for item in historical["items"]}
+    remaining = original - completed
+    current = {(item["crate"], item["version"]) for item in manifest["unresolved_review"]["items"]}
+    cached = manifest["cached_source_review"]
+    original_cached = manifest["historical_cached_source_review"]
+    reviewed = {(item["crate"], item["version"]) for item in cached["items"]}
+    if (len(historical["items"]) != 6 or len(cached["items"]) != 6 or original != reviewed
+            or len(manifest["unresolved_review"]["items"]) != len(remaining)
+            or original_cached.get("full_license_gaps_remaining") != 6
+            or cached["items"] != original_cached["items"]
+            or cached["source_header_notices"] != original_cached["source_header_notices"]
+            or cached.get("historical_full_license_gaps_at_review") != 6 or current != remaining
+            or cached.get("full_license_gaps_remaining") != len(remaining)):
+        raise NoticeError("Current original-license gaps do not match preserved history and verified completions")
+    historical_entries = manifest.get("historical_exact_commit_entries")
+    if not isinstance(historical_entries, list) or len(historical_entries) != 1:
+        raise NoticeError("Original unreachable packaged-commit entry was not preserved")
+    old_entry = historical_entries[0]
+    if (old_entry.get("crate"), old_entry.get("version")) != RELEASE_MATCH_KEY or old_entry.get("files") != [] or old_entry.get("commit") != "592a485494be9d63a60e54944dd2fcc4f077ec58" or not old_entry.get("unresolved"):
+        raise NoticeError("Original unreachable packaged-commit fact changed")
+    expected_current = [item for item in historical["items"] if (item["crate"], item["version"]) not in completed]
+    if manifest["unresolved_review"]["items"] != expected_current:
+        raise NoticeError("Current gap details differ from preserved historical facts")
+    return len(remaining)
+
+
 def verify_source_notice(base: Path, package_checksum: str, descriptor: dict) -> bytes:
     """A source header has a different role from a full LICENSE text."""
     if descriptor.get("role") != "copyright_and_license_reference_only" or descriptor.get("resolves_full_license_gap") is not False:
@@ -178,7 +422,7 @@ def inspect_cached_source_headers(target: str) -> dict:
     """Bounded offline follow-up for the six already documented unresolved crates."""
     manifest_path = SUPPLEMENT_ROOT / "manifest.json"
     manifest = json.loads(read_notice(manifest_path, SUPPLEMENT_ROOT))
-    items = manifest.get("unresolved_review", {}).get("items", [])
+    items = manifest.get("historical_unresolved_review", manifest.get("unresolved_review", {})).get("items", [])
     if len(items) != 6:
         raise NoticeError("Cached-source review is limited to the six documented gaps")
     metadata = json.loads(command(["cargo", "metadata", "--format-version", "1", "--locked", "--offline", "--filter-platform", target]))
@@ -245,10 +489,19 @@ def inspect_cached_source_headers(target: str) -> dict:
         findings.append({"crate": key[0], "version": key[1], "package_sha256": checksum, "cargo_lock_checksum_matches": True,
                          "installed_sources_match_cached_archive": True, "packaged_metadata": packaged_metadata, "source_files": files, "legal_term_hit_locations": hits,
                          "finding": "Copyright and SPDX-license-reference comment preserved; full MIT grant/warranty text not found" if hits else "No copyright/license/MIT grant/warranty text found in any packaged src/*.rs module"})
-    manifest["cached_source_review"] = {"scope": "Offline inspection of exact cached crate archives and installed src/*.rs modules only; no code was executed or copied into the project",
-                                       "full_license_gaps_remaining": 6, "items": findings, "source_header_notices": notices}
+    completed = set()
+    for entry in manifest["entries"]:
+        if entry.get("provenance") == "official_release_source_match":
+            key = (entry["crate"], entry["version"])
+            verify_release_source_match(packages[key], locked[key], entry)
+            completed.add(key)
+    remaining = len(items) - len(completed)
+    manifest["cached_source_review"] = {"scope": "Historical six-crate offline source/header inspection; author-source facts are preserved separately from current full-text completions. No code was executed or copied into the project",
+                                       "historical_full_license_gaps_at_review": 6,
+                                       "full_license_gaps_remaining": remaining, "items": findings, "source_header_notices": notices}
+    verify_current_gap_views(manifest, completed)
     manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    return {"reviewed_crates": len(findings), "source_files": sum(len(item["source_files"]) for item in findings), "source_header_notices": len(notices), "full_license_gaps_remaining": 6}
+    return {"reviewed_crates": len(findings), "source_files": sum(len(item["source_files"]) for item in findings), "source_header_notices": len(notices), "full_license_gaps_remaining": remaining}
 
 
 def fetch_upstream(target: str) -> dict:
@@ -309,9 +562,15 @@ def fetch_upstream(target: str) -> dict:
     if manifest_path.is_file():
         previous = json.loads(read_notice(manifest_path, SUPPLEMENT_ROOT))
         if previous.get("target") == target:
-            for key in ("unresolved_review", "cached_source_review"):
+            for key in ("unresolved_review", "cached_source_review", "historical_unresolved_review", "historical_cached_source_review", "historical_exact_commit_entries"):
                 if key in previous:
                     manifest[key] = previous[key]
+            prior = {(entry["crate"], entry["version"]): entry for entry in previous["entries"]}
+            for index, entry in enumerate(manifest["entries"]):
+                preserved = prior.get((entry["crate"], entry["version"]))
+                if preserved and preserved.get("provenance") == "official_release_source_match":
+                    release_source_proof(preserved)  # Reject altered proof, do not silently demote it.
+                    manifest["entries"][index] = preserved
     manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return {"exact_commit_groups": len(groups), "crate_entries": len(manifest["entries"]), "texts": len(unique_texts),
             "unresolved_entries": sum(not entry["files"] for entry in manifest["entries"])}
@@ -329,6 +588,8 @@ def collect(target: str) -> tuple[bytes, dict]:
     third_party_count = 0
     supplemental = {}
     source_notices = {}
+    manifest = {}
+    completed_release_matches = set()
     manifest_path = SUPPLEMENT_ROOT / "manifest.json"
     if manifest_path.is_file():
         manifest = json.loads(read_notice(manifest_path, SUPPLEMENT_ROOT))
@@ -352,6 +613,17 @@ def collect(target: str) -> tuple[bytes, dict]:
     inventory.append("FIRST-PARTY WORKSPACE\n" + "\n".join(
         f"  {package['name']} {package['version']} (covered by separately shipped project LICENSE)"
         for package in packages if package["id"] in workspace_ids))
+
+    for font in workspace_font_records(ROOT):
+        texts.setdefault(font["license_sha256"], font["license_bytes"])
+        inventory.append("\n".join([
+            f"WORKSPACE EMBEDDED FONT {font['name']}",
+            f"  Asset: {font['asset']} -> SHA256 {font['asset_sha256']} ({len(font['asset_bytes'])} bytes)",
+            f"  Source record: {font['source_record']} -> SHA256 {font['source_record_sha256']}",
+            "  Source URL/retrieval date are recorded locally; byte hashes are not an upstream signature or pinned-commit claim.",
+            f"  Original font copyright/license: {font['license']} -> TEXT SHA256 {font['license_sha256']}",
+        ]))
+        font_count += 1
 
     for package in packages:
         if package["id"] in workspace_ids:
@@ -386,7 +658,23 @@ def collect(target: str) -> tuple[bytes, dict]:
                 lines.append(entry)
                 code_notices += 1
         supplement = supplemental.get((package["name"], package["version"]))
-        if not code_notices and supplement:
+        if supplement and (supplement.get("provenance") == "official_release_source_match" or "source_match_proof" in supplement):
+            proof, original_licenses = verify_release_source_match(
+                package, locked_checksums.get((package["name"], package["version"])), supplement)
+            completed_release_matches.add((package["name"], package["version"]))
+            lines.extend([
+                "  Full original texts recovered by official_release_source_match (not a legal/compliance approval).",
+                f"  Packaged .cargo_vcs_info.json commit: {proof['packaged_vcs_commit']} (unreachable at declared repository; historical failure preserved).",
+                f"  Separate fixed official version-bump commit: {proof['pinned_official_commit']} (NOT the packaged VCS commit; unsigned).",
+                f"  Official author date: {proof['official_author_date']}; committer date: {proof['official_committer_date']}.",
+                f"  Exact locked .crate SHA256: {proof['package_sha256']}; 9/9 author files match archive and installed source by bytes, SHA256 and Git blob SHA.",
+                f"  Restricted source-equivalence proof: {RELEASE_MATCH_PROOF['path']} -> SHA256 {RELEASE_MATCH_PROOF['sha256']}",
+            ])
+            for descriptor, content in original_licenses:
+                texts.setdefault(descriptor["sha256"], content)
+                lines.append(f"  Official release-source code notice: {descriptor['source_url']} -> TEXT SHA256 {descriptor['sha256']}")
+                code_notices += 1
+        elif not code_notices and supplement:
             expected_source = exact_sources.get((package["name"], package["version"]))
             if expected_source and all(supplement.get(key) == expected_source.get(key) for key in ("repository", "commit")):
                 for descriptor in supplement.get("files", []):
@@ -440,6 +728,9 @@ def collect(target: str) -> tuple[bytes, dict]:
                             lines.append(entry)
         inventory.append("\n".join(lines))
 
+    if manifest:
+        verify_current_gap_views(manifest, completed_release_matches)
+
     version = command(["rustc", "--version"]).decode("utf-8").strip()
     sysroot = Path(command(["rustc", "--print", "sysroot"]).decode("utf-8").strip())
     rust_doc = sysroot / "share/doc/rust"
@@ -472,9 +763,9 @@ def collect(target: str) -> tuple[bytes, dict]:
               "Cargo's platform-filtered resolution may include build-only or workspace-feature-unified dependencies; this is not a binary-symbol SBOM.",
               "SPDX strings and authors/repository fields are upstream declarations, not independently adjudicated license conclusions.",
               "Missing local license text and unreadable files remain explicit unresolved items below. No replacement license is invented.",
-              "Supplemental code notices, when present, are pinned to packaged upstream commit IDs and checked against a committed URL/SHA256 manifest.",
+              "Supplemental code notices use packaged commit IDs, or the one explicit official_release_source_match verified against the exact locked archive and installed source; fixed URLs/text hashes are checked offline.",
               "Source copyright/reference snippets, when present, retain their exact source/archive provenance and do not count as full license-text resolution.",
-              "The default epaint font notices are included separately; they do not substitute for the crate's code license.",
+              "Default epaint and hash-bound workspace embedded-font notices are included separately; they do not substitute for code licenses.",
               "FFmpeg, ffprobe, ffplay, macOS frameworks, and OS fonts are external prerequisites, not bundled in this release.",
               "No Cargo cache, source tree, OS font binary, credential, or local absolute installation path is included.",
               "Identical original UTF-8 texts are stored once; the inventory refers to their exact byte SHA256.",
@@ -489,7 +780,7 @@ def collect(target: str) -> tuple[bytes, dict]:
         output += content
         output += f"\n===== END TEXT SHA256 {digest} =====\n".encode("ascii")
     if len(output) > MAX_NOTICE_BYTES:
-        raise NoticeError("Collected notices exceed the 2 MiB release limit; review before packaging")
+        raise NoticeError("Collected notices exceed the 8 MiB notice limit; review before packaging")
     return output, {"packages": len(packages), "third_party": third_party_count, "font_assets": font_count,
                     "distinct_texts": len(texts), "unresolved": len(unresolved), "bytes": len(output)}
 

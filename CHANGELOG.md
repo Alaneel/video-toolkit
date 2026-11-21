@@ -4,6 +4,47 @@ All notable changes to Video Toolkit are documented here. The project follows [S
 
 ## [Unreleased]
 
+### Reliability hardening
+
+- Isolate MCP stdio behind bounded input/output queues and acknowledge complete output delivery; client backpressure also terminates idle-input sessions without indefinitely holding file-worker cancellation or EOF cleanup. Document the single-process blocked-I/O shutdown boundary.
+- Bound conversion/workflow subprocess pipe draining and conversion progress queues, and clean up owned Unix process groups before reaping their leaders; retain explicit non-Unix process-tree limits.
+- Preserve fixed local preview-review rejection reason codes without storing raw model arguments, unknown free-form diagnostics or private paths; do not reconstruct missing reasons in historical runs.
+- Include the hash-bound embedded DM Sans font notice in collection and local RC packaging, while preserving the public binary gate.
+- Recover the original `system-configuration-sys 0.5.0` license texts through a pinned official release-source match, without claiming its unavailable packaged VCS commit was recovered. Five original-text gaps and target-specific distribution approval remain unresolved.
+- Preserve complete newer Rust copyright bundles with an 8 MiB limit specific to `THIRD_PARTY_NOTICES.txt`; keep review JSON and ordinary RC documents at 2 MiB, retain full credential scanning and distribution gates, and prepare locked dependency sources before offline provenance tests in CI.
+- Distinguish the reference study's historical gap snapshot from the current local implementation in the machine feature inventory.
+- Make desktop stroke widths explicit and keep UTF-16 subtitle-prefix scanning compatible with Rust 1.87 and newer compiler checks; cover both byte orders, BOM-only input and an odd trailing byte.
+
+### Desktop redesign
+
+- Rebuild the desktop around a light icon sidebar, rounded workspace, searchable conversion presets, large drop area, compact file cards and a separate queue.
+- Group the existing editing tools into a navigable tool gallery and move runtime details into Settings.
+- Add folder import, HEIC/HEIF input with ImageMagick/libheif, and a runtime-informed UI/feature inventory.
+- Introduce a shared design system (`crates/ui/src/theme.rs`): neutral tokens with one accent, DM Sans SemiBold/Bold static instances for hierarchy, and reusable buttons, chips, segmented controls, cards, form rows, badges and empty states.
+- Restyle every Toolkit page on that system: grouped labelled sidebar with an engine-status card, Convert quick-start cards and dashed drop zone, File tools sections, editor breadcrumbs and form cards, Batches/Profiles/Plugins cards, and Settings paths shown relative to `~`.
+- Bring the Video Agent window onto the same light theme with a numbered step bar, budget meters and tone-coded banners; all consent, budget and verification wording is unchanged.
+- Add an opt-in `VTK_SCREENSHOT`/`VTK_PAGE` capture hook for refreshing documentation screenshots, and refresh `assets/video-toolkit-ui.png`.
+
+### Local file conversion
+
+- Extend the existing repository with a shared `file_conversion` core, preserving editing tools and the human-reviewed Video Agent.
+- Add local video/audio transcoding and audio extraction through FFmpeg, and raster conversion through ImageMagick 7, with 13 output formats.
+- Add the default Convert files desktop with multi-file selection, drag-and-drop, background sequential queues, progress, per-file errors and cancellation.
+- Add `convert` and `doctor` CLI commands plus a tools-only MCP stdio adapter with explicit allowed folders, progress and request cancellation.
+- Validate output streams, dimensions, duration where known and full decode; publish temporary output without replacing existing files.
+- Add synthetic real-tool integration tests and a static REA study of the reference application's UI, registry and architecture, with a separate implementation/coverage comparison.
+
+### PDF, subtitle, document and download workflows
+
+- Add a shared `file_workflows` engine with 15 registered operations, used by desktop forms, `workflow`/`workflows` CLI commands and MCP discovery/execution.
+- Implement PDF merge, split, selected-page rotation, compression, text watermark, metadata, PNG/JPEG page rendering, searchable text extraction and ordered images-to-PDF, including HEIC/HEIF input.
+- Add subtitle conversion, timing shifts, FPS retiming and cleaning for eight timed formats, with TXT/CSV/JSON export and explicit text/timing preservation limits.
+- Convert TXT, Markdown, HTML, DOCX, RTF, ODT, EPUB and searchable PDF into TXT/Markdown/HTML/DOCX/PDF/EPUB through a sanitized semantic document pipeline; rebuild layout rather than promising exact pagination.
+- Add direct HTTP(S) downloads and media-link retrieval/extraction, with byte limits, cancellable subprocess cleanup, completed-transfer checks and full decode for downloaded media.
+- Validate staged output structure before no-clobber publication; reject collisions and remove unpublished files on errors or cancellation. Include source stems in single-input PDF output names so different-source jobs can share a batch destination. Install optional dependencies through `scripts/setup-file-workflows.sh`.
+- Pass the three real PDF/document integration tests, including the 48 input/output document combinations, source preservation, resource rejection and public publication/no-overwrite behavior; render and inspect representative PDF/DOCX pages.
+- Extend CI to install the PDF/document runtime and run loopback download tests; explicitly run the HEIC-dependent PDF test on macOS alongside the existing media/image real-tool checks. General data conversion, persistent queues, more image editing/formats and natural-language file planning remain future work.
+
 ### Bounded preview-driven feedback
 
 - Add opt-in, agent-task-scoped versioned JSON responses and offline capability discovery while preserving legacy command behavior.

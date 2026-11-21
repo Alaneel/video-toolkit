@@ -1,3 +1,4 @@
+use crate::theme;
 use eframe::egui::{self, Ui};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -31,71 +32,76 @@ impl SplitterTab {
     }
 
     pub fn ui(&mut self, ui: &mut Ui) {
-        // Input file section
-        ui.heading("Input Video (should be 1920x1080)");
-        ui.horizontal(|ui| {
-            ui.text_edit_singleline(&mut self.input_file);
-            if ui.button("Browse").clicked() {
-                if let Some(path) = rfd::FileDialog::new()
-                    .add_filter("Video Files", &common::get_supported_formats("splitter"))
-                    .pick_file()
-                {
-                    self.input_file = path.to_string_lossy().to_string();
-
-                    // Set default output dir if not set
-                    if self.output_dir.is_empty() {
-                        self.output_dir = "output_slices".to_string();
-                    }
-                }
-            }
-        });
-
-        // Output directory section
-        ui.heading("Output Directory");
-        ui.horizontal(|ui| {
-            ui.text_edit_singleline(&mut self.output_dir);
-            if ui.button("Browse").clicked() {
-                if let Some(path) = rfd::FileDialog::new().pick_folder() {
-                    self.output_dir = path.to_string_lossy().to_string();
-                }
-            }
-        });
-
-        // Options section
-        ui.heading("Options");
-
-        ui.horizontal(|ui| {
-            ui.label("Output Format:");
-            egui::ComboBox::from_id_source("splitter_output_format")
-                .selected_text(self.output_format.to_string())
-                .show_ui(ui, |ui| {
-                    for format in VideoFormat::all() {
-                        ui.selectable_value(&mut self.output_format, format, format.to_string());
+        theme::section(
+            ui,
+            "Files",
+            Some("Designed for 1920×1080 recordings; each slice is a full-height vertical crop."),
+            |ui| {
+                theme::field(ui, "Input video", |ui| {
+                    if theme::path_input(ui, &mut self.input_file, "A 1920×1080 video") {
+                        if let Some(path) = rfd::FileDialog::new()
+                            .add_filter("Video Files", &common::get_supported_formats("splitter"))
+                            .pick_file()
+                        {
+                            self.input_file = path.to_string_lossy().to_string();
+                            if self.output_dir.is_empty() {
+                                self.output_dir = "output_slices".to_string();
+                            }
+                        }
                     }
                 });
-        });
-
-        ui.horizontal(|ui| {
-            ui.label("Filename Prefix:");
-            ui.text_edit_singleline(&mut self.prefix);
-        });
-
-        ui.horizontal(|ui| {
-            ui.label("Custom Encode Options:");
-            ui.text_edit_singleline(&mut self.encode_options);
-            ui.label("(advanced users only)");
-        });
-
-        ui.checkbox(
-            &mut self.force,
-            "Force (process even if video dimensions are not 1920x1080)",
+                theme::field(ui, "Output folder", |ui| {
+                    if theme::path_input(ui, &mut self.output_dir, "Folder for the slices") {
+                        if let Some(path) = rfd::FileDialog::new().pick_folder() {
+                            self.output_dir = path.to_string_lossy().to_string();
+                        }
+                    }
+                });
+            },
         );
 
-        // Execute button
-        ui.add_space(10.0);
+        theme::section(ui, "Output", None, |ui| {
+            theme::field(ui, "Format", |ui| {
+                egui::ComboBox::from_id_source("splitter_output_format")
+                    .selected_text(self.output_format.to_string())
+                    .show_ui(ui, |ui| {
+                        for format in VideoFormat::all() {
+                            ui.selectable_value(
+                                &mut self.output_format,
+                                format,
+                                format.to_string(),
+                            );
+                        }
+                    });
+            });
+            theme::field(ui, "File name prefix", |ui| {
+                theme::text_input(ui, &mut self.prefix);
+            });
+            theme::field(ui, "Other sizes", |ui| {
+                ui.checkbox(&mut self.force, "Process videos that are not 1920×1080");
+            });
+            ui.collapsing(
+                egui::RichText::new("Advanced")
+                    .font(theme::semibold(13.0))
+                    .color(theme::TEXT_2),
+                |ui| {
+                    theme::field(ui, "FFmpeg encode options", |ui| {
+                        ui.add(
+                            egui::TextEdit::singleline(&mut self.encode_options)
+                                .margin(egui::vec2(10.0, 7.0))
+                                .font(egui::TextStyle::Monospace)
+                                .hint_text("-c:v libx264 -crf 20")
+                                .desired_width(f32::INFINITY),
+                        );
+                    });
+                },
+            );
+        });
+
+        ui.add_space(4.0);
         let button = ui.add_enabled(
             !*self.processing.lock().unwrap(),
-            egui::Button::new("Split Video"),
+            theme::primary_button("Split video").min_size(egui::vec2(160.0, 40.0)),
         );
 
         if button.clicked() {

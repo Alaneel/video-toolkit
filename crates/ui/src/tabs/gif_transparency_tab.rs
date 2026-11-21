@@ -1,3 +1,4 @@
+use crate::theme::{self, Icon};
 use eframe::egui::{self, Ui};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -29,77 +30,91 @@ impl GifTransparencyTab {
     }
 
     pub fn ui(&mut self, ui: &mut Ui) {
-        // Mode selection
-        ui.heading("Transparency Mode");
-        ui.horizontal(|ui| {
-            ui.radio_value(&mut self.directory_mode, true, "Process Directory");
-            ui.radio_value(&mut self.directory_mode, false, "Select Individual Files");
+        theme::section(
+            ui,
+            "GIFs to process",
+            Some("The logical background colour of each frame becomes transparent."),
+            |ui| {
+                let mode = if self.directory_mode { 0 } else { 1 };
+                if let Some(picked) = theme::segmented(ui, mode, &["A folder", "Individual files"])
+                {
+                    self.directory_mode = picked == 0;
+                }
+                ui.add_space(4.0);
+                if self.directory_mode {
+                    theme::field(ui, "Folder", |ui| {
+                        if theme::path_input(ui, &mut self.directory_path, "Folder containing GIFs")
+                        {
+                            if let Some(path) = rfd::FileDialog::new().pick_folder() {
+                                self.directory_path = path.to_string_lossy().to_string();
+                            }
+                        }
+                    });
+                } else {
+                    let mut to_remove = None;
+                    if self.input_paths.is_empty() {
+                        theme::well().show(ui, |ui| {
+                            ui.set_width(ui.available_width());
+                            theme::empty_state(
+                                ui,
+                                Icon::Image,
+                                "No GIFs yet",
+                                "Add one or more GIF files to process.",
+                            );
+                        });
+                    }
+                    for (idx, path) in self.input_paths.iter().enumerate() {
+                        theme::well()
+                            .inner_margin(egui::Margin::symmetric(12.0, 6.0))
+                            .show(ui, |ui| {
+                                ui.horizontal(|ui| {
+                                    theme::icon_tile(ui, Icon::Image, theme::HUE_IMAGE, 26.0);
+                                    let name = path
+                                        .file_name()
+                                        .map(|n| n.to_string_lossy().into_owned())
+                                        .unwrap_or_default();
+                                    ui.label(egui::RichText::new(name).font(theme::semibold(13.0)))
+                                        .on_hover_text(path.to_string_lossy());
+                                    ui.with_layout(
+                                        egui::Layout::right_to_left(egui::Align::Center),
+                                        |ui| {
+                                            if ui.add(theme::small_button("Remove")).clicked() {
+                                                to_remove = Some(idx);
+                                            }
+                                        },
+                                    );
+                                });
+                            });
+                    }
+                    if let Some(idx) = to_remove {
+                        self.input_paths.remove(idx);
+                    }
+                    if ui.add(theme::secondary_button("+ Add GIF files")).clicked() {
+                        if let Some(paths) = rfd::FileDialog::new()
+                            .add_filter("GIF Files", &["gif"])
+                            .pick_files()
+                        {
+                            self.input_paths.extend(paths);
+                        }
+                    }
+                }
+            },
+        );
+
+        theme::section(ui, "Options", None, |ui| {
+            ui.checkbox(&mut self.recursive, "Include subfolders");
+            ui.checkbox(&mut self.create_backup, "Keep a backup of each original");
         });
 
-        ui.separator();
-
-        // Input paths based on mode
-        if self.directory_mode {
-            // Directory mode
-            ui.heading("Input Directory");
-            ui.horizontal(|ui| {
-                ui.text_edit_singleline(&mut self.directory_path);
-                if ui.button("Browse").clicked() {
-                    if let Some(path) = rfd::FileDialog::new().pick_folder() {
-                        self.directory_path = path.to_string_lossy().to_string();
-                    }
-                }
-            });
-        } else {
-            // Individual files mode
-            ui.heading("Input GIF Files");
-
-            // Display selected files
-            let mut to_remove = None;
-            for (idx, path) in self.input_paths.iter().enumerate() {
-                ui.horizontal(|ui| {
-                    ui.label(format!("{}. {}", idx + 1, path.to_string_lossy()));
-                    if ui.button("Remove").clicked() {
-                        to_remove = Some(idx);
-                    }
-                });
-            }
-
-            // Remove file if requested
-            if let Some(idx) = to_remove {
-                self.input_paths.remove(idx);
-            }
-
-            // Add file button
-            if ui.button("Add GIF Files").clicked() {
-                if let Some(paths) = rfd::FileDialog::new()
-                    .add_filter("GIF Files", &["gif"])
-                    .pick_files()
-                {
-                    self.input_paths.extend(paths);
-                }
-            }
-        }
-
-        ui.separator();
-
-        // Options
-        ui.heading("Options");
-        ui.checkbox(&mut self.recursive, "Process subdirectories recursively");
-        ui.checkbox(&mut self.create_backup, "Create backup of original files");
-
-        ui.separator();
-
-        // Process button
         let button_text = if self.directory_mode {
-            "Process GIFs in Directory"
+            "Process folder"
         } else {
-            "Process Selected GIF Files"
+            "Process selected GIFs"
         };
-
+        ui.add_space(4.0);
         let button = ui.add_enabled(
             !*self.processing.lock().unwrap(),
-            egui::Button::new(button_text),
+            theme::primary_button(button_text).min_size(egui::vec2(160.0, 40.0)),
         );
 
         if button.clicked() {

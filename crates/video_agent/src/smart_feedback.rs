@@ -575,10 +575,15 @@ pub fn run(
                     }
                     pending.record.sample_ids = submitted_ids(&request);
                     pending.record.decision = None;
-                    pending.record.error = pending
-                        .error_code
-                        .as_ref()
-                        .map(|_| "Response rejected; raw provider content withheld".into());
+                    let rejection_code =
+                        review::safe_rejection_code(pending.record.error.as_deref());
+                    pending.record.error =
+                        pending.error_code.as_ref().map(|_| match rejection_code {
+                            Some(code) => {
+                                format!("Response rejected [{code}]; raw provider content withheld")
+                            }
+                            None => "Response rejected; raw provider content withheld".into(),
+                        });
                     pending.record.elapsed_ms =
                         started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64;
                     job.pending_result = Some(pending);
