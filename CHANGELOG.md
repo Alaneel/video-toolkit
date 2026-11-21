@@ -6,6 +6,8 @@ All notable changes to Video Toolkit are documented here. The project follows [S
 
 ### Reliability hardening
 
+- Patch dependency advisories: `pypdf` 6.21.4 and `soupsieve` 4.0.0 in the workflow runtime; `bytes` 1.12.2, `rand` 0.8.8, and `reqwest` 0.12 for the Video Agent client (`rustls` 0.23.46, `rustls-webpki` 0.103.17). `webpki-roots` is now CDLA-Permissive-2.0.
+- `system-configuration`/`-sys` are no longer shipped after the `reqwest` upgrade. Notice collection treats a historical licence gap for a crate outside the shipped closure as retired; its recorded source match and history are preserved, still five unresolved items.
 - Isolate MCP stdio behind bounded input/output queues and acknowledge complete output delivery; client backpressure also terminates idle-input sessions without indefinitely holding file-worker cancellation or EOF cleanup. Document the single-process blocked-I/O shutdown boundary.
 - Bound conversion/workflow subprocess pipe draining and conversion progress queues, and clean up owned Unix process groups before reaping their leaders; retain explicit non-Unix process-tree limits.
 - Preserve fixed local preview-review rejection reason codes without storing raw model arguments, unknown free-form diagnostics or private paths; do not reconstruct missing reasons in historical runs.
