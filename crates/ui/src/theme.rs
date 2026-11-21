@@ -633,21 +633,37 @@ pub fn empty_state(ui: &mut Ui, kind: Icon, title: &str, body: &str) {
 
 /// Replace the home directory prefix with `~` for display.
 pub fn display_path(path: &std::path::Path) -> String {
-    let text = path.display().to_string();
-    match std::env::var("HOME") {
-        Ok(home) if !home.is_empty() && text.starts_with(&home) => {
-            format!("~{}", &text[home.len()..])
-        }
-        _ => text,
-    }
+    display_path_in(path, home_dir().as_deref())
 }
 
 /// Inverse of [`display_path`]: expand a leading `~` to the home directory.
 pub fn expand_home(text: &str) -> std::path::PathBuf {
-    let home = std::env::var_os("HOME").filter(|home| !home.is_empty());
+    expand_home_in(text, home_dir().as_deref())
+}
+
+/// The user's home directory: `HOME`, or `USERPROFILE` on Windows.
+fn home_dir() -> Option<std::path::PathBuf> {
+    ["HOME", "USERPROFILE"]
+        .into_iter()
+        .filter_map(std::env::var_os)
+        .find(|value| !value.is_empty())
+        .map(std::path::PathBuf::from)
+}
+
+fn display_path_in(path: &std::path::Path, home: Option<&std::path::Path>) -> String {
+    // Compare whole components so `/Users/al` never shortens `/Users/alex`.
+    match home.and_then(|home| path.strip_prefix(home).ok()) {
+        Some(rest) if rest.as_os_str().is_empty() => "~".into(),
+        Some(rest) => format!("~{}{}", std::path::MAIN_SEPARATOR, rest.display()),
+        None => path.display().to_string(),
+    }
+}
+
+fn expand_home_in(text: &str, home: Option<&std::path::Path>) -> std::path::PathBuf {
     match (text.strip_prefix('~'), home) {
-        (Some(rest), Some(home)) if rest.is_empty() || rest.starts_with('/') => {
-            std::path::PathBuf::from(home).join(rest.trim_start_matches('/'))
+        (Some(""), Some(home)) => home.to_path_buf(),
+        (Some(rest), Some(home)) if rest.starts_with(['/', '\\']) => {
+            home.join(rest.trim_start_matches(['/', '\\']))
         }
         _ => std::path::PathBuf::from(text),
     }
@@ -895,16 +911,31 @@ mod tests {
 
     #[test]
     fn home_paths_round_trip_and_other_tildes_are_left_alone() {
-        let home = std::env::var("HOME").unwrap();
-        let path = std::path::Path::new(&home).join("Movies/task");
-        assert_eq!(display_path(&path), "~/Movies/task");
-        assert_eq!(expand_home("~/Movies/task"), path);
-        assert_eq!(expand_home("~"), std::path::PathBuf::from(&home));
+        use std::path::{PathBuf, MAIN_SEPARATOR as SEP};
+        let home = PathBuf::from("/home/someone");
+        let path = home.join("Movies").join("task");
+        let shown = format!("~{SEP}Movies{SEP}task");
+        assert_eq!(display_path_in(&path, Some(&home)), shown);
+        assert_eq!(expand_home_in(&shown, Some(&home)), path);
+        assert_eq!(expand_home_in("~", Some(&home)), home);
+        assert_eq!(display_path_in(&home, Some(&home)), "~");
+        // A sibling that merely shares a string prefix is not under home.
+        let sibling = PathBuf::from("/home/someone2").join("x");
         assert_eq!(
-            expand_home("~other/x"),
-            std::path::PathBuf::from("~other/x")
+            display_path_in(&sibling, Some(&home)),
+            sibling.display().to_string()
         );
-        assert_eq!(expand_home("/abs/x"), std::path::PathBuf::from("/abs/x"));
+        assert_eq!(
+            expand_home_in("~other/x", Some(&home)),
+            PathBuf::from("~other/x")
+        );
+        assert_eq!(
+            expand_home_in("/abs/x", Some(&home)),
+            PathBuf::from("/abs/x")
+        );
+        // Without a known home directory, paths pass through unchanged.
+        assert_eq!(expand_home_in("~/x", None), PathBuf::from("~/x"));
+        assert_eq!(display_path_in(&path, None), path.display().to_string());
     }
 
     #[test]
