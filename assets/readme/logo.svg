@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96" role="img" aria-labelledby="t">
+  <title id="t">Video Toolkit</title>
+  <defs>
+    <clipPath id="c"><rect width="96" height="96" rx="26"/></clipPath>
+  </defs>
+  <g clip-path="url(#c)">
+    <rect width="96" height="96" fill="#111118"/>
+    <rect width="96" height="48" fill="#282834"/>
+  </g>
+  <path d="M38 30 L68 48 L38 66 Z" fill="#ffffff"/>
+</svg>

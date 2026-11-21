@@ -642,6 +642,17 @@ pub fn display_path(path: &std::path::Path) -> String {
     }
 }
 
+/// Inverse of [`display_path`]: expand a leading `~` to the home directory.
+pub fn expand_home(text: &str) -> std::path::PathBuf {
+    let home = std::env::var_os("HOME").filter(|home| !home.is_empty());
+    match (text.strip_prefix('~'), home) {
+        (Some(rest), Some(home)) if rest.is_empty() || rest.starts_with('/') => {
+            std::path::PathBuf::from(home).join(rest.trim_start_matches('/'))
+        }
+        _ => std::path::PathBuf::from(text),
+    }
+}
+
 /// Restrict content to a comfortable reading width, left-aligned.
 pub fn constrained<R>(ui: &mut Ui, max_width: f32, add: impl FnOnce(&mut Ui) -> R) -> R {
     let width = ui.available_width().min(max_width);
@@ -880,6 +891,20 @@ mod tests {
                 assert!(ctx.fonts(|fonts| fonts.has_glyphs(&font, "Video Toolkit")));
             }
         });
+    }
+
+    #[test]
+    fn home_paths_round_trip_and_other_tildes_are_left_alone() {
+        let home = std::env::var("HOME").unwrap();
+        let path = std::path::Path::new(&home).join("Movies/task");
+        assert_eq!(display_path(&path), "~/Movies/task");
+        assert_eq!(expand_home("~/Movies/task"), path);
+        assert_eq!(expand_home("~"), std::path::PathBuf::from(&home));
+        assert_eq!(
+            expand_home("~other/x"),
+            std::path::PathBuf::from("~other/x")
+        );
+        assert_eq!(expand_home("/abs/x"), std::path::PathBuf::from("/abs/x"));
     }
 
     #[test]

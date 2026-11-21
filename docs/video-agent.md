@@ -4,7 +4,7 @@ This experimental `2.2.0-rc.1` source preview adds a human-reviewed visual rough
 
 ## Run the desktop application
 
-The first tested target is macOS Apple Silicon. Install Rust 1.87 or newer and FFmpeg/ffprobe; install ffplay for source-interval and result playback. On macOS, `brew install ffmpeg` supplies these media tools. FFmpeg is a separate dependency, not bundled or relicensed by this repository. Build from this candidate checkout:
+The first tested target is macOS Apple Silicon. Install Rust 1.87–1.99 (Rust 1.100 cannot yet compile the macOS `objc2` 0.3 beta used by eframe 0.24; CI pins 1.99.0) and FFmpeg/ffprobe; install ffplay for source-interval and result playback. On macOS, `brew install ffmpeg` supplies these media tools. FFmpeg is a separate dependency, not bundled or relicensed by this repository. Build from this candidate checkout:
 
 ```sh
 cargo build --locked --release
