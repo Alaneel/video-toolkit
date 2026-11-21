@@ -1,4 +1,36 @@
-# Video Agent
+# Video Toolkit
+
+Local-first video, audio, image, PDF, subtitle and document tools, plus direct-file and media-link downloads. The macOS desktop, CLI and MCP server share typed Rust workflow cores. The existing Video Agent and editing tools remain available in this repository.
+
+**Current source:** 13 media/image targets; 9 PDF operations; 8 timed subtitle formats with timing, FPS and text cleanup; text/Markdown/HTML/Word/RTF/ODT/EPUB/PDF document inputs to 6 targets; and URL downloads through curl or yt-dlp. Local conversion needs no account or network service. URL downloads connect only when requested. HEIC/HEIF photo input uses ImageMagick/libheif.
+
+```sh
+# macOS prerequisites: Rust 1.87+, FFmpeg/ffprobe, ImageMagick 7
+brew install ffmpeg imagemagick ghostscript
+./scripts/setup-file-workflows.sh                 # Private Python, PDF, Pandoc, yt-dlp runtime
+# Document → PDF also needs LibreOffice (PATH or VIDEO_TOOLKIT_SOFFICE).
+cargo build --locked
+
+./target/debug/video-toolkit                       # Convert files desktop
+./target/debug/video-toolkit doctor --json
+./target/debug/video-toolkit convert movie.mov --format mp4 --output movie.mp4
+./target/debug/video-toolkit convert one.wav two.wav --format flac --output-dir converted
+./target/debug/video-toolkit convert photo.png --format webp --output photo.webp --json
+./target/debug/video-toolkit workflows --json
+./target/debug/video-toolkit workflow pdf_merge first.pdf second.pdf --output-dir results
+./target/debug/video-toolkit workflow subtitle_convert captions.srt --output-dir results --options '{"format":"vtt"}'
+./target/debug/video-toolkit workflow document_convert notes.md --output-dir results --options '{"format":"docx"}'
+./target/debug/video-toolkit workflow download --output-dir results --options '{"url":"https://example.com/file.zip"}'
+./target/debug/video-toolkit mcp --root /absolute/path/to/media
+```
+
+The desktop has a light icon rail, searchable tools, file/URL tabs, a file/folder drop zone and a separate queue. PDF, Subtitles, Documents and Downloads each have a working parameter studio, background batch execution, per-job errors, cancellation and verified output links. Temporary files are cleaned on failure/cancellation; existing destinations are never overwritten. Media outputs are fully decoded, PDF page counts/structure are checked, and document containers are reopened before publication. A direct download preserves the downloaded bytes. Queues are currently sequential and in memory.
+
+Document conversion preserves semantic text, headings, tables and supported local raster images, rather than original pagination or complex Word styling. Searchable PDF text can become Word/Markdown/HTML/EPUB through Documents; scanned PDFs need OCR elsewhere. Subtitle styles and animation become plain timed text. General natural-language file planning remains a future extension.
+
+[Media conversion and MCP](docs/file-conversion.md) · [PDF/document workflows](docs/file-workflows.md) · [Subtitle workflows](docs/subtitle-workflows.md) · [URL downloads](docs/url-downloads.md) · [Architecture](docs/file-toolkit-architecture.md) · [Feature comparison](docs/feature-comparison.md)
+
+## Video Agent
 
 ![Video Agent — from sampled frames to a cut you control](assets/video-agent/hero.svg)
 
@@ -394,6 +426,6 @@ cargo test --tests -- --ignored
 
 CI checks formatting and Clippy on Linux and runs workspace tests on Linux, macOS, and Windows. Linux also executes real FFmpeg integration tests that verify containers, codecs, replacement audio, batch outputs, and saved-profile processing. Dependency-free CLI tests verify profile storage and native GIF workflows with FFmpeg removed from `PATH`. See [CONTRIBUTING.md](CONTRIBUTING.md) for the contribution workflow, and [CHANGELOG.md](CHANGELOG.md) for release history.
 
-The release workflow builds explicit Linux x86_64, macOS Intel, macOS Apple Silicon, and Windows x64 targets. It packages executables on their build machines, verifies extracted archives before upload, and checks version tags against the Cargo package version. Preview runs do not publish releases; a matching version tag produces the archives and `SHA256SUMS` on the Releases page.
+The release workflow builds explicit Linux x86_64, macOS Intel, macOS Apple Silicon, and Windows x64 targets. It packages executables on their build machines, verifies extracted archives before upload, and checks version tags against the Cargo package version. Preview runs do not publish releases. A matching version tag publishes archives and `SHA256SUMS` only after the third-party publication license gate passes; unresolved license gaps block public packages.
 
 </details>

@@ -1,33 +1,34 @@
 VIDEO TOOLKIT / VIDEO AGENT — MECHANICALLY COLLECTED THIRD-PARTY NOTICES
 Target inventory: aarch64-apple-darwin
-Locked Cargo packages reachable through normal/build edges: 252
-Third-party packages: 240; named font assets: 4; distinct original texts: 188
+Locked Cargo packages reachable through normal/build edges: 254
+Third-party packages: 240; named font assets: 7; distinct original texts: 189
 
 SCOPE AND LIMITATIONS
 This is a notice collection, NOT a completed legal or license-compliance audit. Normal generation/checking is offline.
 Cargo's platform-filtered resolution may include build-only or workspace-feature-unified dependencies; this is not a binary-symbol SBOM.
 SPDX strings and authors/repository fields are upstream declarations, not independently adjudicated license conclusions.
 Missing local license text and unreadable files remain explicit unresolved items below. No replacement license is invented.
-Supplemental code notices, when present, are pinned to packaged upstream commit IDs and checked against a committed URL/SHA256 manifest.
+Supplemental code notices use packaged commit IDs, or the one explicit official_release_source_match verified against the exact locked archive and installed source; fixed URLs/text hashes are checked offline.
 Source copyright/reference snippets, when present, retain their exact source/archive provenance and do not count as full license-text resolution.
-The default epaint font notices are included separately; they do not substitute for the crate's code license.
+Default epaint and hash-bound workspace embedded-font notices are included separately; they do not substitute for code licenses.
 FFmpeg, ffprobe, ffplay, macOS frameworks, and OS fonts are external prerequisites, not bundled in this release.
 No Cargo cache, source tree, OS font binary, credential, or local absolute installation path is included.
 Identical original UTF-8 texts are stored once; the inventory refers to their exact byte SHA256.
 Text markers/newlines separate entries; original text bytes between markers are not rewritten.
 
-UNRESOLVED ITEMS (6)
+UNRESOLVED ITEMS (5)
 - block 0.1.6: no readable crate-root LICENSE/LICENCE/COPYING/NOTICE/COPYRIGHT or declared license_file found
 - dispatch 0.2.0: no readable crate-root LICENSE/LICENCE/COPYING/NOTICE/COPYRIGHT or declared license_file found
 - malloc_buf 0.0.6: no readable crate-root LICENSE/LICENCE/COPYING/NOTICE/COPYRIGHT or declared license_file found
 - objc-foundation 0.1.1: no readable crate-root LICENSE/LICENCE/COPYING/NOTICE/COPYRIGHT or declared license_file found
 - objc_id 0.1.1: no readable crate-root LICENSE/LICENCE/COPYING/NOTICE/COPYRIGHT or declared license_file found
-- system-configuration-sys 0.5.0: no readable crate-root LICENSE/LICENCE/COPYING/NOTICE/COPYRIGHT or declared license_file found
 
 FIRST-PARTY WORKSPACE
   batch_processing 0.1.0 (covered by separately shipped project LICENSE)
   clipper 0.1.0 (covered by separately shipped project LICENSE)
   common 0.1.0 (covered by separately shipped project LICENSE)
+  file_conversion 0.1.0 (covered by separately shipped project LICENSE)
+  file_workflows 0.1.0 (covered by separately shipped project LICENSE)
   gif_converter 0.1.0 (covered by separately shipped project LICENSE)
   gif_transparency 0.1.0 (covered by separately shipped project LICENSE)
   merger 0.1.0 (covered by separately shipped project LICENSE)
@@ -37,6 +38,24 @@ FIRST-PARTY WORKSPACE
   ui 0.1.0 (covered by separately shipped project LICENSE)
   video-toolkit 2.2.0-rc.1 (covered by separately shipped project LICENSE)
   video_agent 0.1.0 (covered by separately shipped project LICENSE)
+
+WORKSPACE EMBEDDED FONT DM Sans
+  Asset: assets/fonts/DM-Sans.ttf -> SHA256 8cd08d97e89c24d0aa92edd2f0f4c8ee6195eee9b7c9f154865a58b02f0c1c0d (240164 bytes)
+  Source record: assets/fonts/README.md -> SHA256 0284fbc839c5b44100bf04a085adebd8a4cc4fc9e1aa374f58e8cc941bfe15f6
+  Source URL/retrieval date are recorded locally; byte hashes are not an upstream signature or pinned-commit claim.
+  Original font copyright/license: assets/fonts/OFL.txt -> TEXT SHA256 9af36190332437f5ecd09974de43c1f7c77a310a996cdd8ceb25628b458840e1
+
+WORKSPACE EMBEDDED FONT DM Sans SemiBold (derived static instance)
+  Asset: assets/fonts/DM-Sans-SemiBold.ttf -> SHA256 10b569ed19b058b0d7fd5cbeaec1224a745cba85d2e3cf9cb2b9c44430c420ec (56824 bytes)
+  Source record: assets/fonts/README.md -> SHA256 0284fbc839c5b44100bf04a085adebd8a4cc4fc9e1aa374f58e8cc941bfe15f6
+  Source URL/retrieval date are recorded locally; byte hashes are not an upstream signature or pinned-commit claim.
+  Original font copyright/license: assets/fonts/OFL.txt -> TEXT SHA256 9af36190332437f5ecd09974de43c1f7c77a310a996cdd8ceb25628b458840e1
+
+WORKSPACE EMBEDDED FONT DM Sans Bold (derived static instance)
+  Asset: assets/fonts/DM-Sans-Bold.ttf -> SHA256 9b73b14c419afcf87569069635a797558a78a425bdf8c235458720a4c4fe73cb (56796 bytes)
+  Source record: assets/fonts/README.md -> SHA256 0284fbc839c5b44100bf04a085adebd8a4cc4fc9e1aa374f58e8cc941bfe15f6
+  Source URL/retrieval date are recorded locally; byte hashes are not an upstream signature or pinned-commit claim.
+  Original font copyright/license: assets/fonts/OFL.txt -> TEXT SHA256 9af36190332437f5ecd09974de43c1f7c77a310a996cdd8ceb25628b458840e1
 
 CRATE ab_glyph 0.2.29
   SPDX declared by upstream: Apache-2.0
@@ -1411,10 +1430,17 @@ CRATE system-configuration-sys 0.5.0
   SPDX declared by upstream: MIT OR Apache-2.0
   Repository: https://github.com/mullvad/system-configuration-rs
   Declared authors: Mullvad VPN
+  Full original texts recovered by official_release_source_match (not a legal/compliance approval).
+  Packaged .cargo_vcs_info.json commit: 592a485494be9d63a60e54944dd2fcc4f077ec58 (unreachable at declared repository; historical failure preserved).
+  Separate fixed official version-bump commit: d464f4fee68328353d2bcee27e9422ff3cf7a1fd (NOT the packaged VCS commit; unsigned).
+  Official author date: 2022-01-04T08:40:15Z; committer date: 2023-05-15T13:56:47Z.
+  Exact locked .crate SHA256: a75fb188eb626b924683e3b95e3a48e63551fcfb51949de2f06a9d91dbee93c9; 9/9 author files match archive and installed source by bytes, SHA256 and Git blob SHA.
+  Restricted source-equivalence proof: provenance/system-configuration-sys-0.5.0-d464f4f.json -> SHA256 dd864e9fb9a3732e0bda906387c7119bd25ebad20373639ccb6a3616ef1471cf
+  Official release-source code notice: https://raw.githubusercontent.com/mullvad/system-configuration-rs/d464f4fee68328353d2bcee27e9422ff3cf7a1fd/LICENSE-APACHE -> TEXT SHA256 a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2
+  Official release-source code notice: https://raw.githubusercontent.com/mullvad/system-configuration-rs/d464f4fee68328353d2bcee27e9422ff3cf7a1fd/LICENSE-MIT -> TEXT SHA256 35b228510156c3d7bf94b129c81b7e3cc72d347586e632be15686232b342562a
   Original source copyright/reference notice (NOT complete license terms): src/lib.rs lines 1-7 -> TEXT SHA256 1a6848d5f4a398a10b3d804e62a1a6659418f31e98c19d36c0371025b01a2332
   Source file SHA256: a363917cffaa1bfc9a9ef7a25340f538dde4adea2c8704831e8816ccbb5c9a7f; locked .crate SHA256: a75fb188eb626b924683e3b95e3a48e63551fcfb51949de2f06a9d91dbee93c9
   This snippet preserves attribution but does not resolve the missing full-license-text gap.
-  UNRESOLVED: upstream code license text is absent from this installed crate package
 
 CRATE tempfile 3.19.0
   SPDX declared by upstream: MIT OR Apache-2.0
@@ -17410,6 +17436,103 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 
 ===== END TEXT SHA256 95ca92f5f8ea5231f1580b3a2a799e8260af3114b900e1def5355a7f44bcf60c =====
+
+===== BEGIN TEXT SHA256 9af36190332437f5ecd09974de43c1f7c77a310a996cdd8ceb25628b458840e1 =====
+Copyright 2014 The DM Sans Project Authors (https://github.com/googlefonts/dm-fonts)
+
+This Font Software is licensed under the SIL Open Font License, Version 1.1.
+This license is copied below, and is also available with a FAQ at:
+https://scripts.sil.org/OFL
+
+
+-----------------------------------------------------------
+SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007
+-----------------------------------------------------------
+
+PREAMBLE
+The goals of the Open Font License (OFL) are to stimulate worldwide
+development of collaborative font projects, to support the font creation
+efforts of academic and linguistic communities, and to provide a free and
+open framework in which fonts may be shared and improved in partnership
+with others.
+
+The OFL allows the licensed fonts to be used, studied, modified and
+redistributed freely as long as they are not sold by themselves. The
+fonts, including any derivative works, can be bundled, embedded, 
+redistributed and/or sold with any software provided that any reserved
+names are not used by derivative works. The fonts and derivatives,
+however, cannot be released under any other type of license. The
+requirement for fonts to remain under this license does not apply
+to any document created using the fonts or their derivatives.
+
+DEFINITIONS
+"Font Software" refers to the set of files released by the Copyright
+Holder(s) under this license and clearly marked as such. This may
+include source files, build scripts and documentation.
+
+"Reserved Font Name" refers to any names specified as such after the
+copyright statement(s).
+
+"Original Version" refers to the collection of Font Software components as
+distributed by the Copyright Holder(s).
+
+"Modified Version" refers to any derivative made by adding to, deleting,
+or substituting -- in part or in whole -- any of the components of the
+Original Version, by changing formats or by porting the Font Software to a
+new environment.
+
+"Author" refers to any designer, engineer, programmer, technical
+writer or other person who contributed to the Font Software.
+
+PERMISSION & CONDITIONS
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of the Font Software, to use, study, copy, merge, embed, modify,
+redistribute, and sell modified and unmodified copies of the Font
+Software, subject to the following conditions:
+
+1) Neither the Font Software nor any of its individual components,
+in Original or Modified Versions, may be sold by itself.
+
+2) Original or Modified Versions of the Font Software may be bundled,
+redistributed and/or sold with any software, provided that each copy
+contains the above copyright notice and this license. These can be
+included either as stand-alone text files, human-readable headers or
+in the appropriate machine-readable metadata fields within text or
+binary files as long as those fields can be easily viewed by the user.
+
+3) No Modified Version of the Font Software may use the Reserved Font
+Name(s) unless explicit written permission is granted by the corresponding
+Copyright Holder. This restriction only applies to the primary font name as
+presented to the users.
+
+4) The name(s) of the Copyright Holder(s) or the Author(s) of the Font
+Software shall not be used to promote, endorse or advertise any
+Modified Version, except to acknowledge the contribution(s) of the
+Copyright Holder(s) and the Author(s) or with their explicit written
+permission.
+
+5) The Font Software, modified or unmodified, in part or in whole,
+must be distributed entirely under this license, and must not be
+distributed under any other license. The requirement for fonts to
+remain under this license does not apply to any document created
+using the Font Software.
+
+TERMINATION
+This license becomes null and void if any of the above conditions are
+not met.
+
+DISCLAIMER
+THE FONT SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT
+OF COPYRIGHT, PATENT, TRADEMARK, OR OTHER RIGHT. IN NO EVENT SHALL THE
+COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+INCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL
+DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
+OTHER DEALINGS IN THE FONT SOFTWARE.
+
+===== END TEXT SHA256 9af36190332437f5ecd09974de43c1f7c77a310a996cdd8ceb25628b458840e1 =====
 
 ===== BEGIN TEXT SHA256 9c5a80639a57c1c945570e7ebbca0706305849ce3c098021325cca9db2f7acc4 =====
 MIT License

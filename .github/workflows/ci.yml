@@ -18,22 +18,41 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
+      - uses: dtolnay/rust-toolchain@master
+        # Pinned: Rust 1.100 cannot compile objc2 0.3.0-beta (eframe 0.24 -> winit 0.28) on macOS.
+        with:
+          toolchain: "1.99.0"
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Fetch locked sources for offline notice-provenance tests
+        # The exact macOS crate archive/source is required even on this Linux
+        # runner. Fetch all locked targets once; notice checks stay offline.
+        run: cargo fetch --locked
       - name: Test release packaging safeguards
         run: python -m unittest discover -s scripts -p 'test_*.py' -v
       - name: Test Video Agent evaluation harness (offline)
         run: python -m unittest discover -s evals/video-agent -p 'test_*.py' -v
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
-      - uses: Swatinem/rust-cache@v2
-      - name: Install desktop dependencies
-        run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev libxcb-shape0-dev libxcb-xfixes0-dev ffmpeg
+      - name: Install desktop and workflow engines
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libxcb-shape0-dev libxcb-xfixes0-dev ffmpeg ghostscript libreoffice-writer curl
       - run: cargo fmt --all -- --check
       - run: cargo clippy --workspace --all-targets -- -D warnings
       - run: cargo test --workspace --all-targets
-      - name: Verify real FFmpeg workflows
-        timeout-minutes: 8
-        run: cargo test --locked --workspace --tests -- --ignored --nocapture --test-threads=1
+      - name: Prepare isolated workflow dependencies
+        run: bash scripts/setup-file-workflows.sh
+      - name: Verify real media, document, subtitle and loopback download workflows
+        timeout-minutes: 12
+        env:
+          VIDEO_TOOLKIT_SOFFICE: /usr/bin/soffice
+        # Pandoc comes from pypandoc_binary in the workflow venv: it embeds its data
+        # files, which --sandbox requires. Ubuntu's pandoc reads them from disk and fails.
+        # This PDF case includes HEIC and requires ImageMagick 7. It runs
+        # explicitly on macOS rather than using Ubuntu's ImageMagick 6.
+        run: >-
+          cargo test --locked --workspace --tests -- --ignored --nocapture
+          --test-threads=1 --skip imagemagick
+          --skip pdf_operations_preserve_page_selection_structure_and_validate_real_outputs
 
   test-platforms:
     name: Test (${{ matrix.os }})
@@ -44,6 +63,30 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.99.0"
       - uses: Swatinem/rust-cache@v2
       - run: cargo test --workspace --all-targets
+      - name: Install local conversion dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: brew install ffmpeg imagemagick ghostscript
+      - name: Verify file conversion and MCP with real tools (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          cargo test --locked -p file_conversion --test real_tools -- --ignored
+          cargo test --locked --test file_conversion_cli -- --ignored
+      - uses: actions/setup-python@v6
+        if: runner.os == 'macOS'
+        with:
+          python-version: "3.13"
+      - name: Prepare isolated PDF workflow dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: bash scripts/setup-file-workflows.sh
+      - name: Verify PDF operations including HEIC with real engines (macOS)
+        if: runner.os == 'macOS'
+        timeout-minutes: 8
+        run: >-
+          cargo test --locked -p file_workflows --test pdf_documents
+          pdf_operations_preserve_page_selection_structure_and_validate_real_outputs
+          -- --ignored --nocapture

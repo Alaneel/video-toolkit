@@ -37,6 +37,11 @@ class AgentRcTests(unittest.TestCase):
             path = self.root / name
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text("{}\n" if name.endswith(".json") else "Public unit fixture. Not an actual screenshot or model result.\n")
+        for font in agent_rc.font_notices.WORKSPACE_FONTS:
+            for field in ("asset", "license", "source_record"):
+                path = self.root / font[field]
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes((agent_rc.ROOT / font[field]).read_bytes())
         for name in agent_rc.SCREENSHOTS:
             path = self.root / name
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -99,13 +104,139 @@ class AgentRcTests(unittest.TestCase):
         self.assertEqual(metadata["CFBundlePackageType"], "APPL")
         self.assertEqual(set(manifest["files"]), agent_rc.PAYLOAD_NAMES)
 
+    def test_large_notice_is_preserved_verbatim_through_package_verify_and_extract(self):
+        path = self.root / "THIRD_PARTY_NOTICES.txt"
+        original = path.read_bytes()
+        notice = original + b"\nINERT LARGE NOTICE BYTE FIXTURE\n" + b"x" * (2 * 1024 * 1024) + b"\nEND ORIGINAL BYTES\n"
+        self.assertGreater(len(notice), agent_rc.MAX_TEXT)
+        self.assertLess(len(notice), agent_rc.MAX_NOTICE_BYTES)
+        path.write_bytes(notice)
+        archive = self.package()
+        manifest = agent_rc.verify(archive, COMMIT, VERSION)
+        contents, _ = agent_rc.members(archive)
+        self.assertEqual(contents[f"{agent_rc.folder_name(VERSION, COMMIT)}/THIRD_PARTY_NOTICES.txt"], notice)
+        self.assertEqual(manifest["files"]["THIRD_PARTY_NOTICES.txt"]["sha256"], agent_rc.release.digest(notice))
+        extracted = agent_rc.extract(archive, self.directory / "large-notice-extracted", COMMIT)
+        self.assertEqual((extracted / "THIRD_PARTY_NOTICES.txt").read_bytes(), notice)
+
+    def test_notice_limit_is_specific_and_oversize_input_never_creates_an_archive(self):
+        self.assertEqual(agent_rc.MAX_TEXT, 2 * 1024 * 1024)
+        self.assertEqual(agent_rc.text_limit("docs/THIRD_PARTY_NOTICES.txt"), agent_rc.MAX_TEXT)
+        for name, limit in (("THIRD_PARTY_NOTICES.txt", agent_rc.MAX_NOTICE_BYTES),
+                            ("README.md", agent_rc.MAX_TEXT), ("scripts/release.py", agent_rc.MAX_TEXT)):
+            path = self.root / name
+            original = path.read_bytes()
+            with self.subTest(name=name):
+                path.write_bytes(b"x" * (limit + 1))
+                with self.assertRaisesRegex(agent_rc.RcError, "exceeds its size limit"):
+                    self.package()
+                self.assertFalse(self.output.exists())
+            path.write_bytes(original)
+
+    def test_rehashing_cannot_bypass_notice_or_ordinary_text_verification_limits(self):
+        archive = self.package()
+        original = archive.read_bytes()
+        for name, limit in (("THIRD_PARTY_NOTICES.txt", agent_rc.MAX_NOTICE_BYTES),
+                            ("README.md", agent_rc.MAX_TEXT)):
+            replacement = b"x" * (limit + 1)
+            def replace(members):
+                for index, (member, _) in enumerate(members):
+                    if member.name.endswith("/" + name):
+                        members[index] = member, replacement
+                self.manifest_change(members, lambda manifest: manifest["files"][name].update(
+                    sha256=agent_rc.release.digest(replacement), size=len(replacement)))
+            with self.subTest(name=name):
+                archive.write_bytes(original)
+                self.mutate(archive, replace)
+                with self.assertRaisesRegex(agent_rc.RcError, "Oversized or potentially secret text"):
+                    agent_rc.verify(archive, COMMIT)
+
+    def test_exact_notice_capacity_is_accepted_without_widening_manifest_capacity(self):
+        path = self.root / "THIRD_PARTY_NOTICES.txt"
+        path.write_bytes(b"x" * agent_rc.MAX_NOTICE_BYTES)
+        self.assertEqual(len(agent_rc.public_file(self.root, "THIRD_PARTY_NOTICES.txt")), agent_rc.MAX_NOTICE_BYTES)
+        archive = self.package()
+        replacement = b" " * (agent_rc.MAX_TEXT + 1)
+        def replace(members):
+            for index, (member, _) in enumerate(members):
+                if member.name.endswith("/MANIFEST.json"):
+                    members[index] = member, replacement
+        self.mutate(archive, replace)
+        with self.assertRaisesRegex(agent_rc.RcError, "Manifest is too large"):
+            agent_rc.verify(archive, COMMIT)
+
+    def test_large_notice_tail_retains_credential_checks_before_and_after_packaging(self):
+        path = self.root / "THIRD_PARTY_NOTICES.txt"
+        original = path.read_bytes()
+        replacement = b"x" * (agent_rc.MAX_TEXT + 16) + b" sk-" + b"inert_test_credential" * 2
+        path.write_bytes(replacement)
+        with self.assertRaisesRegex(agent_rc.RcError, "Possible API credential"):
+            self.package()
+        self.assertFalse(self.output.exists())
+        path.write_bytes(original)
+        archive = self.package()
+        def replace(members):
+            for index, (member, _) in enumerate(members):
+                if member.name.endswith("/THIRD_PARTY_NOTICES.txt"):
+                    members[index] = member, replacement
+            self.manifest_change(members, lambda manifest: manifest["files"]["THIRD_PARTY_NOTICES.txt"].update(
+                sha256=agent_rc.release.digest(replacement), size=len(replacement)))
+        self.mutate(archive, replace)
+        with self.assertRaisesRegex(agent_rc.RcError, "potentially secret text"):
+            agent_rc.verify(archive, COMMIT)
+
     def test_clean_source_check_receives_exact_commit(self):
         self.package()
         self.assertEqual(self.source_check.call_count, 2)
         self.source_check.assert_called_with(self.root, COMMIT)
         self.binding_check.assert_called_once()
         self.assertEqual(self.binding_check.call_args.args[:2], (self.root, COMMIT))
-        self.assertEqual(set(self.binding_check.call_args.args[2]), set(agent_rc.SOURCE_FILES) | set(agent_rc.SCREENSHOTS) | {"Cargo.toml"})
+        self.assertEqual(set(self.binding_check.call_args.args[2]), set(agent_rc.SOURCE_FILES)
+                         | set(agent_rc.SCREENSHOTS) | {"Cargo.toml"}
+                         | {font["asset"] for font in agent_rc.font_notices.WORKSPACE_FONTS})
+
+    def test_embedded_workspace_font_license_and_source_are_shipped_without_another_font_binary(self):
+        archive = self.package()
+        contents, _ = agent_rc.members(archive)
+        folder = agent_rc.folder_name(VERSION, COMMIT)
+        manifest = agent_rc.verify(archive, COMMIT, VERSION)
+        for font in agent_rc.font_notices.WORKSPACE_FONTS:
+            self.assertNotIn(f"{folder}/{font['asset']}", contents)
+            for field in ("license", "source_record"):
+                data = contents[f"{folder}/{font[field]}"]
+                self.assertEqual(data, (agent_rc.ROOT / font[field]).read_bytes())
+                self.assertEqual(manifest["files"][font[field]]["sha256"], font[f"{field}_sha256"])
+
+    def test_missing_or_changed_font_source_prevents_packaging_before_output_creation(self):
+        font = agent_rc.font_notices.WORKSPACE_FONTS[0]
+        for field in ("asset", "license", "source_record"):
+            path = self.root / font[field]
+            original = path.read_bytes()
+            with self.subTest(field=field, failure="missing"):
+                path.unlink()
+                with self.assertRaisesRegex(agent_rc.RcError, "font provenance"):
+                    self.package()
+                self.assertFalse(self.output.exists())
+            with self.subTest(field=field, failure="changed"):
+                path.write_bytes(original + b"unexpected change")
+                with self.assertRaisesRegex(agent_rc.RcError, "font provenance"):
+                    self.package()
+                self.assertFalse(self.output.exists())
+            path.write_bytes(original)
+
+    def test_rehashed_font_license_cannot_replace_the_reviewed_original(self):
+        archive = self.package()
+        font = agent_rc.font_notices.WORKSPACE_FONTS[0]
+        replacement = b"A different license is not the original embedded-font notice.\n"
+        def replace(members):
+            for index, (member, _) in enumerate(members):
+                if member.name.endswith("/" + font["license"]):
+                    members[index] = member, replacement
+            self.manifest_change(members, lambda m: m["files"][font["license"]].update(
+                sha256=agent_rc.release.digest(replacement), size=len(replacement)))
+        self.mutate(archive, replace)
+        with self.assertRaisesRegex(agent_rc.RcError, "reviewed original bytes"):
+            agent_rc.verify(archive, COMMIT)
 
     def test_private_data_and_raw_video_are_never_collected(self):
         for name in (".env", "task.json", "private.mov", "target/cache", ".git/config", "video-agent-private/task.json", "assets/video-agent/private.png"):

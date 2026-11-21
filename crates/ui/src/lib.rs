@@ -1,6 +1,8 @@
 pub mod agent_app;
 pub mod app;
+pub mod capture;
 pub mod tabs;
+pub mod theme;
 
 pub use agent_app::VideoAgentApp;
 pub use app::VideoToolKitApp;
@@ -16,7 +18,7 @@ pub fn run_video_agent(workspace: Option<std::path::PathBuf>) -> eframe::Result<
             ..Default::default()
         },
         Box::new(move |cc| {
-            cc.egui_ctx.set_visuals(egui::Visuals::dark());
+            theme::configure(&cc.egui_ctx);
             Box::new(VideoAgentApp::new(workspace))
         }),
     )

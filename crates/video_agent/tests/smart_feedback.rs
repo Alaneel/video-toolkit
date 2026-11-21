@@ -25,6 +25,7 @@ enum Behavior {
     Accept,
     FailUnknown,
     RejectSchema,
+    RejectSchemaWithSafeCode,
     CitePreviewAsSource,
     CancelAfterResponse,
     ChangeSyntheticSource,
@@ -269,10 +270,16 @@ impl PreviewReviewProvider for SimulatedReviewer {
                     "SIMULATED unknown transport failure".into(),
                 ))
             }
-            Behavior::RejectSchema => {
+            Behavior::RejectSchema | Behavior::RejectSchemaWithSafeCode => {
                 let mut record = self.record(request);
                 record.status = "feedback_response_rejected".into();
-                record.error = Some("SIMULATED malformed tool response".into());
+                record.error = Some(
+                    if matches!(self.behavior, Behavior::RejectSchemaWithSafeCode) {
+                        "review_schema_invalid".into()
+                    } else {
+                        "SIMULATED malformed tool response with private fixture details".into()
+                    },
+                );
                 return Err(AgentError::ModelResponseRejected {
                     message: "SIMULATED schema rejection with known usage".into(),
                     record: Box::new(record),
@@ -779,7 +786,11 @@ fn oversized_evidenced_revision_is_durably_rejected_without_replaying_received_r
 #[test]
 #[ignore = "requires real FFmpeg/ffprobe; malformed or malicious simulated response retains actual usage"]
 fn rejected_review_schema_or_preview_as_source_evidence_cannot_change_the_plan() {
-    for behavior in [Behavior::RejectSchema, Behavior::CitePreviewAsSource] {
+    for behavior in [
+        Behavior::RejectSchema,
+        Behavior::RejectSchemaWithSafeCode,
+        Behavior::CitePreviewAsSource,
+    ] {
         let root = tempfile::tempdir().unwrap();
         let (workspace, _, before) = task(root.path());
         let provider = SimulatedReviewer::new(behavior);
@@ -801,6 +812,11 @@ fn rejected_review_schema_or_preview_as_source_evidence_cannot_change_the_plan()
         );
         assert!((rejected.usage.estimated_cost_usd - 0.001).abs() < 1e-12);
         assert_eq!(rejected.model_calls[0].status, "feedback_response_rejected");
+        let diagnostic = rejected.model_calls[0].error.as_deref().unwrap();
+        assert!(!diagnostic.contains("private fixture"));
+        if matches!(behavior, Behavior::RejectSchemaWithSafeCode) {
+            assert!(diagnostic.contains("[review_schema_invalid]"));
+        }
         assert!(rejected.model_calls[0].decision.is_none());
         let status = smart_feedback::run(
             workspace.task_dir(),

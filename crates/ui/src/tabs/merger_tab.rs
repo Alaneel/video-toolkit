@@ -1,3 +1,4 @@
+use crate::theme;
 use eframe::egui::{self, Ui};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
@@ -44,111 +45,121 @@ impl MergerTab {
         let video_extensions: Vec<&str> =
             video_formats.iter().map(VideoFormat::extension).collect();
 
-        // Video input section
-        ui.heading("Video Input");
-        ui.horizontal(|ui| {
-            ui.text_edit_singleline(&mut self.video_file);
-            if ui.button("Browse").clicked() {
-                if let Some(path) = rfd::FileDialog::new()
-                    .add_filter("Video Files", &video_extensions)
-                    .pick_file()
-                {
-                    self.video_file = path.to_string_lossy().to_string();
-
-                    // Set default output file if not set
-                    if self.output_file.is_empty() {
-                        let input_path = Path::new(&self.video_file);
-                        if let Some(stem) = input_path.file_stem() {
-                            let mut output_path =
-                                PathBuf::from(input_path.parent().unwrap_or_else(|| Path::new("")));
-                            output_path.push(format!("{}_merged", stem.to_string_lossy()));
-                            output_path.set_extension("mp4");
-                            self.output_file = output_path.to_string_lossy().to_string();
+        theme::section(ui, "Picture", None, |ui| {
+            theme::field(ui, "Video", |ui| {
+                if theme::path_input(ui, &mut self.video_file, "The video to keep") {
+                    if let Some(path) = rfd::FileDialog::new()
+                        .add_filter("Video Files", &video_extensions)
+                        .pick_file()
+                    {
+                        self.video_file = path.to_string_lossy().to_string();
+                        if self.output_file.is_empty() {
+                            let input_path = Path::new(&self.video_file);
+                            if let Some(stem) = input_path.file_stem() {
+                                let mut output_path = PathBuf::from(
+                                    input_path.parent().unwrap_or_else(|| Path::new("")),
+                                );
+                                output_path.push(format!("{}_merged", stem.to_string_lossy()));
+                                output_path.set_extension("mp4");
+                                self.output_file = output_path.to_string_lossy().to_string();
+                            }
                         }
                     }
                 }
-            }
+            });
         });
 
-        // Audio source options
-        ui.heading("Audio Source");
-        ui.radio_value(&mut self.audio_source, AudioSource::File, "Use audio file");
-        ui.radio_value(
-            &mut self.audio_source,
-            AudioSource::Extract,
-            "Use audio from another video",
+        theme::section(
+            ui,
+            "Soundtrack",
+            Some("Replace the video's audio with a file or another video's audio."),
+            |ui| {
+                let current = if self.audio_source == AudioSource::File {
+                    0
+                } else {
+                    1
+                };
+                if let Some(picked) = theme::segmented(ui, current, &["Audio file", "From a video"])
+                {
+                    self.audio_source = if picked == 0 {
+                        AudioSource::File
+                    } else {
+                        AudioSource::Extract
+                    };
+                }
+                ui.add_space(4.0);
+                match self.audio_source {
+                    AudioSource::File => {
+                        theme::field(ui, "Audio file", |ui| {
+                            if theme::path_input(ui, &mut self.audio_file, "AAC, MP3, WAV or M4A") {
+                                if let Some(path) = rfd::FileDialog::new()
+                                    .add_filter("Audio Files", &["aac", "mp3", "wav", "m4a"])
+                                    .pick_file()
+                                {
+                                    self.audio_file = path.to_string_lossy().to_string();
+                                }
+                            }
+                        });
+                    }
+                    AudioSource::Extract => {
+                        theme::field(ui, "Source video", |ui| {
+                            if theme::path_input(
+                                ui,
+                                &mut self.audio_extract_file,
+                                "Video whose audio you want",
+                            ) {
+                                if let Some(path) = rfd::FileDialog::new()
+                                    .add_filter("Video Files", &video_extensions)
+                                    .pick_file()
+                                {
+                                    self.audio_extract_file = path.to_string_lossy().to_string();
+                                }
+                            }
+                        });
+                    }
+                }
+            },
         );
 
-        // Audio input section (conditional based on audio source)
-        match self.audio_source {
-            AudioSource::File => {
-                ui.horizontal(|ui| {
-                    ui.label("Audio File:");
-                    ui.text_edit_singleline(&mut self.audio_file);
-                    if ui.button("Browse").clicked() {
-                        if let Some(path) = rfd::FileDialog::new()
-                            .add_filter("Audio Files", &["aac", "mp3", "wav", "m4a"])
-                            .pick_file()
-                        {
-                            self.audio_file = path.to_string_lossy().to_string();
-                        }
-                    }
-                });
-            }
-            AudioSource::Extract => {
-                ui.horizontal(|ui| {
-                    ui.label("Source Video:");
-                    ui.text_edit_singleline(&mut self.audio_extract_file);
-                    if ui.button("Browse").clicked() {
+        theme::section(
+            ui,
+            "Output",
+            Some("The format follows the file extension; no extension means .mp4."),
+            |ui| {
+                theme::field(ui, "Save as", |ui| {
+                    if theme::path_input(
+                        ui,
+                        &mut self.output_file,
+                        "Chosen automatically from the video",
+                    ) {
                         if let Some(path) = rfd::FileDialog::new()
                             .add_filter("Video Files", &video_extensions)
-                            .pick_file()
+                            .save_file()
                         {
-                            self.audio_extract_file = path.to_string_lossy().to_string();
+                            match resolve_video_output(&path, None) {
+                                Ok((output, _)) => {
+                                    self.output_file = output.to_string_lossy().to_string();
+                                }
+                                Err(error) => {
+                                    *self.status.lock().unwrap() = format!("Error: {}", error);
+                                }
+                            }
                         }
                     }
                 });
-            }
-        }
-
-        // Output file section
-        ui.heading("Output File");
-        ui.horizontal(|ui| {
-            ui.text_edit_singleline(&mut self.output_file);
-            if ui.button("Browse").clicked() {
-                if let Some(path) = rfd::FileDialog::new()
-                    .add_filter("Video Files", &video_extensions)
-                    .save_file()
-                {
-                    match resolve_video_output(&path, None) {
-                        Ok((output, _)) => {
-                            self.output_file = output.to_string_lossy().to_string();
-                        }
-                        Err(error) => {
-                            *self.status.lock().unwrap() = format!("Error: {}", error);
-                        }
-                    }
-                }
-            }
-        });
-        ui.label("Output format follows the filename extension. No extension defaults to .mp4.");
-
-        // Options section
-        ui.heading("Options");
-        ui.checkbox(
-            &mut self.use_shortest,
-            "Use -shortest flag (end when shortest input stream ends)",
-        );
-        ui.checkbox(
-            &mut self.copy_codec,
-            "Copy codec without re-encoding (faster)",
+                theme::field(ui, "Length", |ui| {
+                    ui.checkbox(&mut self.use_shortest, "Stop when the shorter input ends");
+                });
+                theme::field(ui, "Speed", |ui| {
+                    ui.checkbox(&mut self.copy_codec, "Copy streams without re-encoding");
+                });
+            },
         );
 
-        // Execute button
-        ui.add_space(10.0);
+        ui.add_space(4.0);
         let button = ui.add_enabled(
             !*self.processing.lock().unwrap(),
-            egui::Button::new("Merge Audio and Video"),
+            theme::primary_button("Merge").min_size(egui::vec2(160.0, 40.0)),
         );
 
         if button.clicked() {

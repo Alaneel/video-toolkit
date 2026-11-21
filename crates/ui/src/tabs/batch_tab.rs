@@ -1,3 +1,4 @@
+use crate::theme::{self, Icon};
 use eframe::egui::{self, ComboBox, Ui};
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -254,127 +255,155 @@ impl BatchTab {
     }
 
     pub fn ui(&mut self, ui: &mut Ui) {
-        ui.heading("Batch Processing");
         if let Some(name) = &self.loaded_profile {
-            ui.label(format!(
-                "Loaded profile: {} (settings can be adjusted below)",
-                name
-            ));
+            theme::well().show(ui, |ui| {
+                ui.set_width(ui.available_width());
+                theme::status_dot(
+                    ui,
+                    theme::ACCENT,
+                    &format!("Profile “{name}” loaded — adjust anything below."),
+                );
+            });
+            ui.add_space(10.0);
         }
 
-        // Operation type selection
-        ui.horizontal(|ui| {
-            ui.label("Operation Type:");
-            ComboBox::from_id_source("batch_operation_type")
-                .selected_text(self.operation_type.display_name())
-                .show_ui(ui, |ui| {
-                    ui.selectable_value(
-                        &mut self.operation_type,
-                        BatchOperationType::Clipper,
-                        "Video Clipper",
-                    );
-                    ui.selectable_value(
-                        &mut self.operation_type,
-                        BatchOperationType::GifConverter,
-                        "GIF Converter",
-                    );
-                    ui.selectable_value(
-                        &mut self.operation_type,
+        theme::section(
+            ui,
+            "Operation",
+            Some("What to do with every file in the batch."),
+            |ui| {
+                let operations = [
+                    (BatchOperationType::Clipper, "Clip", theme::HUE_VIDEO),
+                    (BatchOperationType::GifConverter, "GIF", theme::HUE_SUBTITLE),
+                    (
                         BatchOperationType::GifTransparency,
-                        "GIF Transparency",
-                    );
-                    ui.selectable_value(
-                        &mut self.operation_type,
-                        BatchOperationType::Splitter,
-                        "Video Splitter",
-                    );
-                    ui.selectable_value(
-                        &mut self.operation_type,
-                        BatchOperationType::Merger,
-                        "Audio/Video Merger",
+                        "Transparency",
+                        theme::HUE_IMAGE,
+                    ),
+                    (BatchOperationType::Splitter, "Split", theme::HUE_DOWNLOAD),
+                    (BatchOperationType::Merger, "Merge", theme::HUE_AUDIO),
+                ];
+                ui.horizontal_wrapped(|ui| {
+                    ui.spacing_mut().item_spacing.x = 6.0;
+                    for (kind, label, hue) in operations {
+                        if theme::chip(ui, label, self.operation_type == kind, Some(hue)).clicked()
+                        {
+                            self.operation_type = kind;
+                        }
+                    }
+                });
+            },
+        );
+
+        theme::section(ui, "Inputs", None, |ui| {
+            let mut to_remove = None;
+            if self.input_paths.is_empty() {
+                theme::well().show(ui, |ui| {
+                    ui.set_width(ui.available_width());
+                    theme::empty_state(
+                        ui,
+                        Icon::Folder,
+                        "No inputs yet",
+                        "Add files, or a folder to process everything inside it.",
                     );
                 });
-        });
-
-        ui.separator();
-
-        // Input files section
-        ui.heading("Input Files");
-
-        // Display selected files
-        let mut to_remove = None;
-        for (idx, path) in self.input_paths.iter().enumerate() {
-            ui.horizontal(|ui| {
-                ui.label(format!("{}. {}", idx + 1, path.to_string_lossy()));
-                if ui.button("Remove").clicked() {
-                    to_remove = Some(idx);
-                }
-            });
-        }
-
-        // Remove file if requested
-        if let Some(idx) = to_remove {
-            self.input_paths.remove(idx);
-        }
-
-        // Add file/directory buttons
-        ui.horizontal(|ui| {
-            if ui.button("Add Files").clicked() {
-                if let Some(paths) = rfd::FileDialog::new().pick_files() {
-                    self.input_paths.extend(paths);
-                }
             }
-
-            if ui.button("Add Directory").clicked() {
-                if let Some(path) = rfd::FileDialog::new().pick_folder() {
-                    self.input_paths.push(path);
-                }
-            }
-        });
-
-        // Batch settings
-        ui.heading("Batch Settings");
-
-        ui.checkbox(&mut self.recursive, "Process directories recursively");
-        ui.checkbox(&mut self.parallel, "Process files in parallel");
-
-        ui.horizontal(|ui| {
-            ui.label("Filename pattern (regex):");
-            ui.text_edit_singleline(&mut self.pattern);
-        });
-
-        ui.separator();
-
-        // Operation-specific settings
-        match self.operation_type {
-            BatchOperationType::Clipper => self.clipper_settings_ui(ui),
-            BatchOperationType::GifConverter => self.gif_converter_settings_ui(ui),
-            BatchOperationType::GifTransparency => self.gif_transparency_settings_ui(ui),
-            BatchOperationType::Splitter => self.splitter_settings_ui(ui),
-            BatchOperationType::Merger => self.merger_settings_ui(ui),
-        }
-
-        if matches!(
-            self.operation_type,
-            BatchOperationType::Clipper | BatchOperationType::Splitter | BatchOperationType::Merger
-        ) {
-            ui.horizontal(|ui| {
-                ui.label("Output Format:");
-                ComboBox::from_id_source("batch_output_format")
-                    .selected_text(self.output_format.to_string())
-                    .show_ui(ui, |ui| {
-                        for format in VideoFormat::all() {
-                            ui.selectable_value(
-                                &mut self.output_format,
-                                format,
-                                format.to_string(),
+            for (idx, path) in self.input_paths.iter().enumerate() {
+                theme::well()
+                    .inner_margin(egui::Margin::symmetric(12.0, 6.0))
+                    .show(ui, |ui| {
+                        ui.horizontal(|ui| {
+                            theme::icon(
+                                ui,
+                                if path.is_dir() {
+                                    Icon::Folder
+                                } else {
+                                    Icon::Document
+                                },
+                                16.0,
+                                theme::MUTED,
                             );
-                        }
+                            ui.add(
+                                egui::Label::new(
+                                    egui::RichText::new(theme::display_path(path)).size(13.0),
+                                )
+                                .truncate(true),
+                            );
+                            ui.with_layout(
+                                egui::Layout::right_to_left(egui::Align::Center),
+                                |ui| {
+                                    if ui.add(theme::small_button("Remove")).clicked() {
+                                        to_remove = Some(idx);
+                                    }
+                                },
+                            );
+                        });
                     });
+            }
+            if let Some(idx) = to_remove {
+                self.input_paths.remove(idx);
+            }
+            ui.horizontal(|ui| {
+                if ui.add(theme::secondary_button("+ Add files")).clicked() {
+                    if let Some(paths) = rfd::FileDialog::new().pick_files() {
+                        self.input_paths.extend(paths);
+                    }
+                }
+                if ui.add(theme::secondary_button("+ Add folder")).clicked() {
+                    if let Some(path) = rfd::FileDialog::new().pick_folder() {
+                        self.input_paths.push(path);
+                    }
+                }
             });
-        }
+            ui.add_space(4.0);
+            theme::field(ui, "Folders", |ui| {
+                ui.checkbox(&mut self.recursive, "Include subfolders");
+            });
+            theme::field(ui, "Speed", |ui| {
+                ui.checkbox(&mut self.parallel, "Process files in parallel");
+            });
+            theme::field(ui, "Only matching", |ui| {
+                ui.add(
+                    egui::TextEdit::singleline(&mut self.pattern)
+                        .margin(egui::vec2(10.0, 7.0))
+                        .font(egui::TextStyle::Monospace)
+                        .hint_text("Regex, e.g. ^IMG_.*")
+                        .desired_width(f32::INFINITY),
+                );
+            });
+        });
 
-        ui.separator();
+        let title = format!("{} settings", self.operation_type.display_name());
+        theme::section(ui, &title, None, |ui| {
+            match self.operation_type {
+                BatchOperationType::Clipper => self.clipper_settings_ui(ui),
+                BatchOperationType::GifConverter => self.gif_converter_settings_ui(ui),
+                BatchOperationType::GifTransparency => self.gif_transparency_settings_ui(ui),
+                BatchOperationType::Splitter => self.splitter_settings_ui(ui),
+                BatchOperationType::Merger => self.merger_settings_ui(ui),
+            }
+            if matches!(
+                self.operation_type,
+                BatchOperationType::Clipper
+                    | BatchOperationType::Splitter
+                    | BatchOperationType::Merger
+            ) {
+                ui.horizontal(|ui| {
+                    ui.label("Output format");
+                    ComboBox::from_id_source("batch_output_format")
+                        .selected_text(self.output_format.to_string())
+                        .show_ui(ui, |ui| {
+                            for format in VideoFormat::all() {
+                                ui.selectable_value(
+                                    &mut self.output_format,
+                                    format,
+                                    format.to_string(),
+                                );
+                            }
+                        });
+                });
+            }
+        });
 
         // Process button and progress
         let processing = *self.processing.lock().unwrap();
@@ -416,7 +445,10 @@ impl BatchTab {
         }
 
         // Process button
-        let button = ui.add_enabled(!processing, egui::Button::new("Start Batch Processing"));
+        let button = ui.add_enabled(
+            !processing,
+            theme::primary_button("Start batch").min_size(egui::vec2(160.0, 40.0)),
+        );
 
         if button.clicked() {
             self.start_batch_processing();
@@ -480,12 +512,10 @@ impl BatchTab {
     }
 
     fn clipper_settings_ui(&mut self, ui: &mut Ui) {
-        ui.heading("Clipper Settings");
-
         // Output directory
         ui.horizontal(|ui| {
             ui.label("Output Directory:");
-            ui.text_edit_singleline(&mut self.clipper_output_dir);
+            crate::theme::text_input(ui, &mut self.clipper_output_dir);
             if ui.button("Browse").clicked() {
                 if let Some(path) = rfd::FileDialog::new().pick_folder() {
                     self.clipper_output_dir = path.to_string_lossy().to_string();
@@ -506,7 +536,7 @@ impl BatchTab {
 
             ui.horizontal(|ui| {
                 ui.label(format!("Range {}:", i + 1));
-                ui.text_edit_singleline(&mut ranges[i]);
+                crate::theme::text_input(ui, &mut ranges[i]);
                 if ui.button("Remove").clicked() && can_remove {
                     remove_this = true;
                 }
@@ -539,17 +569,15 @@ impl BatchTab {
 
         ui.horizontal(|ui| {
             ui.label("Suffix:");
-            ui.text_edit_singleline(&mut self.clipper_suffix);
+            crate::theme::text_input(ui, &mut self.clipper_suffix);
         });
     }
 
     fn gif_converter_settings_ui(&mut self, ui: &mut Ui) {
-        ui.heading("GIF Converter Settings");
-
         // Output directory
         ui.horizontal(|ui| {
             ui.label("Output Directory:");
-            ui.text_edit_singleline(&mut self.gif_output_dir);
+            crate::theme::text_input(ui, &mut self.gif_output_dir);
             if ui.button("Browse").clicked() {
                 if let Some(path) = rfd::FileDialog::new().pick_folder() {
                     self.gif_output_dir = path.to_string_lossy().to_string();
@@ -560,18 +588,18 @@ impl BatchTab {
         // Width, FPS, and size settings
         ui.horizontal(|ui| {
             ui.label("Width:");
-            ui.text_edit_singleline(&mut self.gif_width);
+            crate::theme::text_input(ui, &mut self.gif_width);
             ui.label("(leave empty for auto)");
         });
 
         ui.horizontal(|ui| {
             ui.label("FPS:");
-            ui.text_edit_singleline(&mut self.gif_fps);
+            crate::theme::text_input(ui, &mut self.gif_fps);
         });
 
         ui.horizontal(|ui| {
             ui.label("Max Size (MB):");
-            ui.text_edit_singleline(&mut self.gif_max_size);
+            crate::theme::text_input(ui, &mut self.gif_max_size);
         });
 
         // Optimization option
@@ -582,8 +610,6 @@ impl BatchTab {
     }
 
     fn gif_transparency_settings_ui(&mut self, ui: &mut Ui) {
-        ui.heading("GIF Transparency Settings");
-
         // Backup option
         ui.checkbox(
             &mut self.transparency_backup,
@@ -592,12 +618,10 @@ impl BatchTab {
     }
 
     fn splitter_settings_ui(&mut self, ui: &mut Ui) {
-        ui.heading("Splitter Settings");
-
         // Output directory
         ui.horizontal(|ui| {
             ui.label("Output Directory:");
-            ui.text_edit_singleline(&mut self.splitter_output_dir);
+            crate::theme::text_input(ui, &mut self.splitter_output_dir);
             if ui.button("Browse").clicked() {
                 if let Some(path) = rfd::FileDialog::new().pick_folder() {
                     self.splitter_output_dir = path.to_string_lossy().to_string();
@@ -608,12 +632,12 @@ impl BatchTab {
         // Prefix and encoding options
         ui.horizontal(|ui| {
             ui.label("Filename Prefix:");
-            ui.text_edit_singleline(&mut self.splitter_prefix);
+            crate::theme::text_input(ui, &mut self.splitter_prefix);
         });
 
         ui.horizontal(|ui| {
             ui.label("Custom Encode Options:");
-            ui.text_edit_singleline(&mut self.splitter_custom_encode);
+            crate::theme::text_input(ui, &mut self.splitter_custom_encode);
         });
 
         // Force option
@@ -624,12 +648,10 @@ impl BatchTab {
     }
 
     fn merger_settings_ui(&mut self, ui: &mut Ui) {
-        ui.heading("Merger Settings");
-
         // Audio file
         ui.horizontal(|ui| {
             ui.label("Audio File:");
-            ui.text_edit_singleline(&mut self.merger_audio_file);
+            crate::theme::text_input(ui, &mut self.merger_audio_file);
             if ui.button("Browse").clicked() {
                 if let Some(path) = rfd::FileDialog::new()
                     .add_filter("Audio Files", &["mp3", "aac", "wav", "m4a", "flac", "ogg"])
@@ -643,7 +665,7 @@ impl BatchTab {
         // Output directory
         ui.horizontal(|ui| {
             ui.label("Output Directory:");
-            ui.text_edit_singleline(&mut self.merger_output_dir);
+            crate::theme::text_input(ui, &mut self.merger_output_dir);
             if ui.button("Browse").clicked() {
                 if let Some(path) = rfd::FileDialog::new().pick_folder() {
                     self.merger_output_dir = path.to_string_lossy().to_string();

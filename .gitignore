@@ -1,5 +1,7 @@
 /target
 /dist/
+/.toolkit-venv/
+/.toolkit-tools/
 __pycache__/
 .DS_Store
 .idea/

@@ -1,3 +1,4 @@
+use crate::theme;
 use eframe::egui::{self, Ui};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -31,88 +32,107 @@ impl ClipperTab {
     }
 
     pub fn ui(&mut self, ui: &mut Ui) {
-        // Input file section
-        ui.heading("Input Video");
-        ui.horizontal(|ui| {
-            ui.text_edit_singleline(&mut self.input_file);
-            if ui.button("Browse").clicked() {
-                if let Some(path) = rfd::FileDialog::new()
-                    .add_filter("Video Files", &common::get_supported_formats("clipper"))
-                    .pick_file()
-                {
-                    self.input_file = path.to_string_lossy().to_string();
-
-                    // Set default output dir if not set
-                    if self.output_dir.is_empty() {
-                        self.output_dir = "output_clips".to_string();
-                    }
-                }
-            }
-        });
-
-        // Output directory section
-        ui.heading("Output Directory");
-        ui.horizontal(|ui| {
-            ui.text_edit_singleline(&mut self.output_dir);
-            if ui.button("Browse").clicked() {
-                if let Some(path) = rfd::FileDialog::new().pick_folder() {
-                    self.output_dir = path.to_string_lossy().to_string();
-                }
-            }
-        });
-
-        // Time ranges section
-        ui.heading("Time Ranges (format: START-END, e.g., 00:01:00-00:02:00)");
-
-        let mut remove_idx = None;
-        let len = self.time_ranges.len();
-        for i in 0..len {
-            let range = &mut self.time_ranges[i];
-            ui.horizontal(|ui| {
-                ui.label(format!("Range {}:", i + 1));
-                ui.text_edit_singleline(range);
-                if ui.button("Remove").clicked() && len > 1 {
-                    remove_idx = Some(i);
-                }
-            });
-        }
-
-        // Remove range if needed
-        if let Some(idx) = remove_idx {
-            if self.time_ranges.len() > 1 {
-                self.time_ranges.remove(idx);
-            }
-        }
-
-        // Add new range button
-        if ui.button("Add Time Range").clicked() {
-            self.time_ranges.push(String::new());
-        }
-
-        // Options section
-        ui.heading("Options");
-        ui.horizontal(|ui| {
-            ui.label("Output Format:");
-            egui::ComboBox::from_id_source("clipper_output_format")
-                .selected_text(self.output_format.to_string())
-                .show_ui(ui, |ui| {
-                    for format in VideoFormat::all() {
-                        ui.selectable_value(&mut self.output_format, format, format.to_string());
+        theme::section(
+            ui,
+            "Source",
+            Some("The video to cut and where the clips are saved."),
+            |ui| {
+                theme::field(ui, "Input video", |ui| {
+                    if theme::path_input(ui, &mut self.input_file, "Choose a video file") {
+                        if let Some(path) = rfd::FileDialog::new()
+                            .add_filter("Video Files", &common::get_supported_formats("clipper"))
+                            .pick_file()
+                        {
+                            self.input_file = path.to_string_lossy().to_string();
+                            if self.output_dir.is_empty() {
+                                self.output_dir = "output_clips".to_string();
+                            }
+                        }
                     }
                 });
-        });
-        ui.checkbox(&mut self.copy_codec, "Copy codec (faster but less precise)");
+                theme::field(ui, "Output folder", |ui| {
+                    if theme::path_input(ui, &mut self.output_dir, "Folder for the clips") {
+                        if let Some(path) = rfd::FileDialog::new().pick_folder() {
+                            self.output_dir = path.to_string_lossy().to_string();
+                        }
+                    }
+                });
+            },
+        );
 
-        ui.horizontal(|ui| {
-            ui.label("Suffix:");
-            ui.text_edit_singleline(&mut self.suffix);
+        theme::section(
+            ui,
+            "Time ranges",
+            Some("One clip per range, written as START-END, for example 00:01:00-00:02:00."),
+            |ui| {
+                let mut remove_idx = None;
+                let len = self.time_ranges.len();
+                for i in 0..len {
+                    let range = &mut self.time_ranges[i];
+                    theme::field(ui, &format!("Clip {}", i + 1), |ui| {
+                        ui.add(
+                            egui::TextEdit::singleline(range)
+                                .margin(egui::vec2(10.0, 7.0))
+                                .hint_text("00:00:00-00:00:10")
+                                .font(egui::TextStyle::Monospace)
+                                .desired_width((ui.available_width() - 96.0).max(120.0)),
+                        );
+                        if ui
+                            .add_enabled(len > 1, theme::secondary_button("Remove"))
+                            .clicked()
+                        {
+                            remove_idx = Some(i);
+                        }
+                    });
+                }
+                if let Some(idx) = remove_idx {
+                    if self.time_ranges.len() > 1 {
+                        self.time_ranges.remove(idx);
+                    }
+                }
+                ui.horizontal(|ui| {
+                    ui.add_space(168.0);
+                    if ui.add(theme::secondary_button("+ Add range")).clicked() {
+                        self.time_ranges.push(String::new());
+                    }
+                });
+            },
+        );
+
+        theme::section(ui, "Output", None, |ui| {
+            theme::field(ui, "Format", |ui| {
+                egui::ComboBox::from_id_source("clipper_output_format")
+                    .selected_text(self.output_format.to_string())
+                    .show_ui(ui, |ui| {
+                        for format in VideoFormat::all() {
+                            ui.selectable_value(
+                                &mut self.output_format,
+                                format,
+                                format.to_string(),
+                            );
+                        }
+                    });
+            });
+            theme::field(ui, "File suffix", |ui| {
+                ui.add(
+                    egui::TextEdit::singleline(&mut self.suffix)
+                        .margin(egui::vec2(10.0, 7.0))
+                        .hint_text("Optional, e.g. _clip")
+                        .desired_width(240.0),
+                );
+            });
+            theme::field(ui, "Speed", |ui| {
+                ui.checkbox(
+                    &mut self.copy_codec,
+                    "Copy codec — faster, cuts on keyframes",
+                );
+            });
         });
 
-        // Execute button
-        ui.add_space(10.0);
+        ui.add_space(4.0);
         let button = ui.add_enabled(
             !*self.processing.lock().unwrap(),
-            egui::Button::new("Extract Clips"),
+            theme::primary_button("Extract clips").min_size(egui::vec2(160.0, 40.0)),
         );
 
         if button.clicked() {

@@ -1,0 +1,3125 @@
+{
+  "schema": "9xconvert-static-study/v1",
+  "date": "2026-10-18",
+  "sample": {
+    "version": "2.2.8",
+    "path": "/Applications/9xconvert.app/Contents/Resources/app.asar",
+    "sha256": "d424d510e353b41de2bea71882d92da0170aa935213c1936e081383fd046524a"
+  },
+  "scope": "Authorized static UI/resources/business-code research; no app execution, no license-bypass work, no proprietary code/resources added to video-toolkit.",
+  "verification": "Static syntax and shipped assets; actual runtime behavior remains unverified.",
+  "rea": {
+    "status": "completed with partial graph/semantic coverage; full returned summary exceeded MCP transport budget; retained evidence exported once",
+    "integrity_mismatch": {
+      "logical_path": "node_modules/@img/sharp-darwin-arm64/lib/sharp-darwin-arm64.node",
+      "declared_sha256": "05dba5ee40609b0ac94e14e591c515b3d9bd813ff5939625ff9a4bb78eb7c628",
+      "observed_sha256": "75dcfb15fc2b64333757c182f517b798475f8a87d88545fed649276c91566ba4",
+      "cause": "unknown; do not infer maliciousness or signature cause"
+    },
+    "parent_evidence_id": "ev_0360fc16d8ba702fbb96ac16defa5af85db4b9f9d721d69c0020117aee402165",
+    "summary_evidence_id": "ev_8d481c27c817d7fe2c96e5a142da6f06c8d2377a89e0543f9cb5fbe53b2195fe",
+    "metadata_file": "9xconvert-rea-ui-summary.json",
+    "coverage": "partial",
+    "parse_failures": 17,
+    "parsed_javascript_files": 4874,
+    "integrity_contradiction_count": 7,
+    "note": "Complete record retention does not mean complete program semantics. No 9xConvert runtime conversion was performed."
+  },
+  "source_manifest": [
+    {
+      "path": "locales/ar.json",
+      "bytes": 290181,
+      "sha256": "321583c594acffc6c2ececbe585b7b9eec5f6fb1e0073209c3452407a5a7168e"
+    },
+    {
+      "path": "locales/de.json",
+      "bytes": 218702,
+      "sha256": "cf794a91161016ce68fe39ac728bfa484441277a1c66748e1b99431e5648e0b7"
+    },
+    {
+      "path": "locales/en.json",
+      "bytes": 176281,
+      "sha256": "bdea06de9498f2848e054731de5dad72594337671f7abd41ede27cc1c6682913"
+    },
+    {
+      "path": "locales/es.json",
+      "bytes": 221815,
+      "sha256": "0cb7339cbaffa214cdc53bdcdf785f24fc456ea3bc78b606303896fc01c37d9a"
+    },
+    {
+      "path": "locales/fa.json",
+      "bytes": 266205,
+      "sha256": "cbbd7b96a8fa80b57b426c4ee7f1be6ebf65ca7a0c8004d011a02354563c9eb5"
+    },
+    {
+      "path": "locales/fr.json",
+      "bytes": 228792,
+      "sha256": "2e32fe6c002d41f74b26b648991729eaba6356c9fe111165ad2416c7ef725150"
+    },
+    {
+      "path": "locales/hi.json",
+      "bytes": 328500,
+      "sha256": "9ad0aab5234de52b466de2acf8bc3fc939974f89d9e27ad7dc84da650a6c716b"
+    },
+    {
+      "path": "locales/id.json",
+      "bytes": 201843,
+      "sha256": "ead325b66188d5b404d0e1e2b83b200815faf2311ac9aac18f93fb8520409a17"
+    },
+    {
+      "path": "locales/it.json",
+      "bytes": 220533,
+      "sha256": "bcac5ed710e4d747ff346cf3cf15b4da5abad3621a7b989fd4fe1f926cd00733"
+    },
+    {
+      "path": "locales/ja.json",
+      "bytes": 232995,
+      "sha256": "80ec8aa829ff36dc26af3bcb467bd9b698c14dddf51aa9cea16ce70bd1b35f67"
+    },
+    {
+      "path": "locales/ko.json",
+      "bytes": 217516,
+      "sha256": "e9f50d8c1acb9d268d28854da430aefa52b92bc53cec0fc579a38e8f92d7c330"
+    },
+    {
+      "path": "locales/nl.json",
+      "bytes": 211150,
+      "sha256": "3460906e10ae71c02954b8b5b8120663584be9baf8bff93600a8459d015ecea8"
+    },
+    {
+      "path": "locales/pt.json",
+      "bytes": 221425,
+      "sha256": "02376f8639db8bc2e8be2e51addc9aff61dca16fc3b232d94c4db504e5dee4c1"
+    },
+    {
+      "path": "locales/ru.json",
+      "bytes": 304986,
+      "sha256": "c2671350abdb8266e0d867caf9414e714c8c4ed32f3f4f43644aa29dedab5650"
+    },
+    {
+      "path": "locales/th.json",
+      "bytes": 320791,
+      "sha256": "9cc0c2f34c43b55435931ae63009c22e12720033d3fa4d374b113d808400eb60"
+    },
+    {
+      "path": "locales/tr.json",
+      "bytes": 215826,
+      "sha256": "425f52eb402bbf5397675961b206055d01ba4bf7bc77c73bfe9522a84ac29d24"
+    },
+    {
+      "path": "locales/ur.json",
+      "bytes": 265348,
+      "sha256": "627eafa02c7cb3d953664a8c1729cabfb9758305c832e7665a859f70b96e616c"
+    },
+    {
+      "path": "locales/vi.json",
+      "bytes": 227818,
+      "sha256": "f876cc514935eb8832ed80abad1aa41acc543de7dadb9d765c8d82b5a98efd76"
+    },
+    {
+      "path": "locales/zh.json",
+      "bytes": 193104,
+      "sha256": "46642cb1def2a136eb2e1aa7273e8657f22d31a3a9ed379f22f8fe062c30aa94"
+    },
+    {
+      "path": "out/main/chunks/DataConfig-DjY5Vf4T.js",
+      "bytes": 2976,
+      "sha256": "727c820f695c62dce5036e6871a2d3580404b3cf983fc435963d041533215a1d"
+    },
+    {
+      "path": "out/main/chunks/DataFormats-DlNa_73k.js",
+      "bytes": 8108,
+      "sha256": "b00145a3f4f5cd3c804463dde90044bde5621608099d22627cb4403c3abfa707"
+    },
+    {
+      "path": "out/main/chunks/DocumentConfig-B4vHji2N.js",
+      "bytes": 28933,
+      "sha256": "8327201ea9b03f6106c1c8ce64ee1694c3b544129463138b0219dd9a357492ff"
+    },
+    {
+      "path": "out/main/chunks/ImageConfig-CJa_MOnG.js",
+      "bytes": 22987,
+      "sha256": "1ea0d4c609750ba5728bbf4fe944a33ba6c0a8c1f26885bc8aef2b14e394d8df"
+    },
+    {
+      "path": "out/main/chunks/PdfConfig-BEJ1KAd4.js",
+      "bytes": 19555,
+      "sha256": "bbf2be1b5f03b4ef53699f5fe7add5477f8da71efd3caa17df43dd82a14890bd"
+    },
+    {
+      "path": "out/main/chunks/PdfJsLoader-DfvWbEYh.js",
+      "bytes": 658,
+      "sha256": "9d705489cb63418a8f10ff5ca1a0acc327743a34b7bd299d80070f48cfff8101"
+    },
+    {
+      "path": "out/main/chunks/PdfStructure-D9OH-BwX.js",
+      "bytes": 10274,
+      "sha256": "083bee3f9763d296ad30bc306bbb31c70e68de4934a4466c914af978bc40c32a"
+    },
+    {
+      "path": "out/main/chunks/ReadImageMetadata-DSRLKucm.js",
+      "bytes": 2423,
+      "sha256": "409a88f31df19a88057a5517dc76b02016615a4eeaa6f7e1aae0ee26d0193f05"
+    },
+    {
+      "path": "out/main/chunks/SharpWorker-CZe8D0aX.js",
+      "bytes": 4883,
+      "sha256": "ab8b8cc2366e110e070e29f62fe4ee04724b5df7cc3aa21a81c10437c2298f98"
+    },
+    {
+      "path": "out/main/chunks/SubtitleConfig-Bcc-Eb_W.js",
+      "bytes": 2193,
+      "sha256": "64d37b6025afb3cd1a1dc6b1837a5575ce51fb3e687f867db75093458b1f5739"
+    },
+    {
+      "path": "out/main/chunks/ZipDirectory-DHgKCzIw.js",
+      "bytes": 2721,
+      "sha256": "58684141ceedb10ac90cda1faa33417eb1200c43995851f962dbc2dede61ec7d"
+    },
+    {
+      "path": "out/main/chunks/mediaGeometry-DhqhZZfS.js",
+      "bytes": 594,
+      "sha256": "e66b7b7a3b25fed714c6106a7773503a5387c31957a5ec8b960312014e90f214"
+    },
+    {
+      "path": "out/main/chunks/offMainOps-Pq9dEHHo.js",
+      "bytes": 1410,
+      "sha256": "53aeef5f774e66f0c37d6de1ff01a372200b7699f35e99d21d2b33781215c87c"
+    },
+    {
+      "path": "out/main/chunks/tray-vS_8i348.png",
+      "bytes": 879,
+      "sha256": "d6d5c82e1c53e5c00ba22a47042d980395c846a8c9491482a9608d361a248f90"
+    },
+    {
+      "path": "out/main/chunks/tray@2x-CFCP9l1G.png",
+      "bytes": 1834,
+      "sha256": "8d4bc265b06420e67a5f1a5692cb27a714bf06ba0417ce91bc50e73edd1fb4f0"
+    },
+    {
+      "path": "out/main/chunks/trayTemplate-DZXAroRx.png",
+      "bytes": 500,
+      "sha256": "565c0635ea46bd3bcaf4ddbb593c36eafbe06bee3e3895cb0a051e32315dab88"
+    },
+    {
+      "path": "out/main/chunks/trayTemplate@2x-DVlZikBo.png",
+      "bytes": 1091,
+      "sha256": "1e8cf9021d94ab12cbeb9916ec74765fe78f8992739fe69e7eacd37f10d7ea77"
+    },
+    {
+      "path": "out/main/index.js",
+      "bytes": 2622506,
+      "sha256": "58c4dfa07a8ad0f059dcc426ffb4493ddd101b3218fa8a0a3e70e57878689f68"
+    },
+    {
+      "path": "out/main/sharpWorker.js",
+      "bytes": 472,
+      "sha256": "261c9424d70c87d95eb9ca55ac9caab60a47d966332d1587da1fe032df04c489"
+    },
+    {
+      "path": "out/preload/index.cjs",
+      "bytes": 8949,
+      "sha256": "b8c29f9bf0d445b52fff63dab6fd433f69e08ca1e2ef49cbd076b4204eed3854"
+    },
+    {
+      "path": "out/renderer/assets/FirstRun-e-H-jVtV.js",
+      "bytes": 15059,
+      "sha256": "9304d485116ed4731c17cab16a7658940e3dc40e96a1a61443c443f1f4d48be4"
+    },
+    {
+      "path": "out/renderer/assets/dm-sans-latin-400-normal-BwCSEQnW.woff",
+      "bytes": 18356,
+      "sha256": "38702875fe179437d200e7ba6f7fab4d497ffe48117ef332029b2081751186ad"
+    },
+    {
+      "path": "out/renderer/assets/dm-sans-latin-400-normal-CW0RaeGs.woff2",
+      "bytes": 14200,
+      "sha256": "4ab51eb2cd7305d177187908d6397474d4520663f6c6e572feb0a64f4fa80006"
+    },
+    {
+      "path": "out/renderer/assets/dm-sans-latin-500-normal-B9HHJjqV.woff2",
+      "bytes": 14304,
+      "sha256": "19bf1984956517c35c2bd35b6cdedac12a21d6fcd3596c614ecdfb88b648909d"
+    },
+    {
+      "path": "out/renderer/assets/dm-sans-latin-500-normal-Dr3UlScf.woff",
+      "bytes": 18520,
+      "sha256": "7deb957e430b780ee3272d801af4f9f2211b1330ec40a312a8f25309eacb4034"
+    },
+    {
+      "path": "out/renderer/assets/dm-sans-latin-600-normal-Aqo67rzb.woff2",
+      "bytes": 14144,
+      "sha256": "6bb2b2645ba5eeaecf56322c543fa3a75b87b927977b9c03b1dabc4205089120"
+    },
+    {
+      "path": "out/renderer/assets/dm-sans-latin-600-normal-BmdmIIQ2.woff",
+      "bytes": 18320,
+      "sha256": "e7351257e49400eff05aca30a2007289194a900860d30c30770d8b8732897564"
+    },
+    {
+      "path": "out/renderer/assets/dm-sans-latin-700-normal-CUSSCpQX.woff",
+      "bytes": 18504,
+      "sha256": "af422a448ac00679a8dbb13532db3616829c5a35b58d3eeea5903ce17ad2e36a"
+    },
+    {
+      "path": "out/renderer/assets/dm-sans-latin-700-normal-DvUfVpUG.woff2",
+      "bytes": 14348,
+      "sha256": "35c5efa0e5daa52ee5c6500f5be354bf751fb65c4e49e1d6806c6eb5883e8fe9"
+    },
+    {
+      "path": "out/renderer/assets/dm-sans-latin-ext-400-normal-BjWJ59Pq.woff",
+      "bytes": 9976,
+      "sha256": "3d63423c3204f61bb196d1ae3729b7f2871d87abd4403d198f4810923888c016"
+    },
+    {
+      "path": "out/renderer/assets/dm-sans-latin-ext-400-normal-BtiwyxMk.woff2",
+      "bytes": 7364,
+      "sha256": "962730c6ff7595f9499b0d963a3bccb2139d793f0fb31fbd87aed1881c020e0a"
+    },
+    {
+      "path": "out/renderer/assets/dm-sans-latin-ext-500-normal-BJfUCQsA.woff2",
+      "bytes": 7432,
+      "sha256": "e0a1d21584ba00798a3dbe90ef5f8a162741d454f52ab66630f9dc41da372b3d"
+    },
+    {
+      "path": "out/renderer/assets/dm-sans-latin-ext-500-normal-DR84L5F-.woff",
+      "bytes": 10068,
+      "sha256": "e1f67472aa96c6f60969c696ba8a9d36ed8ea26c2ff5c3e27ee29c664911575d"
+    },
+    {
+      "path": "out/renderer/assets/dm-sans-latin-ext-600-normal-4vooXBpG.woff2",
+      "bytes": 7420,
+      "sha256": "6406eb05e2eb50779cb95ee8745c98ad23cce7e67d752822782453da7f6b4491"
+    },
+    {
+      "path": "out/renderer/assets/dm-sans-latin-ext-600-normal-DRtaDpgU.woff",
+      "bytes": 10024,
+      "sha256": "f70e6bb2170e2ab7bfc23a021af0663dce4df0b502173c9c5135015d7fed457a"
+    },
+    {
+      "path": "out/renderer/assets/dm-sans-latin-ext-700-normal-BLI3TTWz.woff",
+      "bytes": 10012,
+      "sha256": "56084e69490970432de58b4a2406ee4daa1f58d90f9600ae3fda0e895a6355e7"
+    },
+    {
+      "path": "out/renderer/assets/dm-sans-latin-ext-700-normal-CJIcxD6K.woff2",
+      "bytes": 7452,
+      "sha256": "f6640907b94df0d227f26e2fcb6db2497d6c44c4b68f731ea1e06f5b45e2e91b"
+    },
+    {
+      "path": "out/renderer/assets/index-BCsxo1e-.js",
+      "bytes": 37473,
+      "sha256": "ef29ae187753ab640df012124bf2f45b5ec93515e72da7c0510ebf4136479ebd"
+    },
+    {
+      "path": "out/renderer/assets/index-DU4tTQ03.css",
+      "bytes": 191505,
+      "sha256": "72e1f5acd3fadd6df2688319baac5c074b3fb5c838885962b9cf7b2045612b58"
+    },
+    {
+      "path": "out/renderer/assets/index-l3MvBoNs.js",
+      "bytes": 2135475,
+      "sha256": "8c137241e7b7529d0d379047e57b99dbce92e751c7400ddd74a9215dcbc9024b"
+    },
+    {
+      "path": "out/renderer/assets/pdf-CPypWGTn.js",
+      "bytes": 409994,
+      "sha256": "32811ba2156cb7c9e69697eb9cc1c1acc926976c3385b9954519016b63bec088"
+    },
+    {
+      "path": "out/renderer/assets/pdf.worker-Bn0DL72Z.js",
+      "bytes": 89,
+      "sha256": "7969fdff8476fcef8a6572e9a7741920d3c877d7ae3cbb95d3264040be60850f"
+    },
+    {
+      "path": "out/renderer/assets/pdf.worker-xSiVJ7U_.mjs",
+      "bytes": 2186232,
+      "sha256": "08ee175af31a8537ee0ddee910717db78c6751e2016c4ddc3f033d5047ed5aa0"
+    },
+    {
+      "path": "out/renderer/index.html",
+      "bytes": 752,
+      "sha256": "642da050a72db1ea26c061e3eede03bdb18e9c13bb6dfa750a3c0245d682b37c"
+    },
+    {
+      "path": "package.json",
+      "bytes": 1236,
+      "sha256": "846b6405abf733cb5491b84643f817ec5f0c07f16016fee604ef179b8f84aa77"
+    }
+  ],
+  "source_spans": {
+    "tool_registry": {
+      "path": "out/renderer/assets/index-l3MvBoNs.js",
+      "start_utf8": 452835,
+      "end_utf8": 469083
+    },
+    "formats": {
+      "path": "out/renderer/assets/index-l3MvBoNs.js",
+      "start_utf8": 449926,
+      "end_utf8": 453126
+    },
+    "navigation": {
+      "path": "out/renderer/assets/index-l3MvBoNs.js",
+      "start_utf8": 557496,
+      "end_utf8": 559396
+    },
+    "editors": {
+      "path": "out/renderer/assets/index-l3MvBoNs.js",
+      "start_utf8": 1858156,
+      "end_utf8": 1859406
+    },
+    "pane_sizes": {
+      "path": "out/renderer/assets/index-l3MvBoNs.js",
+      "start_utf8": 288011,
+      "end_utf8": 288401
+    },
+    "settings": {
+      "path": "out/renderer/assets/index-l3MvBoNs.js",
+      "start_utf8": 290152,
+      "end_utf8": 290852
+    },
+    "presets": {
+      "path": "out/renderer/assets/index-l3MvBoNs.js",
+      "start_utf8": 506518,
+      "end_utf8": 507919
+    }
+  },
+  "design_tokens": {
+    "observed_css": {
+      ":root": {
+        "--range-track-color": "rgb(229, 231, 235)",
+        "--range-thumb-border-color": "#ffffff",
+        "--c-night-300": "#202124",
+        "--c-night-400": "#303134",
+        "--c-night-500": "#444242",
+        "--c-brand": "#3b82f6",
+        "--c-brand-fg": "#ffffff",
+        "--c-brand-strong": "#2563eb",
+        "--c-brand-hover": "#2563eb",
+        "--c-brand-ink": "#1d4ed8",
+        "--c-brand-tint": "#eff6ff",
+        "--c-brand-line": "#bfdbfe",
+        "--c-brand-line-soft": "#dbeafe",
+        "--c-brand-muted": "#93c5fd",
+        "--c-brand-soft": "#60a5fa",
+        "--c-danger": "#dc2626",
+        "--c-danger-fg": "#b91c1c",
+        "--c-danger-tint": "#fef2f2",
+        "--c-danger-line": "#fecaca",
+        "--c-warning": "#d97706",
+        "--c-warning-fg": "#b45309",
+        "--c-warning-tint": "#fffbeb",
+        "--c-warning-line": "#fde68a",
+        "--c-success": "#16a34a",
+        "--c-success-fg": "#15803d",
+        "--c-success-tint": "#f0fdf4",
+        "--c-success-line": "#bbf7d0",
+        "--c-surface": "#ffffff",
+        "--c-surface-muted": "#fafafa",
+        "--c-ink": "#171717",
+        "--c-ink-2": "#525252",
+        "--c-ink-3": "#737373",
+        "--c-ink-4": "#a3a3a3",
+        "--c-line": "#f5f5f5",
+        "--c-line-strong": "#e5e5e5",
+        "--c-tile": "#ffffff",
+        "--c-rail-line": "color-mix(in srgb, var(--c-brand) 8%, #e5e7eb)",
+        "--c-rail-muted": "#94a3b8",
+        "--c-zone-fill": "color-mix(in srgb, var(--c-brand) 5%, #ffffff)",
+        "--c-type-video": "#3b82f6",
+        "--c-type-video-tint": "#e8f1ff",
+        "--c-type-audio": "#a855f7",
+        "--c-type-audio-tint": "#f6ecff",
+        "--c-type-image": "#16a34a",
+        "--c-type-image-tint": "#e6f8ef",
+        "--c-type-gif": "#f97316",
+        "--c-type-gif-tint": "#fff0e4",
+        "--c-type-pdf": "#e5484d",
+        "--c-type-pdf-tint": "#fdecec",
+        "--c-type-doc": "#6366f1",
+        "--c-type-doc-tint": "#eceefe",
+        "--c-type-subtitle": "#f59e0b",
+        "--c-type-subtitle-tint": "#fffbeb",
+        "--c-type-epub": "#0d9488",
+        "--c-type-epub-tint": "#e6f6f4",
+        "--c-type-json": "#ca8a04",
+        "--c-type-json-tint": "#fef9c3",
+        "--c-type-yaml": "#db2777",
+        "--c-type-yaml-tint": "#fce7f3",
+        "--c-type-xml": "#0891b2",
+        "--c-type-xml-tint": "#cffafe",
+        "--c-type-csv": "#65a30d",
+        "--c-type-csv-tint": "#ecfccb",
+        "--c-type-log": "#78716c",
+        "--c-type-log-tint": "#f5f5f4",
+        "--shadow-card": "0 1px 3px rgb(23 28 38 / .05), 0 12px 32px rgb(23 28 38 / .05)",
+        "--shadow-brand": "0 2px 8px color-mix(in srgb, var(--c-brand) 16%, transparent)",
+        "--shadow-tile": "0 1px 2px rgb(23 28 38 / .06), 0 0 0 1px rgb(23 28 38 / .04)",
+        "--app-gradient": "linear-gradient( 180deg, color-mix(in srgb, var(--c-brand) 18%, #ffffff) 0%, color-mix(in srgb, var(--c-brand) 8%, #ffffff) 42%, #fafafa 99% )"
+      },
+      ".dark": {
+        "--range-track-color": "#444242",
+        "--range-thumb-border-color": "#303134",
+        "--c-brand-strong": "#60a5fa",
+        "--c-brand-ink": "#93c5fd",
+        "--c-brand-tint": "color-mix(in srgb, var(--c-brand) 16%, transparent)",
+        "--c-brand-line": "color-mix(in srgb, var(--c-brand) 35%, transparent)",
+        "--c-brand-line-soft": "color-mix(in srgb, var(--c-brand) 20%, transparent)",
+        "--c-danger": "#ef4444",
+        "--c-danger-fg": "#f87171",
+        "--c-danger-tint": "rgb(239 68 68 / .14)",
+        "--c-danger-line": "rgb(239 68 68 / .35)",
+        "--c-warning": "#f59e0b",
+        "--c-warning-fg": "#fbbf24",
+        "--c-warning-tint": "rgb(245 158 11 / .14)",
+        "--c-warning-line": "rgb(245 158 11 / .35)",
+        "--c-success": "#22c55e",
+        "--c-success-fg": "#4ade80",
+        "--c-success-tint": "rgb(34 197 94 / .14)",
+        "--c-success-line": "rgb(34 197 94 / .35)",
+        "--c-surface": "#202124",
+        "--c-surface-muted": "#26272b",
+        "--c-ink": "#f5f5f5",
+        "--c-ink-2": "#d4d4d4",
+        "--c-ink-3": "#a3a3a3",
+        "--c-ink-4": "#737373",
+        "--c-line": "#303134",
+        "--c-line-strong": "#444242",
+        "--c-tile": "color-mix(in srgb, var(--c-brand) 11%, transparent)",
+        "--c-rail-line": "color-mix(in srgb, var(--c-brand) 16%, transparent)",
+        "--c-rail-muted": "#8b8b8b",
+        "--c-zone-fill": "color-mix(in srgb, var(--c-brand) 10%, transparent)",
+        "--c-type-video-tint": "rgb(59 130 246 / .16)",
+        "--c-type-audio-tint": "rgb(168 85 247 / .16)",
+        "--c-type-image-tint": "rgb(22 163 74 / .16)",
+        "--c-type-gif-tint": "rgb(249 115 22 / .16)",
+        "--c-type-pdf-tint": "rgb(229 72 77 / .16)",
+        "--c-type-doc-tint": "rgb(99 102 241 / .16)",
+        "--c-type-subtitle-tint": "rgb(245 158 11 / .16)",
+        "--c-type-epub-tint": "rgb(13 148 136 / .16)",
+        "--c-type-json-tint": "rgb(202 138 4 / .16)",
+        "--c-type-yaml-tint": "rgb(219 39 119 / .16)",
+        "--c-type-xml-tint": "rgb(8 145 178 / .16)",
+        "--c-type-csv-tint": "rgb(101 163 13 / .16)",
+        "--c-type-log-tint": "rgb(120 113 108 / .16)",
+        "--shadow-card": "0 1px 3px rgb(0 0 0 / .3), 0 12px 32px rgb(0 0 0 / .25)",
+        "--shadow-brand": "0 2px 6px rgb(0 0 0 / .28)",
+        "--shadow-tile": "0 1px 1px rgb(0 0 0 / .25)",
+        "--app-gradient": "linear-gradient( 180deg, color-mix(in srgb, var(--c-brand) 28%, #081016) 2%, #19191c 49%, #161618 99% )"
+      }
+    },
+    "font_family": "DM Sans, ui-sans-serif, system-ui, sans-serif",
+    "weights": [
+      400,
+      500,
+      600,
+      700
+    ],
+    "frequent_corner_radii_px": [
+      10,
+      12,
+      16
+    ],
+    "body_type_px": [
+      12.5,
+      13,
+      13.5,
+      14,
+      14.5
+    ],
+    "headings_px": [
+      22,
+      26,
+      30
+    ]
+  },
+  "navigation": [
+    {
+      "title": "Home",
+      "route": "/"
+    },
+    {
+      "title": "Library",
+      "route": "/library"
+    },
+    {
+      "title": "Conversions",
+      "route": "/conversions"
+    },
+    {
+      "title": "Editors",
+      "route": "/editors"
+    },
+    {
+      "title": "Explore",
+      "route": "/tools"
+    },
+    {
+      "title": "Settings",
+      "route": "/settings"
+    }
+  ],
+  "editor_categories": [
+    "video",
+    "audio",
+    "image",
+    "gif",
+    "pdf",
+    "subtitle",
+    "document",
+    "epub"
+  ],
+  "layout": {
+    "global_rail_width_px": 88,
+    "nav_icon_tile_px": [
+      48,
+      40
+    ],
+    "nav_icon_px": 20,
+    "nav_label_px": 11,
+    "home_max_content_px": 820,
+    "home_search_height_px": 60,
+    "home_dropzone_height_px": 272,
+    "home_source_switch_px": [
+      340,
+      42
+    ],
+    "home_primary_button_height_px": 44,
+    "home_queue_px": {
+      "min": 260,
+      "default": 320,
+      "max": 560
+    },
+    "editor_tools_px": {
+      "min": 320,
+      "default": 400,
+      "max": 640
+    },
+    "settings_nav_px": {
+      "min": 200,
+      "default": 300,
+      "max": 420
+    },
+    "explore_nav_px": {
+      "min": 168,
+      "default": 240,
+      "max": 360
+    },
+    "library_collections_px": {
+      "min": 190,
+      "default": 272,
+      "max": 420
+    },
+    "editor_grid_columns": [
+      2,
+      3,
+      4
+    ]
+  },
+  "format_declarations": {
+    "video": {
+      "input": [
+        "mp4",
+        "mkv",
+        "flv",
+        "avi",
+        "mov",
+        "m4v",
+        "webm",
+        "wmv",
+        "hevc",
+        "mpeg",
+        "mpg",
+        "ts",
+        "m2ts"
+      ],
+      "output": [
+        "mp4",
+        "mkv",
+        "mov",
+        "m4v",
+        "avi",
+        "webm",
+        "flv",
+        "wmv",
+        "mpg"
+      ]
+    },
+    "audio": {
+      "input": [
+        "mp3",
+        "wav",
+        "aiff",
+        "flac",
+        "m4a",
+        "aac",
+        "ogg",
+        "opus",
+        "wma",
+        "amr"
+      ],
+      "output": [
+        "mp3",
+        "wav",
+        "flac",
+        "m4a",
+        "aac",
+        "ogg",
+        "wma",
+        "opus"
+      ]
+    },
+    "image": {
+      "input": [
+        "jpg",
+        "jpeg",
+        "png",
+        "bmp",
+        "tiff",
+        "webp",
+        "tga",
+        "avif",
+        "svg",
+        "heif",
+        "heic",
+        "ico"
+      ],
+      "output": [
+        "jpg",
+        "png",
+        "webp",
+        "tiff",
+        "avif",
+        "heif",
+        "ico"
+      ]
+    },
+    "gif": {
+      "input": [
+        "gif"
+      ],
+      "output": [
+        "gif"
+      ]
+    },
+    "subtitle": {
+      "input": [
+        "srt",
+        "vtt",
+        "ass",
+        "ssa",
+        "sbv",
+        "sub",
+        "smi",
+        "lrc"
+      ],
+      "output": [
+        "srt",
+        "vtt",
+        "ass",
+        "ssa",
+        "sbv",
+        "sub",
+        "smi",
+        "lrc",
+        "txt",
+        "csv",
+        "json"
+      ]
+    },
+    "pdf": {
+      "input": [
+        "pdf"
+      ],
+      "output": [
+        "pdf",
+        "epub",
+        "docx",
+        "md",
+        "html",
+        "txt"
+      ]
+    },
+    "document": {
+      "input": [
+        "docx"
+      ],
+      "output": [
+        "docx",
+        "pdf",
+        "md",
+        "html",
+        "txt",
+        "epub",
+        "csv",
+        "json",
+        "yaml",
+        "xml"
+      ]
+    },
+    "txt": {
+      "input": [
+        "txt"
+      ],
+      "output": [
+        "txt",
+        "pdf",
+        "docx",
+        "md",
+        "html",
+        "epub",
+        "log",
+        "json",
+        "yaml",
+        "xml",
+        "csv"
+      ]
+    },
+    "md": {
+      "input": [
+        "md"
+      ],
+      "output": [
+        "md",
+        "pdf",
+        "docx",
+        "html",
+        "txt",
+        "epub",
+        "csv",
+        "json",
+        "yaml",
+        "xml"
+      ]
+    },
+    "html": {
+      "input": [
+        "html",
+        "htm"
+      ],
+      "output": [
+        "html",
+        "pdf",
+        "docx",
+        "md",
+        "txt",
+        "epub",
+        "csv",
+        "json",
+        "yaml",
+        "xml"
+      ]
+    },
+    "epub": {
+      "input": [
+        "epub"
+      ],
+      "output": [
+        "epub",
+        "pdf",
+        "docx",
+        "md",
+        "html",
+        "txt"
+      ]
+    },
+    "json": {
+      "input": [
+        "json"
+      ],
+      "output": [
+        "json",
+        "yaml",
+        "xml",
+        "csv",
+        "txt",
+        "md",
+        "html",
+        "pdf",
+        "docx",
+        "epub"
+      ]
+    },
+    "yaml": {
+      "input": [
+        "yaml",
+        "yml"
+      ],
+      "output": [
+        "yaml",
+        "json",
+        "xml",
+        "csv",
+        "txt",
+        "md",
+        "html",
+        "pdf",
+        "docx",
+        "epub"
+      ]
+    },
+    "xml": {
+      "input": [
+        "xml"
+      ],
+      "output": [
+        "xml",
+        "json",
+        "yaml",
+        "csv",
+        "txt",
+        "md",
+        "html",
+        "pdf",
+        "docx",
+        "epub"
+      ]
+    },
+    "csv": {
+      "input": [
+        "csv"
+      ],
+      "output": [
+        "csv",
+        "json",
+        "yaml",
+        "xml",
+        "txt",
+        "md",
+        "html",
+        "pdf",
+        "docx",
+        "epub"
+      ]
+    },
+    "log": {
+      "input": [
+        "log"
+      ],
+      "output": [
+        "log",
+        "txt",
+        "json",
+        "yaml",
+        "xml",
+        "csv",
+        "md",
+        "html",
+        "pdf",
+        "docx",
+        "epub"
+      ]
+    }
+  },
+  "literal_tool_count": 108,
+  "generated_tool_count": 75,
+  "interpreted_total_tool_count": 183,
+  "literal_tools": [
+    {
+      "id": "video.compress",
+      "label": "Compress",
+      "category": "video",
+      "engine": "ffmpeg",
+      "jobKind": "per-file",
+      "segmentMode": "segment",
+      "progress": "time-based",
+      "icon": "Minimize",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "video.trim",
+      "label": "Trim",
+      "category": "video",
+      "engine": "ffmpeg",
+      "jobKind": "per-file",
+      "segmentMode": "full",
+      "progress": "time-based",
+      "icon": "Scissors",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "video.convert",
+      "label": "Convert",
+      "category": "video",
+      "engine": "ffmpeg",
+      "jobKind": "per-file",
+      "segmentMode": "segment",
+      "progress": "time-based",
+      "icon": "FileOutput",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "video.speed",
+      "label": "Speed",
+      "category": "video",
+      "engine": "ffmpeg",
+      "jobKind": "per-file",
+      "segmentMode": "full",
+      "progress": "time-based",
+      "icon": "Zap",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "video.volume",
+      "label": "Volume",
+      "category": "video",
+      "engine": "ffmpeg",
+      "jobKind": "per-file",
+      "segmentMode": "segment",
+      "progress": "time-based",
+      "icon": "Volume2",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "video.resize",
+      "label": "Resize",
+      "category": "video",
+      "engine": "ffmpeg",
+      "jobKind": "per-file",
+      "segmentMode": "segment",
+      "progress": "time-based",
+      "icon": "Scaling",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "video.crop",
+      "label": "Crop",
+      "category": "video",
+      "engine": "ffmpeg",
+      "jobKind": "per-file",
+      "segmentMode": "segment",
+      "progress": "time-based",
+      "icon": "Crop",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "video.rotate",
+      "label": "Rotate",
+      "category": "video",
+      "engine": "ffmpeg",
+      "jobKind": "per-file",
+      "segmentMode": "segment",
+      "progress": "time-based",
+      "icon": "RotateCcw",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "video.flip",
+      "label": "Flip",
+      "category": "video",
+      "engine": "ffmpeg",
+      "jobKind": "per-file",
+      "segmentMode": "segment",
+      "progress": "time-based",
+      "icon": "FlipHorizontal",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "video.fps",
+      "label": "FPS",
+      "category": "video",
+      "engine": "ffmpeg",
+      "jobKind": "per-file",
+      "segmentMode": "segment",
+      "progress": "time-based",
+      "icon": "Gauge",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "video.reverse",
+      "label": "Reverse",
+      "category": "video",
+      "engine": "ffmpeg",
+      "jobKind": "per-file",
+      "segmentMode": "full",
+      "progress": "time-based",
+      "icon": "Undo2",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "video.extractAudio",
+      "label": "Extract Audio",
+      "category": "video",
+      "engine": "ffmpeg",
+      "jobKind": "per-file",
+      "segmentMode": "full",
+      "progress": "time-based",
+      "icon": "AudioLines",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "video.extractFrames",
+      "label": "Extract Frames",
+      "category": "video",
+      "engine": "ffmpeg",
+      "jobKind": "multi-output",
+      "segmentMode": "full",
+      "progress": "time-based",
+      "icon": "Images",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "video.mute",
+      "label": "Mute",
+      "category": "video",
+      "engine": "ffmpeg",
+      "jobKind": "per-file",
+      "segmentMode": "segment",
+      "progress": "time-based",
+      "icon": "VolumeX",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "video.merge",
+      "label": "Merge",
+      "category": "video",
+      "engine": "ffmpeg",
+      "jobKind": "multi-input",
+      "segmentMode": "none",
+      "progress": "time-based",
+      "icon": "Merge",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "video.burnSubtitle",
+      "label": "Burn Subtitle",
+      "category": "video",
+      "engine": "ffmpeg",
+      "jobKind": "multi-input",
+      "segmentMode": "full",
+      "progress": "time-based",
+      "icon": "Captions",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "video.watermark",
+      "label": "Watermark",
+      "category": "video",
+      "engine": "ffmpeg",
+      "jobKind": "per-file",
+      "segmentMode": "full",
+      "progress": "time-based",
+      "icon": "Stamp",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "video.denoise",
+      "label": "Denoise",
+      "category": "video",
+      "engine": "ffmpeg",
+      "jobKind": "per-file",
+      "segmentMode": "full",
+      "progress": "time-based",
+      "icon": "Sparkles",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "video.split",
+      "label": "Split",
+      "category": "video",
+      "engine": "ffmpeg",
+      "jobKind": "multi-output",
+      "segmentMode": "full",
+      "progress": "time-based",
+      "icon": "Split",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "video.addAudio",
+      "label": "Add Audio",
+      "category": "video",
+      "engine": "ffmpeg",
+      "jobKind": "multi-input",
+      "segmentMode": "full",
+      "progress": "time-based",
+      "icon": "AudioLines",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "video.thumbnail",
+      "label": "Thumbnail",
+      "category": "video",
+      "engine": "ffmpeg",
+      "jobKind": "per-file",
+      "segmentMode": "full",
+      "progress": "time-based",
+      "icon": "Image",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "audio.compress",
+      "label": "Compress",
+      "category": "audio",
+      "engine": "ffmpeg",
+      "jobKind": "per-file",
+      "segmentMode": "full",
+      "progress": "time-based",
+      "icon": "Minimize",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "audio.trim",
+      "label": "Trim",
+      "category": "audio",
+      "engine": "ffmpeg",
+      "jobKind": "per-file",
+      "segmentMode": "full",
+      "progress": "time-based",
+      "icon": "Scissors",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "audio.convert",
+      "label": "Convert",
+      "category": "audio",
+      "engine": "ffmpeg",
+      "jobKind": "per-file",
+      "segmentMode": "segment",
+      "progress": "time-based",
+      "icon": "FileOutput",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "audio.speed",
+      "label": "Speed",
+      "category": "audio",
+      "engine": "ffmpeg",
+      "jobKind": "per-file",
+      "segmentMode": "full",
+      "progress": "time-based",
+      "icon": "Zap",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "audio.volume",
+      "label": "Volume",
+      "category": "audio",
+      "engine": "ffmpeg",
+      "jobKind": "per-file",
+      "segmentMode": "segment",
+      "progress": "time-based",
+      "icon": "Volume2",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "audio.bitrate",
+      "label": "Bitrate",
+      "category": "audio",
+      "engine": "ffmpeg",
+      "jobKind": "per-file",
+      "segmentMode": "segment",
+      "progress": "time-based",
+      "icon": "BarChart3",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "audio.reverse",
+      "label": "Reverse",
+      "category": "audio",
+      "engine": "ffmpeg",
+      "jobKind": "per-file",
+      "segmentMode": "full",
+      "progress": "time-based",
+      "icon": "Undo2",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "audio.merge",
+      "label": "Merge",
+      "category": "audio",
+      "engine": "ffmpeg",
+      "jobKind": "multi-input",
+      "segmentMode": "none",
+      "progress": "time-based",
+      "icon": "Merge",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "audio.split",
+      "label": "Split",
+      "category": "audio",
+      "engine": "ffmpeg",
+      "jobKind": "multi-output",
+      "segmentMode": "full",
+      "progress": "time-based",
+      "icon": "Split",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "audio.fade",
+      "label": "Fade",
+      "category": "audio",
+      "engine": "ffmpeg",
+      "jobKind": "per-file",
+      "segmentMode": "full",
+      "progress": "time-based",
+      "icon": "SlidersHorizontal",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "audio.normalize",
+      "label": "Normalize",
+      "category": "audio",
+      "engine": "ffmpeg",
+      "jobKind": "per-file",
+      "segmentMode": "full",
+      "progress": "time-based",
+      "icon": "Activity",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "audio.pitch",
+      "label": "Pitch",
+      "category": "audio",
+      "engine": "ffmpeg",
+      "jobKind": "per-file",
+      "segmentMode": "full",
+      "progress": "time-based",
+      "icon": "Music",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "audio.denoise",
+      "label": "Denoise",
+      "category": "audio",
+      "engine": "ffmpeg",
+      "jobKind": "per-file",
+      "segmentMode": "full",
+      "progress": "time-based",
+      "icon": "Sparkles",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "image.compress",
+      "label": "Compress",
+      "category": "image",
+      "engine": "sharp",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "Minimize",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "image.convert",
+      "label": "Convert",
+      "category": "image",
+      "engine": "sharp",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "FileOutput",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "image.resize",
+      "label": "Resize",
+      "category": "image",
+      "engine": "sharp",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "Scaling",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "image.crop",
+      "label": "Crop",
+      "category": "image",
+      "engine": "sharp",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "Crop",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "image.rotate",
+      "label": "Rotate",
+      "category": "image",
+      "engine": "sharp",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "RotateCcw",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "image.flip",
+      "label": "Flip",
+      "category": "image",
+      "engine": "sharp",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "FlipHorizontal",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "image.watermark",
+      "label": "Watermark",
+      "category": "image",
+      "engine": "sharp",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "Stamp",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "image.blur",
+      "label": "Blur",
+      "category": "image",
+      "engine": "sharp",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "Eye",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "image.sharpen",
+      "label": "Sharpen",
+      "category": "image",
+      "engine": "sharp",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "Focus",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "image.effects",
+      "label": "Effects",
+      "category": "image",
+      "engine": "sharp",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "SlidersHorizontal",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "image.metadata",
+      "label": "Metadata",
+      "category": "image",
+      "engine": "sharp",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "ShieldOff",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "image.stitch",
+      "label": "Stitch Images",
+      "category": "image",
+      "engine": "sharp",
+      "jobKind": "multi-input",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "LayoutGrid",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "image.toGif",
+      "label": "Images to GIF",
+      "category": "image",
+      "engine": "ffmpeg",
+      "jobKind": "multi-input",
+      "segmentMode": "none",
+      "progress": "time-based",
+      "icon": "Film",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "image.toVideo",
+      "label": "Images to Video",
+      "category": "image",
+      "engine": "ffmpeg",
+      "jobKind": "multi-input",
+      "segmentMode": "none",
+      "progress": "time-based",
+      "icon": "Clapperboard",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "gif.convert",
+      "label": "Convert",
+      "category": "gif",
+      "engine": "ffmpeg",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "time-based",
+      "icon": "FileOutput",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "gif.compress",
+      "label": "Compress",
+      "category": "gif",
+      "engine": "ffmpeg",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "time-based",
+      "icon": "Minimize",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "gif.resize",
+      "label": "Resize",
+      "category": "gif",
+      "engine": "ffmpeg",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "time-based",
+      "icon": "Scaling",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "gif.trim",
+      "label": "Trim",
+      "category": "gif",
+      "engine": "ffmpeg",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "time-based",
+      "icon": "Scissors",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "gif.speed",
+      "label": "Speed",
+      "category": "gif",
+      "engine": "ffmpeg",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "time-based",
+      "icon": "Zap",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "gif.reverse",
+      "label": "Reverse",
+      "category": "gif",
+      "engine": "ffmpeg",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "time-based",
+      "icon": "Undo2",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "gif.extractFrames",
+      "label": "Extract Frames",
+      "category": "gif",
+      "engine": "ffmpeg",
+      "jobKind": "multi-output",
+      "segmentMode": "none",
+      "progress": "percent",
+      "icon": "Images",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "subtitle.convert",
+      "label": "Convert",
+      "category": "subtitle",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "FileOutput",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "subtitle.shiftTiming",
+      "label": "Shift Timing",
+      "category": "subtitle",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "Clock",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "subtitle.syncFps",
+      "label": "Sync FPS",
+      "category": "subtitle",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "RefreshCw",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "subtitle.fixEncoding",
+      "label": "Fix Encoding",
+      "category": "subtitle",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "FileText",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "subtitle.clean",
+      "label": "Clean",
+      "category": "subtitle",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "Eraser",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "pdf.convert",
+      "label": "Convert",
+      "category": "pdf",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "percent",
+      "icon": "FileOutput",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "pdf.merge",
+      "label": "Merge",
+      "category": "pdf",
+      "engine": "js",
+      "jobKind": "multi-input",
+      "segmentMode": "none",
+      "progress": "percent",
+      "icon": "Merge",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "pdf.split",
+      "label": "Split",
+      "category": "pdf",
+      "engine": "js",
+      "jobKind": "multi-output",
+      "segmentMode": "none",
+      "progress": "percent",
+      "icon": "Split",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "pdf.rotate",
+      "label": "Rotate",
+      "category": "pdf",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "RotateCcw",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "pdf.compress",
+      "label": "Compress",
+      "category": "pdf",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "percent",
+      "icon": "Minimize",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "pdf.watermark",
+      "label": "Watermark",
+      "category": "pdf",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "percent",
+      "icon": "Stamp",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "pdf.metadata",
+      "label": "Metadata",
+      "category": "pdf",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "FileText",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "pdf.imagesToPdf",
+      "label": "Images to PDF",
+      "category": "image",
+      "engine": "js",
+      "jobKind": "multi-input",
+      "segmentMode": "none",
+      "progress": "percent",
+      "icon": "FileImage",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "pdf.imagesToDocx",
+      "label": "Images to DOCX",
+      "category": "image",
+      "engine": "js",
+      "jobKind": "multi-input",
+      "segmentMode": "none",
+      "progress": "percent",
+      "icon": "FileText",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "pdf.pdfToImages",
+      "label": "PDF to Images",
+      "category": "pdf",
+      "engine": "js",
+      "jobKind": "multi-output",
+      "segmentMode": "none",
+      "progress": "percent",
+      "icon": "Images",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "pdf.pdfToDocx",
+      "label": "PDF to DOCX",
+      "category": "pdf",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "percent",
+      "icon": "FileText",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "pdf.pdfToHtml",
+      "label": "PDF to HTML",
+      "category": "pdf",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "percent",
+      "icon": "Code",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "pdf.pdfToMd",
+      "label": "PDF to Markdown",
+      "category": "pdf",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "percent",
+      "icon": "FileCode2",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "pdf.pdfToTxt",
+      "label": "PDF to TXT",
+      "category": "pdf",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "percent",
+      "icon": "FileText",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "document.convert",
+      "label": "Convert",
+      "category": "document",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "percent",
+      "icon": "FileOutput",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "document.toPdf",
+      "label": "DOCX to PDF",
+      "category": "document",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "percent",
+      "icon": "FileOutput",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "document.toHtml",
+      "label": "DOCX to HTML",
+      "category": "document",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "percent",
+      "icon": "Code",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "document.toMd",
+      "label": "DOCX to Markdown",
+      "category": "document",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "percent",
+      "icon": "FileCode2",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "document.toTxt",
+      "label": "DOCX to TXT",
+      "category": "document",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "percent",
+      "icon": "FileText",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "document.toImages",
+      "label": "DOCX to Images",
+      "category": "document",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "percent",
+      "icon": "Images",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "txt.convert",
+      "label": "Convert",
+      "category": "txt",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "FileOutput",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "txt.toPdf",
+      "label": "TXT to PDF",
+      "category": "txt",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "FileOutput",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "txt.toHtml",
+      "label": "TXT to HTML",
+      "category": "txt",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "Code",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "txt.toMd",
+      "label": "TXT to Markdown",
+      "category": "txt",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "FileCode2",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "txt.toDocx",
+      "label": "TXT to DOCX",
+      "category": "txt",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "FileText",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "txt.toImages",
+      "label": "TXT to Images",
+      "category": "txt",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "Image",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "txt.encoding",
+      "label": "Fix Encoding",
+      "category": "txt",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "FileType",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "md.convert",
+      "label": "Convert",
+      "category": "md",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "FileOutput",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "md.toPdf",
+      "label": "MD to PDF",
+      "category": "md",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "FileOutput",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "md.toHtml",
+      "label": "MD to HTML",
+      "category": "md",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "Code",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "md.toTxt",
+      "label": "MD to TXT",
+      "category": "md",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "FileText",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "md.toDocx",
+      "label": "MD to DOCX",
+      "category": "md",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "FileText",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "md.toImages",
+      "label": "MD to Images",
+      "category": "md",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "Image",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "md.toc",
+      "label": "Table of Contents",
+      "category": "md",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "List",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "html.convert",
+      "label": "Convert",
+      "category": "html",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "FileOutput",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "html.toPdf",
+      "label": "HTML to PDF",
+      "category": "html",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "FileOutput",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "html.toMd",
+      "label": "HTML to Markdown",
+      "category": "html",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "FileCode2",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "html.toTxt",
+      "label": "HTML to TXT",
+      "category": "html",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "FileText",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "html.toDocx",
+      "label": "HTML to DOCX",
+      "category": "html",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "FileText",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "html.toImages",
+      "label": "HTML to Images",
+      "category": "html",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "Image",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "epub.convert",
+      "label": "Convert",
+      "category": "epub",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "FileOutput",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "epub.toPdf",
+      "label": "EPUB to PDF",
+      "category": "epub",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "FileOutput",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "epub.toHtml",
+      "label": "EPUB to HTML",
+      "category": "epub",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "FileCode2",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "epub.toMd",
+      "label": "EPUB to Markdown",
+      "category": "epub",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "FileCode2",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "epub.toTxt",
+      "label": "EPUB to TXT",
+      "category": "epub",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "FileText",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "epub.toDocx",
+      "label": "EPUB to DOCX",
+      "category": "epub",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "FileText",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "epub.toImages",
+      "label": "EPUB to Images",
+      "category": "epub",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "FileImage",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "pdf.toEpub",
+      "label": "PDF to EPUB",
+      "category": "pdf",
+      "engine": "js",
+      "jobKind": "per-file",
+      "segmentMode": "none",
+      "progress": "indeterminate",
+      "icon": "BookOpen",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    }
+  ],
+  "generated_tools": [
+    {
+      "id": "json.convert",
+      "category": "json",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "json.toYaml",
+      "category": "json",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "json.toXml",
+      "category": "json",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "json.toCsv",
+      "category": "json",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "json.toTxt",
+      "category": "json",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "json.toMd",
+      "category": "json",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "json.toHtml",
+      "category": "json",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "json.toPdf",
+      "category": "json",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "json.toDocx",
+      "category": "json",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "json.toEpub",
+      "category": "json",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "yaml.convert",
+      "category": "yaml",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "yaml.toJson",
+      "category": "yaml",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "yaml.toXml",
+      "category": "yaml",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "yaml.toCsv",
+      "category": "yaml",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "yaml.toTxt",
+      "category": "yaml",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "yaml.toMd",
+      "category": "yaml",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "yaml.toHtml",
+      "category": "yaml",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "yaml.toPdf",
+      "category": "yaml",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "yaml.toDocx",
+      "category": "yaml",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "yaml.toEpub",
+      "category": "yaml",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "xml.convert",
+      "category": "xml",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "xml.toJson",
+      "category": "xml",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "xml.toYaml",
+      "category": "xml",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "xml.toCsv",
+      "category": "xml",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "xml.toTxt",
+      "category": "xml",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "xml.toMd",
+      "category": "xml",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "xml.toHtml",
+      "category": "xml",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "xml.toPdf",
+      "category": "xml",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "xml.toDocx",
+      "category": "xml",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "xml.toEpub",
+      "category": "xml",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "csv.convert",
+      "category": "csv",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "csv.toJson",
+      "category": "csv",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "csv.toYaml",
+      "category": "csv",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "csv.toXml",
+      "category": "csv",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "csv.toTxt",
+      "category": "csv",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "csv.toMd",
+      "category": "csv",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "csv.toHtml",
+      "category": "csv",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "csv.toPdf",
+      "category": "csv",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "csv.toDocx",
+      "category": "csv",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "csv.toEpub",
+      "category": "csv",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "log.convert",
+      "category": "log",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "log.toTxt",
+      "category": "log",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "log.toJson",
+      "category": "log",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "log.toYaml",
+      "category": "log",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "log.toXml",
+      "category": "log",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "log.toCsv",
+      "category": "log",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "log.toMd",
+      "category": "log",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "log.toHtml",
+      "category": "log",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "log.toPdf",
+      "category": "log",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "log.toDocx",
+      "category": "log",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "log.toEpub",
+      "category": "log",
+      "engine": "js",
+      "origin": "HQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "document.toCsv",
+      "category": "document",
+      "engine": "js",
+      "origin": "UQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "document.toJson",
+      "category": "document",
+      "engine": "js",
+      "origin": "UQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "document.toYaml",
+      "category": "document",
+      "engine": "js",
+      "origin": "UQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "document.toXml",
+      "category": "document",
+      "engine": "js",
+      "origin": "UQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "document.toEpub",
+      "category": "document",
+      "engine": "js",
+      "origin": "UQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "md.toCsv",
+      "category": "md",
+      "engine": "js",
+      "origin": "UQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "md.toJson",
+      "category": "md",
+      "engine": "js",
+      "origin": "UQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "md.toYaml",
+      "category": "md",
+      "engine": "js",
+      "origin": "UQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "md.toXml",
+      "category": "md",
+      "engine": "js",
+      "origin": "UQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "md.toEpub",
+      "category": "md",
+      "engine": "js",
+      "origin": "UQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "html.toCsv",
+      "category": "html",
+      "engine": "js",
+      "origin": "UQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "html.toJson",
+      "category": "html",
+      "engine": "js",
+      "origin": "UQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "html.toYaml",
+      "category": "html",
+      "engine": "js",
+      "origin": "UQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "html.toXml",
+      "category": "html",
+      "engine": "js",
+      "origin": "UQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "html.toEpub",
+      "category": "html",
+      "engine": "js",
+      "origin": "UQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "txt.toLog",
+      "category": "txt",
+      "engine": "js",
+      "origin": "UQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "txt.toJson",
+      "category": "txt",
+      "engine": "js",
+      "origin": "UQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "txt.toYaml",
+      "category": "txt",
+      "engine": "js",
+      "origin": "UQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "txt.toXml",
+      "category": "txt",
+      "engine": "js",
+      "origin": "UQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "txt.toCsv",
+      "category": "txt",
+      "engine": "js",
+      "origin": "UQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "txt.toEpub",
+      "category": "txt",
+      "engine": "js",
+      "origin": "UQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "subtitle.toTxt",
+      "category": "subtitle",
+      "engine": "js",
+      "origin": "UQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "subtitle.toCsv",
+      "category": "subtitle",
+      "engine": "js",
+      "origin": "UQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    },
+    {
+      "id": "subtitle.toJson",
+      "category": "subtitle",
+      "engine": "js",
+      "origin": "UQ static generator interpreted from shipped syntax",
+      "evidence_type": "observed-static-declaration",
+      "runtime_verified": false
+    }
+  ],
+  "public_preload_conversion_related_channels": [
+    "cancel-all-convert-queue",
+    "cancel-convert",
+    "clear-convert",
+    "conversions:add",
+    "conversions:admit",
+    "conversions:clear-failed",
+    "conversions:get-active",
+    "conversions:get-active-count",
+    "conversions:get-active-paginated",
+    "conversions:get-by-status",
+    "conversions:get-by-uid",
+    "conversions:get-completed",
+    "conversions:get-completed-count",
+    "conversions:get-completed-paginated",
+    "conversions:get-count-last-24-hours",
+    "conversions:get-home-stats",
+    "conversions:get-last-24-hours",
+    "conversions:get-storage-stats",
+    "conversions:mark-active-as-failed",
+    "conversions:quota",
+    "conversions:search-completed",
+    "conversions:undo-recent",
+    "convert-queue-hold",
+    "detect-scenes",
+    "detect-silence",
+    "drafts:clear",
+    "drafts:delete",
+    "drafts:info",
+    "drafts:list",
+    "drafts:prune",
+    "drafts:relink",
+    "drafts:save",
+    "drafts:show-folder",
+    "get-duration",
+    "get-location-dialog",
+    "get-translation-file",
+    "gif-to-preview-mp4",
+    "image-to-preview",
+    "media-to-preview",
+    "pause-convert",
+    "pick-file-dialog",
+    "presets:delete",
+    "presets:export",
+    "presets:folder",
+    "presets:list",
+    "presets:pick-file",
+    "presets:save",
+    "presets:show-folder",
+    "queue-convert-tick",
+    "read-file-bytes",
+    "read-image-metadata",
+    "read-pdf-metadata",
+    "resume-convert",
+    "retry-convert",
+    "stat-paths"
+  ],
+  "observed_defaults": {
+    "output_formats": {
+      "video": "mp4",
+      "audio": "mp3",
+      "image": "source",
+      "document": "pdf"
+    },
+    "parallel_convert_setting": 3,
+    "draft_mode": "auto",
+    "draft_retention_days": 30,
+    "restore_file_list": true,
+    "interface_scale": 1,
+    "notifications_completed_and_failed": true,
+    "preview_video_only": {
+      "video_codec": "libx264",
+      "preset": "veryfast",
+      "crf": 28,
+      "audio_codec": "aac",
+      "audio_bitrate_kbps": 128
+    },
+    "preview_audio_only": {
+      "codec": "libmp3lame",
+      "bitrate_kbps": 128
+    },
+    "social_preset_example": {
+      "resolution": [
+        1080,
+        1920
+      ],
+      "fps": 30,
+      "crf": 20
+    },
+    "note": "These contexts are distinct. Preview and preset values are not universal final conversion defaults."
+  },
+  "implementation_observations": {
+    "media": "FFmpeg command builder with container-specific video/audio codecs, segmented and multi-input/output job kinds; preview transcodes separately cached; queue and database IPC surfaces present.",
+    "image": "Sharp pipeline; HEIC decode through heic-convert; raster transforms, compression, effects, metadata, compositing; HEIF encoding branch may use FFmpeg/libx265 and fallback AV1 HEIF.",
+    "pdf": "pdf-lib structural edits; pdfjs text/render extraction; document conversion uses print/render paths, page selection, ZIP multi-output.",
+    "documents": "Markdown-it/Turndown/Mammoth/docx render/export; JSON/YAML/XML/CSV/LOG parsing/rendering; off-main utility worker operations.",
+    "persistence": "SQLite dependency and conversions/history/drafts/presets APIs observed. No claim of crash-safe behavior or schema completeness."
+  },
+  "historical_gap_baseline": {
+    "recorded_date": "2026-10-18",
+    "status": "historical_conversion_only_comparison_not_current_repository_coverage",
+    "source_commit": null,
+    "note": "The gaps array below is retained verbatim from the earlier conversion-only comparison; its exact Git baseline was not recorded. Reference-side static observations are unchanged. Use current_repository_reconciliation for later source additions, not this historical array as a current missing-feature list."
+  },
+  "gaps": [
+    {
+      "area": "video targets",
+      "reference_static": [
+        "mp4",
+        "mkv",
+        "mov",
+        "m4v",
+        "avi",
+        "webm",
+        "flv",
+        "wmv",
+        "mpg"
+      ],
+      "shared_core_actual": [
+        "mp4",
+        "mkv",
+        "mov",
+        "webm"
+      ],
+      "gap": [
+        "m4v",
+        "avi",
+        "flv",
+        "wmv",
+        "mpg"
+      ],
+      "note": "Existing common::VideoFormat has more mappings; this describes the shared conversion entry point."
+    },
+    {
+      "area": "audio targets",
+      "reference_static": [
+        "mp3",
+        "wav",
+        "flac",
+        "m4a",
+        "aac",
+        "ogg",
+        "wma",
+        "opus"
+      ],
+      "shared_core_actual": [
+        "mp3",
+        "m4a",
+        "wav",
+        "flac",
+        "ogg"
+      ],
+      "gap": [
+        "aac",
+        "wma",
+        "opus"
+      ],
+      "note": "AAC in M4A is not a raw AAC output target."
+    },
+    {
+      "area": "image input",
+      "reference_static": [
+        "jpg",
+        "jpeg",
+        "png",
+        "bmp",
+        "tiff",
+        "webp",
+        "tga",
+        "avif",
+        "svg",
+        "heif",
+        "heic",
+        "ico"
+      ],
+      "shared_core_actual": [
+        "png",
+        "jpg",
+        "jpeg",
+        "webp",
+        "tiff",
+        "tif",
+        "gif",
+        "bmp",
+        "heic",
+        "heif"
+      ],
+      "gap": [
+        "tga",
+        "avif",
+        "svg",
+        "ico"
+      ],
+      "note": "HEIC/HEIF implementation uses ImageMagick/libheif; core agent reported 4 real HEIC/HEIF conversions passed."
+    },
+    {
+      "area": "image targets",
+      "reference_static": [
+        "jpg",
+        "png",
+        "webp",
+        "tiff",
+        "avif",
+        "heif",
+        "ico"
+      ],
+      "shared_core_actual": [
+        "png",
+        "jpg",
+        "webp",
+        "tiff"
+      ],
+      "gap": [
+        "avif",
+        "heif",
+        "ico"
+      ]
+    },
+    {
+      "area": "image tools",
+      "shared_core_actual": [
+        "auto-orient",
+        "strip metadata",
+        "flatten JPEG onto white",
+        "first frame/page"
+      ],
+      "gap": [
+        "compress controls",
+        "resize",
+        "crop",
+        "rotate",
+        "flip",
+        "watermark",
+        "blur",
+        "sharpen",
+        "effects",
+        "metadata editing",
+        "stitch",
+        "images to GIF/video/PDF/DOCX"
+      ]
+    },
+    {
+      "area": "other families",
+      "shared_core_actual": [],
+      "gap": [
+        "PDF",
+        "subtitle",
+        "DOCX/TXT/Markdown/HTML/data",
+        "EPUB"
+      ],
+      "note": "Reference contains static declarations and implementation chunks; none were runtime verified in this study."
+    },
+    {
+      "area": "workflow",
+      "shared_core_actual": [
+        "in-memory sequential batch queue",
+        "progress",
+        "cancel",
+        "output validation",
+        "CLI",
+        "MCP"
+      ],
+      "gap": [
+        "persistent history",
+        "drafts/autosave/relink",
+        "resume/retry",
+        "parallel resource budgets",
+        "saved multi-step flows",
+        "content preview",
+        "format defaults/preferences",
+        "OS quick actions"
+      ]
+    },
+    {
+      "area": "existing repository overlap",
+      "existing_capabilities": [
+        "video clipper",
+        "splitter",
+        "merger",
+        "GIF converter/transparency",
+        "profile batches",
+        "human-reviewed Video Agent"
+      ],
+      "note": "Do not describe these as missing from the repository. They have not all been folded into the new shared conversion API."
+    }
+  ],
+  "current_repository_reconciliation": {
+    "recorded_date": "2026-10-22",
+    "basis": "local_uncommitted_working_tree_source_inspection",
+    "source_commit": null,
+    "new_runtime_validation_performed": false,
+    "public_release_acceptance": false,
+    "note": "This reconciles current typed registries and adapters with the historical gaps. It does not replace the reference study, certify every arbitrary input, or extend the older Agent source-preview runtime acceptance to these new file workflows.",
+    "shared_adapters": ["desktop", "cli", "mcp"],
+    "file_conversion_targets": ["mp4", "mkv", "mov", "webm", "mp3", "m4a", "wav", "flac", "ogg", "png", "jpg", "webp", "tiff"],
+    "file_workflow_operations": ["pdf_merge", "pdf_split", "pdf_rotate", "pdf_compress", "pdf_watermark", "pdf_metadata", "pdf_to_images", "pdf_to_text", "images_to_pdf", "subtitle_convert", "subtitle_shift", "subtitle_fps", "subtitle_clean", "document_convert", "download"],
+    "implemented_additions_after_historical_gaps": {
+      "pdf_operations": 9,
+      "images_to_pdf": true,
+      "subtitle_operations": 4,
+      "timed_subtitle_formats": ["srt", "vtt", "ass", "ssa", "sbv", "sub", "smi", "lrc"],
+      "document_input_families": ["txt", "markdown", "html", "docx", "rtf", "odt", "epub", "searchable_pdf"],
+      "document_output_targets": ["txt", "md", "html", "docx", "pdf", "epub"],
+      "download_modes": ["direct_http_file", "media_link"]
+    },
+    "remaining_scope_gaps": ["general JSON/YAML/XML/CSV/LOG data-file conversion", "OCR for scanned PDFs", "persistent general conversion queue/history/resume/retry", "bounded general conversion concurrency", "additional image targets and interactive image edits", "unified images to GIF/video/DOCX", "general natural-language file planner", "complete desktop interaction acceptance"],
+    "source_paths": ["crates/file_conversion/src/lib.rs", "crates/file_workflows/src/lib.rs", "crates/ui/src/tabs/convert_tab.rs", "crates/ui/src/tabs/workflow_tab.rs", "src/conversion_cli.rs", "src/workflow_cli.rs", "src/file_mcp.rs"]
+  }
+}

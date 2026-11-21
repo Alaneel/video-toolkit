@@ -13,10 +13,8 @@ use video_agent::{
     VisionProvider, Workspace,
 };
 
-const ACCENT: Color32 = Color32::from_rgb(100, 208, 184);
-const MUTED: Color32 = Color32::from_rgb(156, 166, 181);
-const WARNING: Color32 = Color32::from_rgb(244, 193, 111);
-const ERROR: Color32 = Color32::from_rgb(255, 143, 143);
+use crate::theme::{self, Icon, Tone, ACCENT, MUTED, TEXT, TEXT_2, WARNING};
+const ERROR: Color32 = theme::DANGER;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 enum Page {
@@ -85,6 +83,7 @@ pub struct VideoAgentApp {
     provider_error: Option<String>,
     smart_upload_consent: bool,
     smart_report: Option<video_agent::smart_feedback::SmartReport>,
+    capture: Option<crate::capture::Capture>,
 }
 
 impl VideoAgentApp {
@@ -119,6 +118,7 @@ impl VideoAgentApp {
             provider_error: None,
             smart_upload_consent: false,
             smart_report: None,
+            capture: crate::capture::Capture::from_env(),
         };
         app.refresh_provider();
         if let Some(path) = workspace {
@@ -518,144 +518,236 @@ impl VideoAgentApp {
             return;
         }
         self.fonts_installed = true;
-        let candidates = [
-            "/System/Library/Fonts/PingFang.ttc",
-            "/System/Library/Fonts/STHeiti Light.ttc",
-            "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
-        ];
-        for path in candidates {
-            if let Ok(bytes) = std::fs::read(path) {
-                let mut fonts = egui::FontDefinitions::default();
-                fonts
-                    .font_data
-                    .insert("local-cjk".into(), egui::FontData::from_owned(bytes));
-                fonts
-                    .families
-                    .entry(egui::FontFamily::Proportional)
-                    .or_default()
-                    .push("local-cjk".into());
-                ctx.set_fonts(fonts);
-                break;
-            }
-        }
-        let mut style = (*ctx.style()).clone();
-        style.spacing.item_spacing = egui::vec2(10.0, 8.0);
-        style.visuals = egui::Visuals::dark();
-        style.visuals.panel_fill = Color32::from_rgb(19, 24, 33);
-        style.visuals.window_fill = Color32::from_rgb(25, 31, 42);
-        style.visuals.selection.bg_fill = Color32::from_rgb(35, 91, 83);
-        style.visuals.hyperlink_color = ACCENT;
-        ctx.set_style(style);
+        // Same design system as the Toolkit window (fonts include a CJK fallback).
+        theme::configure(ctx);
     }
 
     fn header(&mut self, ctx: &egui::Context) {
-        egui::TopBottomPanel::top("video_agent_header").show(ctx, |ui| {
-            ui.add_space(10.0);
-            ui.horizontal(|ui| {
-                ui.label(
-                    RichText::new("VIDEO AGENT")
-                        .size(23.0)
-                        .strong()
-                        .color(ACCENT),
-                );
-                ui.label(RichText::new("Observe → choose → review → deliver").color(MUTED));
-                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    let configured = self.provider_ready;
-                    ui.label(
-                        RichText::new(if configured {
-                            "OpenAI · configured"
-                        } else {
-                            "OpenAI · key not configured"
-                        })
-                        .small()
-                        .color(if configured { ACCENT } else { WARNING }),
-                    );
-                });
-            });
-            ui.label(
-                RichText::new(format!(
-                    "Requested model: {} · OpenAI Responses · sparse source/preview JPEGs, not video/audio",
-                    self.provider_model
-                ))
-                .small()
-                .color(MUTED),
-            );
-            if matches!(self.provider_model.as_str(), video_agent::vision::LEGACY_MODEL | "gpt-4.1-mini") {
-                ui.label(RichText::new("Legacy snapshot is deprecated; scheduled shutdown 2027-01-14. Configure and validate a replacement before then.").small().color(WARNING));
-            }
-            ui.add_space(6.0);
-            ui.horizontal(|ui| {
-                for (page, label) in [
-                    (Page::Sources, "1  Sources & intent"),
-                    (Page::Observe, "2  Observed frames"),
-                    (Page::Edit, "3  Human review"),
-                    (Page::Result, "4  Verified output"),
-                ] {
-                    let available = page == Page::Sources || self.task.is_some();
-                    if ui
-                        .add_enabled(
-                            available,
-                            egui::SelectableLabel::new(self.page == page, label),
+        egui::TopBottomPanel::top("video_agent_header")
+            .show_separator_line(false)
+            .frame(
+                egui::Frame::none()
+                    .fill(theme::SURFACE)
+                    .stroke(egui::Stroke::new(1.0_f32, theme::LINE))
+                    .inner_margin(egui::Margin {
+                        left: 20.0,
+                        right: 20.0,
+                        top: 14.0,
+                        bottom: 12.0,
+                    }),
+            )
+            .show(ctx, |ui| {
+                ui.horizontal(|ui| {
+                    ui.spacing_mut().item_spacing.x = 10.0;
+                    theme::icon_tile(ui, Icon::Sparkle, ACCENT, 32.0);
+                    ui.vertical(|ui| {
+                        ui.spacing_mut().item_spacing.y = 0.0;
+                        ui.label(RichText::new("Video Agent").font(theme::semibold(15.0)).color(TEXT));
+                        ui.label(
+                            RichText::new("Observe → choose → review → deliver")
+                                .size(11.5)
+                                .color(MUTED),
+                        );
+                    });
+                    ui.add_space(24.0);
+                    self.stepper(ui);
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        let configured = self.provider_ready;
+                        theme::badge(
+                            ui,
+                            if configured {
+                                "OpenAI · configured"
+                            } else {
+                                "OpenAI · key not configured"
+                            },
+                            if configured { Tone::Success } else { Tone::Warning },
                         )
-                        .clicked()
-                    {
-                        self.page = page;
-                    }
+                        .on_hover_text(format!(
+                            "Requested model: {} · OpenAI Responses · sparse source/preview JPEGs, not video/audio",
+                            self.provider_model
+                        ));
+                        ui.label(
+                            RichText::new(&self.provider_model)
+                                .monospace()
+                                .size(11.5)
+                                .color(MUTED),
+                        );
+                    });
+                });
+                if matches!(self.provider_model.as_str(), video_agent::vision::LEGACY_MODEL | "gpt-4.1-mini") {
+                    ui.label(RichText::new("Legacy snapshot is deprecated; scheduled shutdown 2027-01-14. Configure and validate a replacement before then.").small().color(WARNING));
                 }
             });
-            ui.add_space(7.0);
-        });
+    }
+
+    /// Numbered workflow steps; later steps unlock once a task exists.
+    fn stepper(&mut self, ui: &mut egui::Ui) {
+        let steps = [
+            (Page::Sources, "Sources & intent"),
+            (Page::Observe, "Observed frames"),
+            (Page::Edit, "Human review"),
+            (Page::Result, "Verified output"),
+        ];
+        let current = steps
+            .iter()
+            .position(|(page, _)| *page == self.page)
+            .unwrap_or(0);
+        ui.spacing_mut().item_spacing.x = 0.0;
+        for (index, (page, label)) in steps.iter().enumerate() {
+            if index > 0 {
+                let (rect, _) =
+                    ui.allocate_exact_size(egui::vec2(28.0, 28.0), egui::Sense::hover());
+                ui.painter().line_segment(
+                    [
+                        egui::pos2(rect.left() + 4.0, rect.center().y),
+                        egui::pos2(rect.right() - 4.0, rect.center().y),
+                    ],
+                    egui::Stroke::new(
+                        1.0_f32,
+                        if index <= current {
+                            theme::ACCENT_LINE
+                        } else {
+                            theme::LINE
+                        },
+                    ),
+                );
+            }
+            let available = *page == Page::Sources || self.task.is_some();
+            let selected = index == current;
+            let font = theme::semibold(13.0);
+            let width = ui.fonts(|f| {
+                f.layout_no_wrap((*label).into(), font.clone(), TEXT)
+                    .size()
+                    .x
+            }) + 40.0;
+            let sense = if available {
+                egui::Sense::click()
+            } else {
+                egui::Sense::hover()
+            };
+            let (rect, response) = ui.allocate_exact_size(egui::vec2(width, 32.0), sense);
+            let painter = ui.painter();
+            if selected {
+                painter.rect_filled(rect, 16.0, theme::ACCENT_SOFT);
+            } else if response.hovered() && available {
+                painter.rect_filled(rect, 16.0, theme::HOVER);
+            }
+            let center = egui::pos2(rect.left() + 16.0, rect.center().y);
+            let (fill, stroke, number) = if selected {
+                (ACCENT, ACCENT, egui::Color32::WHITE)
+            } else if index < current {
+                (theme::ACCENT_SOFT, theme::ACCENT_LINE, ACCENT)
+            } else if available {
+                (theme::SURFACE, theme::LINE_STRONG, TEXT_2)
+            } else {
+                (theme::SURFACE, theme::LINE, theme::FAINT)
+            };
+            painter.circle(center, 10.0, fill, egui::Stroke::new(1.0_f32, stroke));
+            painter.text(
+                center,
+                egui::Align2::CENTER_CENTER,
+                (index + 1).to_string(),
+                theme::semibold(11.0),
+                number,
+            );
+            painter.text(
+                egui::pos2(rect.left() + 32.0, rect.center().y),
+                egui::Align2::LEFT_CENTER,
+                *label,
+                font,
+                if selected {
+                    ACCENT
+                } else if available {
+                    TEXT_2
+                } else {
+                    theme::FAINT
+                },
+            );
+            let response = if available {
+                response.on_hover_cursor(egui::CursorIcon::PointingHand)
+            } else {
+                response.on_hover_text("Create a task first")
+            };
+            if response.clicked() && available {
+                self.page = *page;
+            }
+        }
     }
 
     fn sidebar(&mut self, ctx: &egui::Context) {
-        egui::SidePanel::left("video_agent_context").resizable(false).default_width(245.0).show(ctx, |ui| {
+        egui::SidePanel::left("video_agent_context")
+            .resizable(false)
+            .exact_width(272.0)
+            .show_separator_line(false)
+            .frame(
+                egui::Frame::none()
+                    .fill(theme::BG)
+                    .stroke(egui::Stroke::new(1.0_f32, theme::LINE))
+                    .inner_margin(egui::Margin::symmetric(16.0, 0.0)),
+            )
+            .show(ctx, |ui| {
             egui::ScrollArea::vertical().show(ui, |ui| {
-                ui.add_space(12.0);
-                ui.label(RichText::new("LOCAL WORKSPACE").small().strong().color(MUTED));
+                ui.spacing_mut().item_spacing.y = 6.0;
+                ui.add_space(18.0);
+                theme::overline(ui, "Task");
                 if let Some(task) = self.task.as_ref() {
-                    ui.label(RichText::new(task_status_label(task)).strong().color(if task.status == TaskStatus::Stale || !has_execution_budget(&task.usage, &task.limits) { ERROR } else { ACCENT }));
-                    ui.label(RichText::new(&task.intent).size(15.0));
-                    ui.label(format!("Target: {:.1}s · {} source(s)", task.target_duration_ms as f64 / 1000.0, task.assets.len()));
-                    ui.add_space(10.0);
-                    ui.label(RichText::new("BUDGET ACCOUNTING / LIMIT").small().strong().color(MUTED));
-                    ui.label(format!("Frame credits {} / {}", task.usage.frames_created, task.limits.max_frames))
+                    let blocked = task.status == TaskStatus::Stale || !has_execution_budget(&task.usage, &task.limits);
+                    theme::badge(ui, task_status_label(task), if blocked { Tone::Danger } else { Tone::Accent });
+                    ui.label(RichText::new(&task.intent).font(theme::semibold(14.0)).color(TEXT));
+                    ui.label(RichText::new(format!("Target {:.1}s · {} source(s)", task.target_duration_ms as f64 / 1000.0, task.assets.len())).size(12.5).color(MUTED));
+                    ui.add_space(12.0);
+                    theme::overline(ui, "Budget · used / limit");
+                    meter(ui, "Frame credits", task.usage.frames_created as f64, task.limits.max_frames as f64, format!("{} / {}", task.usage.frames_created, task.limits.max_frames))
                         .on_hover_text("Includes observation records and charged human-only preview attempts. Cancelled previews can remain charged; this is not the number of JPEGs sent to a model.");
-                    ui.label(format!("Model attempts  {} / {}", task.usage.model_calls, task.limits.max_model_calls));
-                    ui.label(format!("Tokens       {} / {}", task.usage.input_tokens + task.usage.output_tokens, task.limits.max_total_tokens));
-                    ui.label(format!("Accounted    {:.1}s / {}s", task.usage.elapsed_ms as f64 / 1000.0, task.limits.max_execution_secs));
-                    ui.label(RichText::new(execution_usage_summary(&task.usage)).small().color(MUTED));
-                    ui.label(RichText::new(frame_worker_usage_summary(&task.usage, task.limits.max_concurrency)).small().color(MUTED));
-                    ui.label(format!("Est. cost    ${:.4} / ${:.2}", task.usage.estimated_cost_usd, task.limits.max_estimated_cost_usd));
-                    ui.label(RichText::new("Attempts include locally stopped requests. Tokens/cost retain unknown reservations after interruption; not-sent records refund them. Accounted tokens are not necessarily provider-reported usage.").small().color(MUTED));
-                    let reported_input: u64 = task.model_calls.iter().filter(|call| call.provider_response_id.is_some()).map(|call| call.input_tokens).sum();
-                    let reported_output: u64 = task.model_calls.iter().filter(|call| call.provider_response_id.is_some()).map(|call| call.output_tokens).sum();
-                    ui.label(format!("Provider-reported: {reported_input} input / {reported_output} output tokens"));
-                    ui.label(RichText::new("Cost uses configured price estimates, not an invoice or hard billing cap. Set provider account spend limits too.").small().color(MUTED));
+                    meter(ui, "Model attempts", task.usage.model_calls as f64, task.limits.max_model_calls as f64, format!("{} / {}", task.usage.model_calls, task.limits.max_model_calls));
+                    let tokens = task.usage.input_tokens + task.usage.output_tokens;
+                    meter(ui, "Tokens", tokens as f64, task.limits.max_total_tokens as f64, format!("{} / {}", tokens, task.limits.max_total_tokens));
+                    meter(ui, "Time accounted", task.usage.elapsed_ms as f64 / 1000.0, task.limits.max_execution_secs as f64, format!("{:.1}s / {}s", task.usage.elapsed_ms as f64 / 1000.0, task.limits.max_execution_secs));
+                    meter(ui, "Est. cost", task.usage.estimated_cost_usd, task.limits.max_estimated_cost_usd, format!("${:.4} / ${:.2}", task.usage.estimated_cost_usd, task.limits.max_estimated_cost_usd));
+                    egui::CollapsingHeader::new(RichText::new("How usage is counted").size(12.5).color(TEXT_2))
+                        .id_source("agent_usage_details")
+                        .show(ui, |ui| {
+                        ui.label(RichText::new(execution_usage_summary(&task.usage)).small().color(MUTED));
+                        ui.label(RichText::new(frame_worker_usage_summary(&task.usage, task.limits.max_concurrency)).small().color(MUTED));
+                        ui.label(RichText::new("Attempts include locally stopped requests. Tokens/cost retain unknown reservations after interruption; not-sent records refund them. Accounted tokens are not necessarily provider-reported usage.").small().color(MUTED));
+                        let reported_input: u64 = task.model_calls.iter().filter(|call| call.provider_response_id.is_some()).map(|call| call.input_tokens).sum();
+                        let reported_output: u64 = task.model_calls.iter().filter(|call| call.provider_response_id.is_some()).map(|call| call.output_tokens).sum();
+                        ui.label(format!("Provider-reported: {reported_input} input / {reported_output} output tokens"));
+                        ui.label(RichText::new("Cost uses configured price estimates, not an invoice or hard billing cap. Set provider account spend limits too.").small().color(MUTED));
+                        });
                     ui.add_space(10.0);
+                    theme::overline(ui, "Sources");
                     for asset in &task.assets {
-                        ui.separator();
-                        ui.label(RichText::new(file_name(&asset.path)).strong());
-                        ui.label(format!("{} · {}×{}", timecode(asset.duration_ms), asset.width, asset.height));
-                        ui.label(if asset.has_audio { "Source audio present" } else { "Source has no audio" });
-                        ui.label(RichText::new(format!("SHA-256 {}…", asset.sha256.chars().take(12).collect::<String>())).small().color(MUTED));
+                        theme::card().inner_margin(12.0).rounding(theme::RADIUS + 2.0).show(ui, |ui| {
+                            ui.set_width(ui.available_width());
+                            ui.spacing_mut().item_spacing.y = 2.0;
+                            ui.horizontal(|ui| {
+                                theme::icon_tile(ui, Icon::Video, theme::HUE_VIDEO, 26.0);
+                                ui.add(egui::Label::new(RichText::new(file_name(&asset.path)).font(theme::semibold(13.0)).color(TEXT)).truncate(true));
+                            });
+                            ui.label(RichText::new(format!("{} · {}×{} · {}", timecode(asset.duration_ms), asset.width, asset.height, if asset.has_audio { "audio" } else { "no audio" })).size(12.0).color(TEXT_2));
+                            ui.label(RichText::new(format!("SHA-256 {}…", asset.sha256.chars().take(12).collect::<String>())).monospace().size(11.0).color(MUTED));
+                        });
                     }
                 } else {
-                    ui.label("No task opened");
-                    ui.label(RichText::new("Source videos stay read-only. Task data and finished media are saved separately.").color(MUTED));
+                    theme::card().inner_margin(14.0).show(ui, |ui| {
+                        ui.set_width(ui.available_width());
+                        ui.label(RichText::new("No task opened").font(theme::semibold(13.5)).color(TEXT));
+                        ui.label(RichText::new("Source videos stay read-only. Task data and finished media are saved separately.").size(12.5).color(MUTED));
+                    });
                 }
-                ui.add_space(18.0);
-                ui.separator();
-                ui.label(RichText::new("RECOVERY").small().strong().color(MUTED));
-                ui.label("Open an existing task folder:");
-                ui.add(egui::TextEdit::singleline(&mut self.resume_path).hint_text("/path/to/task-folder").desired_width(f32::INFINITY));
+                ui.add_space(14.0);
+                theme::overline(ui, "Recovery");
+                ui.label(RichText::new("Open an existing task folder").size(12.5).color(TEXT_2));
+                theme::wide_input(ui, &mut self.resume_path, "/path/to/task-folder");
                 ui.add_enabled_ui(self.job.is_none(), |ui| {
                     ui.horizontal(|ui| {
-                        if ui.button("Browse…").clicked() {
+                        if ui.add(theme::secondary_button("Browse…")).clicked() {
                             if let Some(path) = rfd::FileDialog::new().set_title("Choose saved Video Agent task").pick_folder() {
                                 self.resume_path = path.display().to_string();
                             }
                         }
-                        if ui.add_enabled(!self.resume_path.trim().is_empty(), egui::Button::new("Open task")).clicked() {
+                        if ui.add_enabled(!self.resume_path.trim().is_empty(), theme::primary_button("Open task")).clicked() {
                             if self.dirty {
                                 self.error = Some("Save or discard your unsaved plan edits before opening another task.".into());
                             } else {
@@ -663,7 +755,7 @@ impl VideoAgentApp {
                             }
                         }
                     });
-                    if self.task_dir.is_some() && ui.button("Reload saved state").clicked() {
+                    if self.task_dir.is_some() && ui.add(theme::ghost_button("Reload saved state")).clicked() {
                         if self.dirty {
                             self.error = Some("Save or discard unsaved plan edits first.".into());
                         } else if let Some(path) = self.task_dir.clone() {
@@ -674,7 +766,7 @@ impl VideoAgentApp {
                 ui.add_space(8.0);
                 ui.label(RichText::new("Resume reuses completed sampling and export shards, not an arbitrary encoder position.").small().color(MUTED));
                 ui.add_space(14.0);
-                ui.label(RichText::new("PLATFORM").small().strong().color(MUTED));
+                theme::overline(ui, "Platform");
                 ui.label(RichText::new("macOS Apple Silicon is the first validation target. ffmpeg, ffprobe and ffplay must be available in PATH.").small().color(MUTED));
             });
         });
@@ -687,89 +779,121 @@ impl VideoAgentApp {
             "A bounded visual selection workflow with a real edit plan and a real media export.",
         );
         if self.task.is_some() {
-            ui.label(RichText::new("This task's inputs and intent are immutable. Create a new task below to use different footage or a different request. The existing task remains on disk.").color(WARNING));
+            banner(ui, Tone::Warning, "This task's inputs and intent are immutable. Create a new task below to use different footage or a different request. The existing task remains on disk.");
             ui.add_space(8.0);
         }
-        ui.label(RichText::new("1  Choose local videos").strong());
-        ui.horizontal(|ui| {
-            if ui.button("Choose video files…").clicked() {
-                if let Some(paths) = rfd::FileDialog::new()
-                    .add_filter("Video", &["mp4", "mov", "mkv", "webm", "m4v", "avi"])
-                    .pick_files()
-                {
-                    for path in paths {
+        step_section(
+            ui,
+            1,
+            "Choose local videos",
+            "One source first; up to 3 files. Originals are never modified.",
+            |ui| {
+                let mut remove = None;
+                for (index, path) in self.inputs.iter().enumerate() {
+                    theme::well()
+                        .inner_margin(egui::Margin::symmetric(12.0, 6.0))
+                        .show(ui, |ui| {
+                            ui.horizontal(|ui| {
+                                theme::icon_tile(ui, Icon::Video, theme::HUE_VIDEO, 26.0);
+                                ui.label(
+                                    RichText::new(file_name(path))
+                                        .font(theme::semibold(13.0))
+                                        .color(TEXT),
+                                )
+                                .on_hover_text(path.display().to_string());
+                                ui.with_layout(
+                                    egui::Layout::right_to_left(egui::Align::Center),
+                                    |ui| {
+                                        if ui.add(theme::small_button("Remove")).clicked() {
+                                            remove = Some(index);
+                                        }
+                                    },
+                                );
+                            });
+                        });
+                }
+                if let Some(index) = remove {
+                    self.inputs.remove(index);
+                }
+                ui.horizontal(|ui| {
+                    if ui
+                        .add(theme::secondary_button("Choose video files…"))
+                        .clicked()
+                    {
+                        if let Some(paths) = rfd::FileDialog::new()
+                            .add_filter("Video", &["mp4", "mov", "mkv", "webm", "m4v", "avi"])
+                            .pick_files()
+                        {
+                            for path in paths {
+                                if !self.inputs.contains(&path) {
+                                    self.inputs.push(path);
+                                }
+                            }
+                        }
+                    }
+                    let width = (ui.available_width() - 100.0).max(120.0);
+                    ui.add(
+                        egui::TextEdit::singleline(&mut self.input_text)
+                            .margin(egui::vec2(10.0, 7.0))
+                            .hint_text(
+                                RichText::new("Or paste an absolute video path")
+                                    .color(theme::FAINT),
+                            )
+                            .desired_width(width),
+                    );
+                    if ui
+                        .add_enabled(
+                            !self.input_text.trim().is_empty(),
+                            theme::secondary_button("Add path"),
+                        )
+                        .clicked()
+                    {
+                        let path = PathBuf::from(self.input_text.trim());
                         if !self.inputs.contains(&path) {
                             self.inputs.push(path);
                         }
+                        self.input_text.clear();
+                    }
+                });
+            },
+        );
+        step_section(
+            ui,
+            2,
+            "Describe the selection",
+            "What should the cut contain, and roughly how long?",
+            |ui| {
+                ui.add(egui::TextEdit::multiline(&mut self.intent).desired_rows(3).desired_width(f32::INFINITY).margin(egui::vec2(10.0, 8.0))
+                .hint_text(RichText::new("Example: Find ocean views and city night scenes. Suggest a roughly 30-second rough cut; let me review the shots before export.").color(theme::FAINT)));
+                theme::field(ui, "Target length", |ui| {
+                    ui.add(
+                        egui::DragValue::new(&mut self.target_seconds)
+                            .clamp_range(1..=120)
+                            .suffix(" s"),
+                    );
+                });
+            },
+        );
+        step_section(ui, 3, "Save task data outside the source", "A unique task subfolder stores source fingerprints, sampled JPEGs, decisions, manual edits and verified outputs. It may contain private data: do not commit it.", |ui| {
+            ui.horizontal(|ui| {
+                let width = (ui.available_width() - 140.0).max(120.0);
+                ui.add(
+                    egui::TextEdit::singleline(&mut self.parent)
+                        .margin(egui::vec2(10.0, 7.0))
+                        .hint_text(RichText::new("Choose a private workspace parent folder").color(theme::FAINT))
+                        .desired_width(width),
+                );
+                if ui.add(theme::secondary_button("Choose folder…")).clicked() {
+                    if let Some(path) = rfd::FileDialog::new()
+                        .set_title("Task data parent directory")
+                        .pick_folder()
+                    {
+                        self.parent = path.display().to_string();
                     }
                 }
-            }
-            ui.label(
-                RichText::new("One source first; up to 3 files. Originals are never modified.")
-                    .small()
-                    .color(MUTED),
-            );
-        });
-        ui.horizontal(|ui| {
-            ui.add(
-                egui::TextEdit::singleline(&mut self.input_text)
-                    .hint_text("Or paste an absolute video path")
-                    .desired_width(460.0),
-            );
-            if ui
-                .add_enabled(
-                    !self.input_text.trim().is_empty(),
-                    egui::Button::new("Add path"),
-                )
-                .clicked()
-            {
-                let path = PathBuf::from(self.input_text.trim());
-                if !self.inputs.contains(&path) {
-                    self.inputs.push(path);
-                }
-                self.input_text.clear();
-            }
-        });
-        let mut remove = None;
-        for (index, path) in self.inputs.iter().enumerate() {
-            ui.horizontal(|ui| {
-                ui.label(format!("{}  {}", index + 1, path.display()));
-                if ui.small_button("Remove").clicked() {
-                    remove = Some(index);
-                }
             });
-        }
-        if let Some(index) = remove {
-            self.inputs.remove(index);
-        }
-        ui.add_space(12.0);
-        ui.label(RichText::new("2  Describe the selection").strong());
-        ui.add(egui::TextEdit::multiline(&mut self.intent).desired_rows(3).desired_width(f32::INFINITY)
-            .hint_text("Example: Find ocean views and city night scenes. Suggest a roughly 30-second rough cut; let me review the shots before export."));
-        ui.horizontal(|ui| {
-            ui.label("Target length (seconds)");
-            ui.add(egui::DragValue::new(&mut self.target_seconds).clamp_range(1..=120));
         });
-        ui.add_space(12.0);
-        ui.label(RichText::new("3  Save task data outside the source").strong());
-        ui.horizontal(|ui| {
-            ui.add(
-                egui::TextEdit::singleline(&mut self.parent)
-                    .hint_text("Choose a private workspace parent folder")
-                    .desired_width(480.0),
-            );
-            if ui.button("Choose folder…").clicked() {
-                if let Some(path) = rfd::FileDialog::new()
-                    .set_title("Task data parent directory")
-                    .pick_folder()
-                {
-                    self.parent = path.display().to_string();
-                }
-            }
-        });
-        ui.label(RichText::new("A unique task subfolder stores source fingerprints, sampled JPEGs, decisions, manual edits and verified outputs. It may contain private data: do not commit it.").small().color(MUTED));
-        ui.add_space(12.0);
-        egui::CollapsingHeader::new("Observation and execution budgets").show(ui, |ui| {
+        egui::CollapsingHeader::new(RichText::new("Observation and execution budgets").font(theme::semibold(13.5)).color(TEXT_2)).show(ui, |ui| {
             ui.label(RichText::new("Saved when creating a new task. These controls do not change an already opened task's limits.").small().color(MUTED));
             egui::Grid::new("agent_budget_grid").num_columns(2).spacing([18.0, 8.0]).show(ui, |ui| {
                 budget_row(ui, "Initial frames (total)", &mut self.limits.initial_frames, 1..=60);
@@ -800,8 +924,8 @@ impl VideoAgentApp {
         if ui
             .add_enabled(
                 valid && self.job.is_none() && !self.dirty,
-                egui::Button::new("Create task & inspect sources")
-                    .fill(Color32::from_rgb(31, 91, 80)),
+                theme::primary_button("Create task & inspect sources")
+                    .min_size(egui::vec2(220.0, 40.0)),
             )
             .clicked()
         {
@@ -908,12 +1032,11 @@ impl VideoAgentApp {
             if ui
                 .add_enabled(
                     enabled,
-                    egui::Button::new(if saved_decision {
+                    theme::primary_button(if saved_decision {
                         "Resume saved model decision"
                     } else {
                         "Ask vision model to observe & select"
-                    })
-                    .fill(Color32::from_rgb(31, 91, 80)),
+                    }),
                 )
                 .clicked()
             {
@@ -996,26 +1119,15 @@ impl VideoAgentApp {
         };
         let model_proposal = plan_has_model_origin(&task);
         if model_proposal {
-            ui.label(
-                RichText::new(
-                    "Origin: real model proposal. Human modifications are labelled per clip.",
-                )
-                .color(ACCENT),
+            banner(
+                ui,
+                Tone::Accent,
+                "Origin: real model proposal. Human modifications are labelled per clip.",
             );
         } else if video_agent::smart_feedback::is_adopted_model_plan(&task) {
-            ui.label(
-                RichText::new(
-                    "Origin: simulated review provider — not a real model. No semantic-quality claim is established.",
-                )
-                .color(WARNING),
-            );
+            banner(ui, Tone::Warning, "Origin: simulated review provider — not a real model. No semantic-quality claim is established.");
         } else {
-            ui.label(
-                RichText::new(
-                    "MANUAL / UNVERIFIED DRAFT · No real AI semantic selection has been verified for this plan.",
-                )
-                .color(WARNING),
-            );
+            banner(ui, Tone::Warning, "MANUAL / UNVERIFIED DRAFT · No real AI semantic selection has been verified for this plan.");
         }
         ui.label(&plan.summary);
         let total = plan
@@ -1228,11 +1340,10 @@ impl VideoAgentApp {
                     .color(ACCENT),
                 );
             } else {
-                ui.label(
-                    RichText::new(
-                        "Not confirmed. Export is locked until you approve the saved plan.",
-                    )
-                    .color(WARNING),
+                banner(
+                    ui,
+                    Tone::Warning,
+                    "Not confirmed. Export is locked until you approve the saved plan.",
                 );
             }
             ui.horizontal(|ui| {
@@ -1293,7 +1404,7 @@ impl VideoAgentApp {
                         && !self.dirty
                         && approved
                         && task.status != TaskStatus::Stale,
-                    egui::Button::new("Export confirmed cut").fill(Color32::from_rgb(31, 91, 80)),
+                    theme::primary_button("Export confirmed cut").min_size(egui::vec2(200.0, 40.0)),
                 )
                 .clicked()
             {
@@ -1524,47 +1635,75 @@ impl eframe::App for VideoAgentApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.install_fonts(ctx);
         self.poll_job(ctx);
+        if let Some(capture) = &mut self.capture {
+            let ready = self.job.is_none();
+            if ready {
+                let page = match crate::capture::Capture::page().as_deref() {
+                    Some("observe") => Some(Page::Observe),
+                    Some("edit") => Some(Page::Edit),
+                    Some("result") => Some(Page::Result),
+                    Some("sources") => Some(Page::Sources),
+                    _ => None,
+                };
+                if let (Some(page), true) = (page, self.task.is_some()) {
+                    self.page = page;
+                }
+            }
+            capture.update_when(ctx, ready);
+        }
         self.header(ctx);
-        egui::TopBottomPanel::bottom("video_agent_status").show(ctx, |ui| {
-            ui.add_space(4.0);
+        egui::TopBottomPanel::bottom("video_agent_status")
+            .show_separator_line(false)
+            .frame(
+                egui::Frame::none()
+                    .fill(theme::SURFACE)
+                    .stroke(egui::Stroke::new(1.0_f32, theme::LINE))
+                    .inner_margin(egui::Margin::symmetric(20.0, 6.0)),
+            )
+            .show(ctx, |ui| {
             ui.horizontal(|ui| {
                 if let Some(job) = self.job.as_ref() {
-                    ui.spinner();
+                    ui.add(egui::Spinner::new().size(12.0).color(ACCENT));
                     ui.label(format!("{} · {:.1}s", if job.cancel.is_cancelled() { "Cancellation requested; retaining completed stages" } else { &job.label }, job.started.elapsed().as_secs_f64()));
-                    if ui.add_enabled(!job.cancel.is_cancelled(), egui::Button::new("Cancel operation")).clicked() {
+                    if ui.add_enabled(!job.cancel.is_cancelled(), theme::small_button("Cancel operation")).clicked() {
                         job.cancel.cancel();
                         self.notice = "Cancellation requested. Waiting for the current bounded operation to stop; completed stages stay on disk.".into();
                     }
                 } else {
-                    ui.label(RichText::new(&self.notice).small().color(MUTED));
+                    theme::status_dot(ui, theme::SUCCESS, "");
+                    ui.add(egui::Label::new(RichText::new(&self.notice).size(12.0).color(MUTED)).truncate(true));
                 }
-                if self.player.is_some() && ui.button("Stop preview").clicked() { self.stop_player(); }
+                if self.player.is_some() && ui.add(theme::small_button("Stop preview")).clicked() { self.stop_player(); }
+                if let Some(path) = self.task_dir.as_ref() {
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        ui.add(egui::Label::new(RichText::new(theme::display_path(path)).monospace().size(11.0).color(theme::FAINT)).truncate(true))
+                            .on_hover_text(format!("Task data: {}", path.display()));
+                    });
+                }
             });
-            if let Some(path) = self.task_dir.as_ref() {
-                ui.label(RichText::new(format!("Task data: {}", path.display())).small().color(MUTED));
-            }
-            ui.add_space(4.0);
         });
         self.sidebar(ctx);
-        egui::CentralPanel::default().show(ctx, |ui| {
+        egui::CentralPanel::default().frame(egui::Frame::none().fill(theme::SURFACE)).show(ctx, |ui| {
             egui::ScrollArea::vertical().id_source(("video_agent_content", self.page, self.task.as_ref().map(|task| &task.id))).auto_shrink([false, false]).show(ui, |ui| {
-                ui.add_space(12.0);
+              egui::Frame::none().inner_margin(egui::Margin { left: 36.0, right: 36.0, top: 28.0, bottom: 28.0 }).show(ui, |ui| {
+               theme::constrained(ui, 1080.0, |ui| {
                 if let Some(error) = self.error.clone() {
-                    egui::Frame::none().fill(Color32::from_rgb(65, 34, 42)).rounding(8.0).inner_margin(12.0).show(ui, |ui| {
+                    egui::Frame::none().fill(theme::DANGER_SOFT).stroke(egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(252, 202, 202))).rounding(theme::RADIUS).inner_margin(12.0).show(ui, |ui| {
+                        ui.set_width(ui.available_width());
                         ui.horizontal_wrapped(|ui| {
                             ui.label(RichText::new(error).color(ERROR));
-                            if ui.small_button("Dismiss").clicked() { self.error = None; }
+                            if ui.add(theme::small_button("Dismiss")).clicked() { self.error = None; }
                         });
                     });
                     ui.add_space(10.0);
                 }
                 if self.task.as_ref().is_some_and(|task| task.status == TaskStatus::Stale) {
-                    ui.colored_label(ERROR, "INPUT CHANGED · This task is stale. Create a new task from the changed source; old approval cannot authorize export.");
+                    banner(ui, Tone::Danger, "INPUT CHANGED · This task is stale. Create a new task from the changed source; old approval cannot authorize export.");
                     ui.add_space(10.0);
                 }
                 if let Some(task) = self.task.as_ref() {
                     if !has_execution_budget(&task.usage, &task.limits) {
-                        ui.colored_label(ERROR, "EXECUTION BUDGET EXHAUSTED · Saved records remain readable, but further processing is locked. Reopening does not reverify sources or outputs.");
+                        banner(ui, Tone::Danger, "EXECUTION BUDGET EXHAUSTED · Saved records remain readable, but further processing is locked. Reopening does not reverify sources or outputs.");
                         if let Some(error) = &task.last_error {
                             ui.label(RichText::new(format!("Saved task state: {error}")).small().color(WARNING));
                         }
@@ -1580,7 +1719,8 @@ impl eframe::App for VideoAgentApp {
                 if matches!(self.page, Page::Edit | Page::Result) {
                     self.smart_feedback_panel(ui);
                 }
-                ui.add_space(20.0);
+               });
+              });
             });
         });
     }
@@ -1613,18 +1753,117 @@ impl Drop for VideoAgentApp {
 }
 
 fn title(ui: &mut egui::Ui, heading: &str, subtitle: &str) {
-    ui.heading(RichText::new(heading).size(26.0));
-    ui.label(RichText::new(subtitle).color(MUTED));
-    ui.add_space(15.0);
+    ui.label(RichText::new(heading).font(theme::bold(26.0)).color(TEXT));
+    ui.add_space(-4.0);
+    ui.add(egui::Label::new(RichText::new(subtitle).size(14.0).color(MUTED)).wrap(true));
+    ui.add_space(16.0);
 }
 
 fn card<R>(ui: &mut egui::Ui, content: impl FnOnce(&mut egui::Ui) -> R) -> R {
-    egui::Frame::none()
-        .fill(Color32::from_rgb(28, 35, 47))
-        .rounding(9.0)
-        .inner_margin(12.0)
-        .show(ui, content)
+    theme::card()
+        .inner_margin(16.0)
+        .show(ui, |ui| {
+            ui.set_width(ui.available_width());
+            content(ui)
+        })
         .inner
+}
+
+/// Numbered card used for the task-creation steps.
+fn step_section(
+    ui: &mut egui::Ui,
+    number: usize,
+    heading: &str,
+    description: &str,
+    content: impl FnOnce(&mut egui::Ui),
+) {
+    theme::card().show(ui, |ui| {
+        ui.set_width(ui.available_width());
+        ui.spacing_mut().item_spacing.y = 4.0;
+        ui.horizontal(|ui| {
+            let (rect, _) = ui.allocate_exact_size(egui::vec2(24.0, 24.0), egui::Sense::hover());
+            ui.painter()
+                .circle_filled(rect.center(), 12.0, theme::ACCENT_SOFT);
+            ui.painter().text(
+                rect.center(),
+                egui::Align2::CENTER_CENTER,
+                number.to_string(),
+                theme::semibold(12.0),
+                ACCENT,
+            );
+            ui.label(
+                RichText::new(heading)
+                    .font(theme::semibold(15.0))
+                    .color(TEXT),
+            );
+        });
+        ui.horizontal(|ui| {
+            ui.add_space(32.0);
+            ui.add(egui::Label::new(RichText::new(description).size(12.5).color(MUTED)).wrap(true));
+        });
+        ui.add_space(8.0);
+        ui.horizontal(|ui| {
+            ui.add_space(32.0);
+            ui.vertical(|ui| {
+                ui.spacing_mut().item_spacing.y = 10.0;
+                content(ui)
+            });
+        });
+    });
+    ui.add_space(12.0);
+}
+
+/// Full-width tinted notice.
+fn banner(ui: &mut egui::Ui, tone: Tone, text: &str) {
+    let (fill, color) = match tone {
+        Tone::Danger => (theme::DANGER_SOFT, theme::DANGER),
+        Tone::Warning => (theme::WARNING_SOFT, WARNING),
+        _ => (theme::ACCENT_SOFT, ACCENT),
+    };
+    egui::Frame::none()
+        .fill(fill)
+        .rounding(theme::RADIUS)
+        .inner_margin(egui::Margin::symmetric(12.0, 10.0))
+        .show(ui, |ui| {
+            ui.set_width(ui.available_width());
+            ui.add(egui::Label::new(RichText::new(text).size(13.0).color(color)).wrap(true));
+        });
+}
+
+/// Labelled usage bar for the budget sidebar.
+fn meter(ui: &mut egui::Ui, label: &str, used: f64, limit: f64, text: String) -> egui::Response {
+    let fraction = if limit > 0.0 {
+        (used / limit).clamp(0.0, 1.0) as f32
+    } else {
+        0.0
+    };
+    ui.vertical(|ui| {
+        ui.spacing_mut().item_spacing.y = 3.0;
+        ui.spacing_mut().interact_size.y = 16.0;
+        ui.horizontal(|ui| {
+            ui.label(RichText::new(label).size(12.5).color(TEXT_2));
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                ui.label(RichText::new(text).monospace().size(11.5).color(TEXT));
+            });
+        });
+        let (rect, _) =
+            ui.allocate_exact_size(egui::vec2(ui.available_width(), 4.0), egui::Sense::hover());
+        ui.painter().rect_filled(rect, 2.0, theme::HOVER);
+        let color = if fraction >= 0.9 {
+            theme::DANGER
+        } else if fraction >= 0.7 {
+            WARNING
+        } else {
+            ACCENT
+        };
+        if fraction > 0.0 {
+            let mut bar = rect;
+            bar.set_width((rect.width() * fraction).max(4.0));
+            ui.painter().rect_filled(bar, 2.0, color);
+        }
+        ui.add_space(4.0);
+    })
+    .response
 }
 
 fn budget_row(

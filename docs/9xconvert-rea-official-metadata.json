@@ -1,0 +1,41 @@
+{
+  "result": {
+    "kind": "evidence-bundle-summary",
+    "filters": {
+      "operation": "analyze_javascript_application",
+      "target_sha256": "d424d510e353b41de2bea71882d92da0170aa935213c1936e081383fd046524a"
+    },
+    "total_retained_records": 2,
+    "matching_records": 1,
+    "unknown_revisions": 0,
+    "records": [
+      {
+        "evidence_id": "ev_0360fc16d8ba702fbb96ac16defa5af85db4b9f9d721d69c0020117aee402165",
+        "subject": {
+          "name": "app.asar",
+          "digest": {
+            "sha256": "d424d510e353b41de2bea71882d92da0170aa935213c1936e081383fd046524a"
+          },
+          "format": "asar",
+          "architecture": null,
+          "local_path": "/Applications/9xconvert.app/Contents/Resources/app.asar"
+        },
+        "provider": {
+          "id": "rea-javascript-application",
+          "name": "REA JavaScript application analyzer",
+          "version": "1"
+        },
+        "operation": "analyze_javascript_application",
+        "confidence": "derived",
+        "authority": "shipped-artifact",
+        "analysis_profile_digest": null,
+        "retention": "complete-record",
+        "limitation_count": 9461,
+        "native_dossier": {
+          "available": false,
+          "reason": "different-operation"
+        }
+      }
+    ]
+  }
+}

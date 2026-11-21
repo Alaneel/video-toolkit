@@ -10,11 +10,14 @@ gif_transparency = { path = "../gif_transparency" }
 splitter = { path = "../splitter" }
 merger = { path = "../merger" }
 common = { path = "../common" }
+file_conversion = { path = "../file_conversion" }
+file_workflows = { path = "../file_workflows" }
+serde_json = "1.0"
 batch_processing = { path = "../batch_processing" }
 profile_system = { path = "../profile_system" }
 plugin_system = { path = "../plugin_system" }
 video_agent = { path = "../video_agent" }
-image = { version = "0.24", default-features = false, features = ["jpeg"] }
+image = { version = "0.24", default-features = false, features = ["jpeg", "png"] }
 
 eframe = "0.24.0"
 egui = "0.24.0"

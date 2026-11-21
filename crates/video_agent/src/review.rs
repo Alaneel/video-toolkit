@@ -516,6 +516,37 @@ fn parse(response: &Value, request: &ReviewRequest) -> Result<ReviewDecision> {
     Ok(decision)
 }
 
+// Only these locally assigned labels may survive orchestration's privacy filter.
+// Never derive a diagnostic label from provider arguments or free-form errors.
+fn rejection_code(error: &AgentError) -> &'static str {
+    match error {
+        AgentError::Invalid(message) => match message.as_str() {
+            "Preview review response is incomplete" => "review_incomplete",
+            "Preview review response omitted output" => "review_output_missing",
+            "Expected exactly one permitted review_cut call" => "review_tool_mismatch",
+            "Preview review arguments missing or oversized" => "review_arguments_invalid",
+            "Preview review arguments do not match the strict schema" => "review_schema_invalid",
+            "Review issue cites duplicate, unsent or unrelated evidence"
+            | "Revised clips may cite only supplied source samples inside their interval, never preview images" => "review_evidence_invalid",
+            _ => "review_decision_invalid",
+        },
+        _ => "review_decision_invalid",
+    }
+}
+
+pub(crate) fn safe_rejection_code(detail: Option<&str>) -> Option<&'static str> {
+    match detail {
+        Some("review_incomplete") => Some("review_incomplete"),
+        Some("review_output_missing") => Some("review_output_missing"),
+        Some("review_tool_mismatch") => Some("review_tool_mismatch"),
+        Some("review_arguments_invalid") => Some("review_arguments_invalid"),
+        Some("review_schema_invalid") => Some("review_schema_invalid"),
+        Some("review_evidence_invalid") => Some("review_evidence_invalid"),
+        Some("review_decision_invalid") => Some("review_decision_invalid"),
+        _ => None,
+    }
+}
+
 fn outcome(
     request: &ReviewRequest,
     response: &Value,
@@ -530,7 +561,7 @@ fn outcome(
         Err(error) => {
             let message = error.to_string();
             record.status = "feedback_response_rejected".into();
-            record.error = Some(message.clone());
+            record.error = Some(rejection_code(&error).into());
             Err(AgentError::ModelResponseRejected {
                 message,
                 record: Box::new(record),
@@ -998,6 +1029,49 @@ mod tests {
     }
 
     #[test]
+    fn rejection_diagnostics_are_local_fixed_labels_not_untrusted_text() {
+        let cases = [
+            ("Preview review response is incomplete", "review_incomplete"),
+            (
+                "Preview review response omitted output",
+                "review_output_missing",
+            ),
+            (
+                "Expected exactly one permitted review_cut call",
+                "review_tool_mismatch",
+            ),
+            (
+                "Preview review arguments missing or oversized",
+                "review_arguments_invalid",
+            ),
+            (
+                "Preview review arguments do not match the strict schema",
+                "review_schema_invalid",
+            ),
+            (
+                "Review issue cites duplicate, unsent or unrelated evidence",
+                "review_evidence_invalid",
+            ),
+            (
+                "untrusted fixture /private/example credential-like text",
+                "review_decision_invalid",
+            ),
+        ];
+        for (message, expected) in cases {
+            let code = rejection_code(&AgentError::Invalid(message.into()));
+            assert_eq!(code, expected);
+            assert_eq!(safe_rejection_code(Some(code)), Some(expected));
+        }
+        for untrusted in [
+            None,
+            Some("review_schema_invalid plus private details"),
+            Some("private fixture"),
+        ] {
+            assert!(safe_rejection_code(untrusted).is_none());
+        }
+    }
+
+    #[test]
     fn rejected_schema_retains_actual_usage_model_response_and_modality_trace() {
         let (_root, request, provider) = fixture();
         let response = response(
@@ -1031,6 +1105,7 @@ mod tests {
         );
         assert_eq!(record.request_id.as_deref(), Some("req_fixture"));
         assert_eq!(record.status, "feedback_response_rejected");
+        assert_eq!(record.error.as_deref(), Some("review_tool_mismatch"));
         assert!(record.decision.is_none());
         assert_eq!(
             record.sample_ids,

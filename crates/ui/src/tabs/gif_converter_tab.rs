@@ -1,3 +1,4 @@
+use crate::theme;
 use eframe::egui::{self, Ui};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
@@ -31,80 +32,89 @@ impl GifConverterTab {
     }
 
     pub fn ui(&mut self, ui: &mut Ui) {
-        // Input file section
-        ui.heading("Input Video");
-        ui.horizontal(|ui| {
-            ui.text_edit_singleline(&mut self.input_file);
-            if ui.button("Browse").clicked() {
-                if let Some(path) = rfd::FileDialog::new()
-                    .add_filter("Video Files", &["mp4", "webm", "avi", "mov", "mkv"])
-                    .pick_file()
-                {
-                    self.input_file = path.to_string_lossy().to_string();
-
-                    // Set default output file if not set
-                    if self.output_file.is_empty() {
-                        let input_path = Path::new(&self.input_file);
-                        if let Some(stem) = input_path.file_stem() {
-                            let mut output_path =
-                                PathBuf::from(input_path.parent().unwrap_or_else(|| Path::new("")));
-                            output_path.push(stem);
-                            output_path.set_extension("gif");
-                            self.output_file = output_path.to_string_lossy().to_string();
+        theme::section(ui, "Files", None, |ui| {
+            theme::field(ui, "Input video", |ui| {
+                if theme::path_input(ui, &mut self.input_file, "MP4, WebM, AVI, MOV or MKV") {
+                    if let Some(path) = rfd::FileDialog::new()
+                        .add_filter("Video Files", &["mp4", "webm", "avi", "mov", "mkv"])
+                        .pick_file()
+                    {
+                        self.input_file = path.to_string_lossy().to_string();
+                        if self.output_file.is_empty() {
+                            let input_path = Path::new(&self.input_file);
+                            if let Some(stem) = input_path.file_stem() {
+                                let mut output_path = PathBuf::from(
+                                    input_path.parent().unwrap_or_else(|| Path::new("")),
+                                );
+                                output_path.push(stem);
+                                output_path.set_extension("gif");
+                                self.output_file = output_path.to_string_lossy().to_string();
+                            }
                         }
                     }
                 }
-            }
-        });
-
-        // Output file section
-        ui.heading("Output GIF");
-        ui.horizontal(|ui| {
-            ui.text_edit_singleline(&mut self.output_file);
-            if ui.button("Browse").clicked() {
-                if let Some(path) = rfd::FileDialog::new()
-                    .add_filter("GIF Files", &["gif"])
-                    .save_file()
-                {
-                    self.output_file = path.to_string_lossy().to_string();
-
-                    // Make sure it has .gif extension
-                    if !self.output_file.ends_with(".gif") {
-                        self.output_file.push_str(".gif");
+            });
+            theme::field(ui, "Save GIF as", |ui| {
+                if theme::path_input(
+                    ui,
+                    &mut self.output_file,
+                    "Chosen automatically from the input",
+                ) {
+                    if let Some(path) = rfd::FileDialog::new()
+                        .add_filter("GIF Files", &["gif"])
+                        .save_file()
+                    {
+                        self.output_file = path.to_string_lossy().to_string();
+                        if !self.output_file.ends_with(".gif") {
+                            self.output_file.push_str(".gif");
+                        }
                     }
                 }
-            }
+            });
         });
 
-        // Options section
-        ui.heading("Conversion Options");
-
-        ui.horizontal(|ui| {
-            ui.label("Width:");
-            ui.text_edit_singleline(&mut self.width);
-            ui.label("(leave empty for auto)");
-        });
-
-        ui.horizontal(|ui| {
-            ui.label("FPS:");
-            ui.text_edit_singleline(&mut self.fps);
-        });
-
-        ui.horizontal(|ui| {
-            ui.label("Max Size (MB):");
-            ui.text_edit_singleline(&mut self.max_size);
-        });
-
-        ui.checkbox(
-            &mut self.optimize,
-            "Optimize (try multiple settings to achieve size target)",
+        theme::section(
+            ui,
+            "Look and size",
+            Some("Lower frame rates and widths make smaller files."),
+            |ui| {
+                let small = |ui: &mut Ui, value: &mut String, hint: &str| {
+                    ui.add(
+                        egui::TextEdit::singleline(value)
+                            .margin(egui::vec2(10.0, 7.0))
+                            .hint_text(hint)
+                            .desired_width(120.0),
+                    );
+                };
+                theme::field(ui, "Width (px)", |ui| {
+                    small(ui, &mut self.width, "Auto");
+                    ui.label(
+                        egui::RichText::new("Leave empty to keep the source width")
+                            .size(12.0)
+                            .color(theme::MUTED),
+                    );
+                });
+                theme::field(ui, "Frame rate", |ui| {
+                    small(ui, &mut self.fps, "10");
+                    ui.label(egui::RichText::new("fps").size(12.0).color(theme::MUTED));
+                });
+                theme::field(ui, "Size limit", |ui| {
+                    small(ui, &mut self.max_size, "5.0");
+                    ui.label(egui::RichText::new("MB").size(12.0).color(theme::MUTED));
+                });
+                theme::field(ui, "Optimise", |ui| {
+                    ui.checkbox(
+                        &mut self.optimize,
+                        "Try several settings to meet the size limit",
+                    );
+                });
+            },
         );
 
-        // Execute button
-        ui.add_space(10.0);
+        ui.add_space(4.0);
         let button = ui.add_enabled(
             !*self.processing.lock().unwrap(),
-            egui::Button::new("Convert to GIF"),
+            theme::primary_button("Convert to GIF").min_size(egui::vec2(160.0, 40.0)),
         );
 
         if button.clicked() {

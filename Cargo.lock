@@ -1250,6 +1250,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "file_conversion"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "common",
+ "libc",
+ "serde",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
+name = "file_workflows"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "encoding_rs",
+ "file_conversion",
+ "libc",
+ "regex",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "url",
+]
+
+[[package]]
 name = "flate2"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3573,6 +3600,8 @@ dependencies = [
  "common",
  "eframe",
  "egui",
+ "file_conversion",
+ "file_workflows",
  "gif_converter",
  "gif_transparency",
  "image",
@@ -3580,6 +3609,7 @@ dependencies = [
  "plugin_system",
  "profile_system",
  "rfd",
+ "serde_json",
  "splitter",
  "video_agent",
  "winapi",
@@ -3663,6 +3693,8 @@ dependencies = [
  "common",
  "eframe",
  "egui",
+ "file_conversion",
+ "file_workflows",
  "gif_converter",
  "gif_transparency",
  "lazy_static",
@@ -3674,6 +3706,7 @@ dependencies = [
  "serde",
  "serde_json",
  "splitter",
+ "tempfile",
  "thiserror",
  "ui",
  "video_agent",
