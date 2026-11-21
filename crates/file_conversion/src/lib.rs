@@ -621,6 +621,19 @@ fn probe(tool: &Path, input: &Path, cancel: &CancelToken) -> Result<Probe> {
     serde_json::from_slice(&result.stdout).context("ffprobe returned invalid or excessive metadata")
 }
 
+/// Whether this FFmpeg build lists `name` among its encoders.
+fn has_encoder(ffmpeg: &Path, name: &str, cancel: &CancelToken) -> bool {
+    let mut command = Command::new(ffmpeg);
+    command.args(["-hide_banner", "-nostdin", "-encoders"]);
+    run_process(command, cancel, PROBE_TIMEOUT, |_| {})
+        .map(|output| {
+            String::from_utf8_lossy(&output.stdout)
+                .lines()
+                .any(|line| line.split_whitespace().nth(1) == Some(name))
+        })
+        .unwrap_or(false)
+}
+
 fn convert_media(
     ffmpeg: &Path,
     ffprobe: &Path,
@@ -650,6 +663,10 @@ fn convert_media(
     ]);
     restricted_input(&mut command, input);
     command.args(["-map_metadata", "-1", "-map_chapters", "-1", "-sn", "-dn"]);
+    // Some FFmpeg builds (e.g. current Homebrew) omit libvorbis; fall back to the
+    // built-in Vorbis encoder, which is marked experimental and stereo-only.
+    let ogg_with_libvorbis =
+        format == TargetFormat::Ogg && has_encoder(ffmpeg, "libvorbis", cancel);
     if let Some(video) = format.video() {
         command.args(["-map", "0:v:0", "-map", "0:a:0?"]);
         command.args(video.encoding_options());
@@ -661,7 +678,21 @@ fn convert_media(
             TargetFormat::M4a => &["-c:a", "aac", "-b:a", "192k", "-f", "ipod"][..],
             TargetFormat::Wav => &["-c:a", "pcm_s16le", "-f", "wav"][..],
             TargetFormat::Flac => &["-c:a", "flac", "-f", "flac"][..],
-            TargetFormat::Ogg => &["-c:a", "libvorbis", "-q:a", "5", "-f", "ogg"][..],
+            TargetFormat::Ogg if ogg_with_libvorbis => {
+                &["-c:a", "libvorbis", "-q:a", "5", "-f", "ogg"][..]
+            }
+            TargetFormat::Ogg => &[
+                "-c:a",
+                "vorbis",
+                "-strict",
+                "experimental",
+                "-ac",
+                "2",
+                "-q:a",
+                "5",
+                "-f",
+                "ogg",
+            ][..],
             _ => unreachable!(),
         });
     }

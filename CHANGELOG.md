@@ -23,6 +23,7 @@ All notable changes to Video Toolkit are documented here. The project follows [S
 - Introduce a shared design system (`crates/ui/src/theme.rs`): neutral tokens with one accent, DM Sans SemiBold/Bold static instances for hierarchy, and reusable buttons, chips, segmented controls, cards, form rows, badges and empty states.
 - Restyle every Toolkit page on that system: grouped labelled sidebar with an engine-status card, Convert quick-start cards and dashed drop zone, File tools sections, editor breadcrumbs and form cards, Batches/Profiles/Plugins cards, and Settings paths shown relative to `~`.
 - Bring the Video Agent window onto the same light theme with a numbered step bar, budget meters and tone-coded banners; all consent, budget and verification wording is unchanged.
+- OGG output falls back to FFmpeg's built-in (stereo) Vorbis encoder when the FFmpeg build lacks `libvorbis`, as current Homebrew builds do.
 - Add an opt-in `VTK_SCREENSHOT`/`VTK_PAGE` capture hook for refreshing documentation screenshots, and refresh `assets/video-toolkit-ui.png`.
 
 ### Local file conversion
