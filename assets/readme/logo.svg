@@ -7,5 +7,6 @@
     <rect width="96" height="96" fill="#111118"/>
     <rect width="96" height="48" fill="#282834"/>
   </g>
+  <rect x="0.75" y="0.75" width="94.5" height="94.5" rx="25.25" fill="none" stroke="#4a4a5c" stroke-width="1.5"/>
   <path d="M38 30 L68 48 L38 66 Z" fill="#ffffff"/>
 </svg>
